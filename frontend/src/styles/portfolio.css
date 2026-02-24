@@ -1,0 +1,361 @@
+/* ── Portfolio View ────────────────────────── */
+.portfolio-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.portfolio-header__user {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.section {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  letter-spacing: 0.02em;
+}
+
+.section-subtitle {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--color-text-muted);
+}
+
+/* ── Portfolio Value ──────────────────────── */
+.portfolio-value {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.portfolio-value__label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.portfolio-value__amount {
+  font-size: 2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Account Summary ──────────────────────── */
+.account-summary__accounts {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.account-pill {
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.account-pill:hover {
+  border-color: var(--color-accent);
+  color: var(--color-text);
+}
+
+.account-pill--active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: white;
+}
+
+/* ── Holdings Table ───────────────────────── */
+.holdings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.holdings-table th {
+  text-align: left;
+  color: var(--color-text-muted);
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.holdings-table td {
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.holdings-table__ticker {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.holdings-table__account {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.holdings-table__value {
+  font-variant-numeric: tabular-nums;
+}
+
+.text-right {
+  text-align: right;
+}
+
+/* ── Exposure X-Ray ───────────────────────── */
+.exposure-xray__header {
+  margin-bottom: 1rem;
+}
+
+.exposure-xray__subtitle {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-top: 0.25rem;
+}
+
+.exposure-xray__bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.exposure-xray__stale-warning {
+  margin-top: 1rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: var(--color-ambiguous);
+}
+
+/* ── Exposure Bar ─────────────────────────── */
+.exposure-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.exposure-bar__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.exposure-bar__label {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.exposure-bar__value {
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+
+.exposure-bar__track {
+  height: 8px;
+  background: var(--color-surface);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.exposure-bar__fill {
+  height: 100%;
+  border-radius: 4px;
+  animation: bar-grow 0.6s ease-out forwards;
+  transform-origin: left;
+  transform: scaleX(0);
+}
+
+@keyframes bar-grow {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.exposure-bar__sources {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.exposure-bar__source {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
+
+/* ── Concentration Warnings ───────────────── */
+.concentration-warnings {
+  margin-bottom: 1rem;
+}
+
+.concentration-warnings__title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-negative);
+  margin-bottom: 0.5rem;
+}
+
+.concentration-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 0.35rem;
+  font-size: 0.8rem;
+}
+
+.concentration-warning--critical {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--color-negative);
+}
+
+.concentration-warning--high {
+  background: rgba(249, 115, 22, 0.12);
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  color: #f97316;
+}
+
+.concentration-warning--medium {
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  color: var(--color-ambiguous);
+}
+
+.concentration-warning--low {
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  color: var(--color-accent);
+}
+
+.concentration-warning__icon {
+  font-weight: 700;
+  font-size: 0.75rem;
+  min-width: 1.5rem;
+  text-align: center;
+}
+
+/* ── Overlap List ─────────────────────────── */
+.overlap-list {
+  margin-top: 1.25rem;
+}
+
+.overlap-list__description {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.overlap-list__items {
+  list-style: none;
+}
+
+.overlap-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.35rem 0;
+  font-size: 0.8rem;
+  border-bottom: 1px solid rgba(42, 42, 58, 0.5);
+}
+
+.overlap-item__name {
+  font-weight: 500;
+  flex: 1;
+}
+
+.overlap-item__total {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ambiguous);
+  font-weight: 600;
+}
+
+.overlap-item__sources {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+/* ── Monitoring Status ────────────────────── */
+.monitoring-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+.monitoring-status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-positive);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.monitoring-status__text {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* ── Loading & Error ──────────────────────── */
+.loading {
+  padding: 3rem;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.error-banner {
+  margin: 1rem 1.5rem;
+  padding: 1rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: var(--color-negative);
+}
+
+.error-banner__hint {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-top: 0.5rem;
+}
+
+.signal-cards-placeholder {
+  opacity: 0.5;
+}

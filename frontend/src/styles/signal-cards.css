@@ -1,0 +1,245 @@
+/* ── Signal Cards ─────────────────────────── */
+.signal-cards-section__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.signal-cards-section__overflow-link {
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  cursor: pointer;
+  font-size: 0.82rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.signal-cards-section__status,
+.signal-cards-section__error {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  padding: 0.6rem 0;
+}
+
+.signal-cards-section__error {
+  color: var(--color-negative);
+}
+
+.signal-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.signal-card {
+  border: 1px solid var(--color-border);
+  border-left-width: 4px;
+  border-radius: 10px;
+  background: rgba(20, 20, 32, 0.8);
+  padding: 0.85rem 0.95rem;
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    transform 0.16s ease,
+    background 0.16s ease;
+  animation: signal-slide-in 320ms ease-out;
+}
+
+.signal-card:hover,
+.signal-card:focus-visible {
+  border-color: rgba(99, 102, 241, 0.55);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.signal-card--transient {
+  border-left-color: #3b82f6;
+}
+
+.signal-card--structural {
+  border-left-color: #f97316;
+}
+
+.signal-card--ambiguous {
+  border-left-color: #eab308;
+}
+
+.signal-card--viewed {
+  opacity: 0.78;
+}
+
+.signal-card__headline {
+  font-size: 0.93rem;
+  line-height: 1.35;
+  margin-bottom: 0.35rem;
+}
+
+.signal-card__description {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.55rem;
+}
+
+.signal-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.65rem;
+}
+
+.signal-badge {
+  font-size: 0.72rem;
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid transparent;
+}
+
+.signal-badge--transient {
+  color: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.35);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.signal-badge--structural {
+  color: #fb923c;
+  border-color: rgba(251, 146, 60, 0.35);
+  background: rgba(249, 115, 22, 0.1);
+}
+
+.signal-badge--ambiguous {
+  color: #facc15;
+  border-color: rgba(250, 204, 21, 0.3);
+  background: rgba(234, 179, 8, 0.1);
+}
+
+.signal-card__materiality {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+.signal-card__materiality--high {
+  color: #fb923c;
+}
+
+.signal-card__materiality--medium {
+  color: #facc15;
+}
+
+.signal-card__materiality--low {
+  color: #94a3b8;
+}
+
+.signal-card__viewed {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+}
+
+.signal-card__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.signal-card__source {
+  font-size: 0.74rem;
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.signal-card__source:hover {
+  text-decoration: underline;
+}
+
+.signal-card__cta {
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+/* ── In-App Notification ─────────────────── */
+.in-app-notification {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  width: min(360px, calc(100vw - 2rem));
+  border: 1px solid rgba(249, 115, 22, 0.5);
+  background: #171725;
+  border-radius: 12px;
+  padding: 0.85rem;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
+  z-index: 20;
+  animation: notification-in 260ms ease-out;
+}
+
+.in-app-notification__label {
+  display: inline-block;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #fb923c;
+  margin-bottom: 0.25rem;
+}
+
+.in-app-notification__headline {
+  font-size: 0.86rem;
+  line-height: 1.35;
+  margin-bottom: 0.45rem;
+}
+
+.in-app-notification__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+}
+
+.in-app-notification__button,
+.in-app-notification__close {
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+  border-radius: 999px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.in-app-notification__button {
+  border-color: rgba(249, 115, 22, 0.5);
+  color: #fb923c;
+}
+
+@keyframes signal-slide-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(-1px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes notification-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

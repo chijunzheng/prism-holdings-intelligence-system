@@ -1,0 +1,146 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { MAX_ACTIVE_SIGNALS, type Signal } from '@prism/shared'
+import { useNavigate } from 'react-router-dom'
+import { SignalCard } from './SignalCard'
+import { InAppNotification } from './InAppNotification'
+import {
+  getMateriality,
+  buildSignalGraphRoute,
+  getOverflowCount,
+  getVisibleSignals,
+  markSignalViewed,
+  readViewedSignalIds,
+  sortSignalsForCards,
+} from './signal-utils'
+
+interface SignalCardsSectionProps {
+  readonly userId: string
+  readonly signals: ReadonlyArray<Signal>
+  readonly loading: boolean
+  readonly error: string | null
+}
+
+export function SignalCardsSection({
+  userId,
+  signals,
+  loading,
+  error,
+}: SignalCardsSectionProps) {
+  const navigate = useNavigate()
+  const [showAll, setShowAll] = useState(false)
+  const [viewedSignalIds, setViewedSignalIds] = useState<ReadonlySet<string>>(
+    () => readViewedSignalIds(userId),
+  )
+  const [notificationSignal, setNotificationSignal] = useState<Signal | null>(null)
+  const lastNotifiedSignalId = useRef<string | null>(null)
+
+  useEffect(() => {
+    setViewedSignalIds(readViewedSignalIds(userId))
+    setShowAll(false)
+    setNotificationSignal(null)
+    lastNotifiedSignalId.current = null
+  }, [userId])
+
+  const materialSignals = useMemo(
+    () => signals.filter((signal) => getMateriality(signal) !== 'low'),
+    [signals],
+  )
+  const orderedSignals = useMemo(() => sortSignalsForCards(materialSignals), [materialSignals])
+  const visibleSignals = useMemo(
+    () =>
+      showAll ? orderedSignals : getVisibleSignals(orderedSignals, MAX_ACTIVE_SIGNALS),
+    [orderedSignals, showAll],
+  )
+  const overflowCount = getOverflowCount(orderedSignals, MAX_ACTIVE_SIGNALS)
+
+  const topHighSignal = useMemo(
+    () =>
+      orderedSignals.find(
+        (signal) => getMateriality(signal) === 'high' && !viewedSignalIds.has(signal.id),
+      ) ?? null,
+    [orderedSignals, viewedSignalIds],
+  )
+
+  useEffect(() => {
+    if (!topHighSignal) return
+    if (lastNotifiedSignalId.current === topHighSignal.id) return
+    lastNotifiedSignalId.current = topHighSignal.id
+    setNotificationSignal(topHighSignal)
+  }, [topHighSignal])
+
+  useEffect(() => {
+    if (!notificationSignal) return
+    const timer = window.setTimeout(() => {
+      setNotificationSignal(null)
+    }, 8000)
+    return () => window.clearTimeout(timer)
+  }, [notificationSignal])
+
+  function handleViewAnalysis(signal: Signal) {
+    const nextViewed = markSignalViewed(userId, signal.id)
+    setViewedSignalIds(nextViewed)
+    setNotificationSignal(null)
+    navigate(buildSignalGraphRoute(signal.id))
+  }
+
+  return (
+    <div className="signal-cards-section">
+      <div className="signal-cards-section__header">
+        <h2 className="section-title">Active Signals</h2>
+        {overflowCount > 0 && !showAll && (
+          <button
+            type="button"
+            className="signal-cards-section__overflow-link"
+            onClick={() => setShowAll(true)}
+          >
+            View all ({orderedSignals.length}) →
+          </button>
+        )}
+        {showAll && orderedSignals.length > MAX_ACTIVE_SIGNALS && (
+          <button
+            type="button"
+            className="signal-cards-section__overflow-link"
+            onClick={() => setShowAll(false)}
+          >
+            Show fewer
+          </button>
+        )}
+      </div>
+
+      {loading && (
+        <p className="signal-cards-section__status">
+          Scanning live market events for material signals...
+        </p>
+      )}
+
+      {error && <p className="signal-cards-section__error">Unable to load signals: {error}</p>}
+
+      {!loading && !error && orderedSignals.length === 0 && (
+        <p className="signal-cards-section__status">
+          No material signals right now. Monitoring continues in the background.
+        </p>
+      )}
+
+      {!error && visibleSignals.length > 0 && (
+        <div className="signal-cards-list">
+          {visibleSignals.map((signal) => (
+            <SignalCard
+              key={signal.id}
+              signal={signal}
+              materiality={getMateriality(signal)}
+              viewed={viewedSignalIds.has(signal.id)}
+              onViewAnalysis={handleViewAnalysis}
+            />
+          ))}
+        </div>
+      )}
+
+      <InAppNotification
+        signal={notificationSignal}
+        materiality="high"
+        onDismiss={() => setNotificationSignal(null)}
+        onOpenAnalysis={handleViewAnalysis}
+      />
+    </div>
+  )
+}

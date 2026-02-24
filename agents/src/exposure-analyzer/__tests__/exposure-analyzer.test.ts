@@ -63,14 +63,14 @@ describe('Exposure Analyzer', () => {
       expect(cnqOverlap!.sources.length).toBeGreaterThanOrEqual(2)
     })
 
-    it('generates concentration warnings for high-concentration categories', async () => {
+    it('generates concentration warnings for material concentration categories', async () => {
       const portfolio = getPortfolioByUserId('sarah-01')!
       const result = await analyze(portfolio, getFundComposition)
       expect(result.data!.warnings.length).toBeGreaterThan(0)
-      const criticalOrHigh = result.data!.warnings.filter(
-        (w) => w.severity === 'critical' || w.severity === 'high',
+      const materialWarnings = result.data!.warnings.filter(
+        (w) => w.severity === 'critical' || w.severity === 'high' || w.severity === 'medium',
       )
-      expect(criticalOrHigh.length).toBeGreaterThan(0)
+      expect(materialWarnings.length).toBeGreaterThan(0)
     })
 
     it('reports all fund data as fresh', async () => {

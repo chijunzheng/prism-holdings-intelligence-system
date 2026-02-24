@@ -90,14 +90,16 @@ function decomposeEtf(holding: Holding, fund: FundComposition): ReadonlyArray<Ra
     })
   }
 
-  // Remaining value not covered by top holdings → "Other"
+  // Remaining value not covered by top holdings → "Diversified Holdings"
+  // Uses fund market context instead of generic "Other" to avoid
+  // inflating a single catch-all category that triggers concentration alerts
   const coveredPercent = fund.coveragePercent
   if (coveredPercent < 100) {
     const remainingValue = (holding.valueCad * (100 - coveredPercent)) / 100
     exposures.push({
-      assetName: `${fund.name} — Other Holdings`,
+      assetName: `${fund.name} — Remaining Holdings`,
       assetTicker: undefined,
-      sector: 'Other',
+      sector: 'Diversified Holdings',
       country: fund.market,
       valueCad: remainingValue,
       sourceFundTicker: holding.ticker,

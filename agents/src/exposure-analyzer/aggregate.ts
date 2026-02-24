@@ -3,25 +3,27 @@ import type { RawExposure } from './decompose'
 
 /**
  * Sector mapping: maps granular sectors to display categories.
- * This determines how the X-Ray bars are grouped.
+ * Every sector gets a meaningful label — no generic "Other" bucket.
  */
 const SECTOR_DISPLAY_MAP: Record<string, string> = {
   Financials: 'Canadian Financials',
   Technology: 'US Technology',
   Energy: 'Canadian Energy',
   Materials: 'Gold & Materials',
-  'Government Bonds': 'Bonds',
-  'Provincial Bonds': 'Bonds',
-  'Corporate Bonds': 'Bonds',
-  'Government Agencies': 'Bonds',
-  'Consumer Discretionary': 'US Technology',
-  'Communication Services': 'US Technology',
-  'Health Care': 'Other',
-  'Consumer Staples': 'Other',
-  Industrials: 'Other',
+  'Government Bonds': 'Government Bonds',
+  'Provincial Bonds': 'Provincial Bonds',
+  'Corporate Bonds': 'Corporate Bonds',
+  'Government Agencies': 'Government Bonds',
+  'Consumer Discretionary': 'Consumer Discretionary',
+  'Communication Services': 'Communication Services',
+  'Health Care': 'Health Care',
+  'Consumer Staples': 'Consumer Staples',
+  Industrials: 'Industrials',
+  'Real Estate': 'Real Estate',
+  Utilities: 'Utilities',
   'Individual Stock': 'Individual Stocks',
-  Other: 'Other',
-  Unknown: 'Other',
+  Other: 'Diversified Holdings',
+  Unknown: 'Diversified Holdings',
 }
 
 /**
@@ -38,9 +40,9 @@ function categorize(sector: string, country: string): string {
   if (sector === 'Energy' && country === 'US') return 'US Energy'
   if (sector === 'Materials') return 'Gold & Materials'
   if (sector === 'Consumer Discretionary' || sector === 'Communication Services') {
-    return country === 'US' ? 'US Technology' : 'Other'
+    return country === 'US' ? 'US Technology' : `${sector} (${country || 'Global'})`
   }
-  return SECTOR_DISPLAY_MAP[sector] ?? 'Other'
+  return SECTOR_DISPLAY_MAP[sector] ?? `${sector} (${country || 'Global'})`
 }
 
 /**

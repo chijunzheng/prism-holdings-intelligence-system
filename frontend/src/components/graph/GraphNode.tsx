@@ -22,13 +22,13 @@ function truncateLabel(label: string, max = 24): string {
 }
 
 function nodeFill(node: CausalChainNode, displayImpact: number): string {
-  if (node.type === 'event') return '#14305f'
-  if (node.type === 'mechanism') return '#334155'
-  if (node.type === 'sector') return '#115e59'
+  if (node.type === 'event') return '#eff6ff'
+  if (node.type === 'mechanism') return '#f1f5f9'
+  if (node.type === 'sector') return '#f0fdfa'
 
-  if (displayImpact > 20) return '#14532d'
-  if (displayImpact < -20) return '#7f1d1d'
-  return '#78350f'
+  if (displayImpact > 20) return '#f0fdf4'
+  if (displayImpact < -20) return '#fef2f2'
+  return '#fefce8'
 }
 
 function nodeStroke(node: CausalChainNode): string {

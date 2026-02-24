@@ -1,8 +1,16 @@
+/* ── Causal Graph View (Light Theme) ─────── */
 .graph-view {
-  background:
-    radial-gradient(circle at 10% 5%, rgba(37, 99, 235, 0.22), transparent 36%),
-    radial-gradient(circle at 85% 0%, rgba(20, 184, 166, 0.18), transparent 40%),
-    #06080f;
+  background: var(--color-bg);
+}
+
+.graph-view main {
+  padding: 1.25rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  width: 100%;
 }
 
 .graph-header {
@@ -10,29 +18,36 @@
   grid-template-columns: auto 1fr;
   gap: 1rem;
   align-items: center;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .graph-header__back {
   border: 1px solid var(--color-border);
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.9);
+  background: var(--color-bg);
   color: var(--color-text);
   padding: 0.5rem 0.85rem;
   cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.12s;
+}
+
+.graph-header__back:hover {
+  background: var(--color-surface);
+}
+
+.graph-header__title h1 {
+  font-size: 1.25rem;
+  font-weight: 600;
 }
 
 .graph-header__title p {
-  font-size: 0.88rem;
-  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
 }
 
-.graph-view main {
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
+/* ── Controls ────────────────────────────── */
 .graph-controls {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -40,9 +55,9 @@
 }
 
 .graph-control {
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  background: rgba(15, 23, 42, 0.82);
-  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: 10px;
   padding: 0.6rem 0.75rem;
   display: flex;
   flex-direction: column;
@@ -51,24 +66,27 @@
 }
 
 .graph-control__label {
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: rgba(148, 163, 184, 1);
+  color: var(--color-text-muted);
+  font-weight: 500;
 }
 
 .signal-switcher select {
-  background: rgba(2, 6, 23, 0.95);
+  background: var(--color-bg);
   color: var(--color-text);
-  border: 1px solid rgba(148, 163, 184, 0.35);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 0.45rem;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  width: 100%;
 }
 
 .time-slider__options {
   display: inline-flex;
-  border: 1px solid rgba(148, 163, 184, 0.35);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -80,26 +98,32 @@
   padding: 0.35rem 0.65rem;
   cursor: pointer;
   font-weight: 600;
+  font-size: 0.8125rem;
+  transition: background 0.12s, color 0.12s;
+}
+
+.time-slider__option:hover {
+  background: var(--color-surface);
 }
 
 .time-slider__option.is-active {
-  background: rgba(37, 99, 235, 0.28);
-  color: var(--color-text);
+  background: var(--color-text);
+  color: var(--color-bg);
 }
 
 .counterfactual-toggle.is-disabled {
-  opacity: 0.7;
+  opacity: 0.5;
 }
 
 .counterfactual-toggle__input {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.84rem;
+  font-size: 0.8125rem;
 }
 
 .counterfactual-toggle__hint {
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   color: var(--color-text-muted);
 }
 
@@ -108,38 +132,48 @@
   justify-content: center;
   border-style: dashed;
   cursor: pointer;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
+  transition: background 0.12s;
 }
 
+.graph-control--button:hover {
+  background: var(--color-accent-subtle);
+}
+
+/* ── Status & Errors ─────────────────────── */
 .graph-status,
 .graph-error-banner {
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 0.9rem 1rem;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 0.875rem;
 }
 
 .graph-error-banner {
-  border-color: rgba(239, 68, 68, 0.45);
-  color: #fca5a5;
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: var(--color-negative);
 }
 
 .graph-error-banner button {
   margin-top: 0.55rem;
-  border: 1px solid rgba(239, 68, 68, 0.45);
-  background: rgba(127, 29, 29, 0.3);
-  color: #fecaca;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
   border-radius: 8px;
-  padding: 0.4rem 0.65rem;
+  padding: 0.4rem 0.75rem;
   cursor: pointer;
+  font-size: 0.8125rem;
 }
 
 .graph-error-banner__hint {
-  font-size: 0.74rem;
-  opacity: 0.95;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
   margin-top: 0.45rem;
 }
 
+/* ── Graph Layout ────────────────────────── */
 .graph-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
@@ -148,32 +182,33 @@
 }
 
 .graph-layout__canvas {
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 16px;
-  background: rgba(2, 6, 23, 0.65);
-  padding: 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.5rem;
 }
 
 .graph-layout__canvas h2 {
   font-size: 1rem;
+  font-weight: 600;
 }
 
 .graph-layout__canvas > p {
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
 }
 
+/* ── SVG Canvas ──────────────────────────── */
 .causal-graph {
   position: relative;
   min-height: 540px;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
-  background:
-    linear-gradient(145deg, rgba(15, 23, 42, 0.82), rgba(2, 6, 23, 0.9)),
-    radial-gradient(circle at 15% 15%, rgba(34, 197, 94, 0.08), transparent 44%);
+  background: #fafafa;
+  border: 1px solid var(--color-border);
 }
 
 .graph-edge {
@@ -185,7 +220,7 @@
 }
 
 .graph-node__label {
-  fill: #f8fafc;
+  fill: var(--color-text);
   font-size: 0.64rem;
   font-weight: 600;
   pointer-events: none;
@@ -193,7 +228,7 @@
 
 .graph-node__classification,
 .graph-node__impact {
-  fill: rgba(203, 213, 225, 0.95);
+  fill: var(--color-text-secondary);
   font-size: 0.56rem;
   pointer-events: none;
   text-transform: capitalize;
@@ -201,42 +236,46 @@
 
 .graph-node.is-selected circle,
 .graph-node.is-selected rect {
-  filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.5));
+  filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.4));
 }
 
+/* ── Tooltip ─────────────────────────────── */
 .graph-tooltip {
   position: absolute;
   pointer-events: none;
-  width: 210px;
-  border: 1px solid rgba(148, 163, 184, 0.42);
+  width: 220px;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
-  background: rgba(15, 23, 42, 0.95);
-  padding: 0.65rem;
+  background: var(--color-bg);
+  padding: 0.75rem;
   z-index: 30;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .graph-tooltip__title {
-  font-size: 0.85rem;
-  font-weight: 700;
-  margin-bottom: 0.45rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
 }
 
 .graph-tooltip__row {
   display: flex;
   justify-content: space-between;
-  font-size: 0.74rem;
-  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  padding: 0.125rem 0;
 }
 
 .graph-tooltip__row strong {
   color: var(--color-text);
 }
 
+/* ── Chat Drawer ─────────────────────────── */
 .graph-chat-drawer {
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 16px;
-  background: rgba(2, 6, 23, 0.72);
-  padding: 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  padding: 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
@@ -249,30 +288,33 @@
 }
 
 .graph-chat-drawer__header h3 {
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
 }
 
 .graph-chat-drawer__header button {
-  border: 1px solid rgba(148, 163, 184, 0.4);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: transparent;
+  background: var(--color-bg);
   color: var(--color-text);
   padding: 0.25rem 0.5rem;
   cursor: pointer;
+  font-size: 0.8125rem;
 }
 
 .graph-chat-drawer__placeholder {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   color: var(--color-text-muted);
 }
 
 .graph-chat-drawer__content h4 {
-  font-size: 0.93rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
 }
 
 .graph-chat-drawer__content > p {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
   margin-top: 0.35rem;
 }
 
@@ -286,35 +328,38 @@
   display: flex;
   justify-content: space-between;
   gap: 0.5rem;
-  font-size: 0.79rem;
+  font-size: 0.8125rem;
 }
 
 .graph-chat-drawer__content dt {
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 .graph-chat-drawer__content dd {
   text-transform: capitalize;
+  font-weight: 500;
 }
 
 .graph-chat-drawer__next-step {
   margin-top: 0.8rem;
-  font-size: 0.76rem;
-  color: #93c5fd;
+  font-size: 0.75rem;
+  color: #2563eb;
 }
 
+/* ── Legend ───────────────────────────────── */
 .graph-legend {
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  border-radius: 12px;
-  padding: 0.75rem;
-  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  background: var(--color-surface);
 }
 
 .graph-legend__title {
-  font-size: 0.78rem;
+  font-size: 0.6875rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: rgba(148, 163, 184, 1);
+  color: var(--color-text-muted);
+  font-weight: 500;
   margin-bottom: 0.5rem;
 }
 
@@ -322,7 +367,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
 }
 
 .graph-legend__item {
@@ -350,6 +395,7 @@
   background: #eab308;
 }
 
+/* ── Responsive ──────────────────────────── */
 @media (max-width: 1080px) {
   .graph-controls {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -372,6 +418,11 @@
 @media (max-width: 680px) {
   .graph-header {
     grid-template-columns: 1fr;
+    padding: 1rem;
+  }
+
+  .graph-view main {
+    padding: 1rem;
   }
 
   .graph-controls {

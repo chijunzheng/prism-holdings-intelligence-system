@@ -1,4 +1,8 @@
 /* ── Signal Cards ─────────────────────────── */
+.signal-cards-section {
+  margin-bottom: 2.5rem;
+}
+
 .signal-cards-section__header {
   display: flex;
   justify-content: space-between;
@@ -10,16 +14,22 @@
 .signal-cards-section__overflow-link {
   border: 0;
   background: none;
-  color: var(--color-accent);
+  color: var(--color-text-secondary);
   cursor: pointer;
-  font-size: 0.82rem;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: color 0.15s;
+}
+
+.signal-cards-section__overflow-link:hover {
+  color: var(--color-text);
 }
 
 .signal-cards-section__status,
 .signal-cards-section__error {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   color: var(--color-text-muted);
   padding: 0.6rem 0;
 }
@@ -31,27 +41,26 @@
 .signal-cards-list {
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  gap: 0.75rem;
 }
 
 .signal-card {
   border: 1px solid var(--color-border);
-  border-left-width: 4px;
+  border-left-width: 3px;
   border-radius: 10px;
-  background: rgba(20, 20, 32, 0.8);
-  padding: 0.85rem 0.95rem;
+  background: var(--color-bg);
+  padding: 1rem 1.125rem;
   cursor: pointer;
   transition:
-    border-color 0.16s ease,
-    transform 0.16s ease,
-    background 0.16s ease;
+    background 0.15s ease,
+    box-shadow 0.15s ease;
   animation: signal-slide-in 320ms ease-out;
 }
 
 .signal-card:hover,
 .signal-card:focus-visible {
-  border-color: rgba(99, 102, 241, 0.55);
-  transform: translateY(-1px);
+  background: var(--color-surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
   outline: none;
 }
 
@@ -60,27 +69,29 @@
 }
 
 .signal-card--structural {
-  border-left-color: #f97316;
+  border-left-color: #ea580c;
 }
 
 .signal-card--ambiguous {
-  border-left-color: #eab308;
+  border-left-color: #ca8a04;
 }
 
 .signal-card--viewed {
-  opacity: 0.78;
+  opacity: 0.7;
 }
 
 .signal-card__headline {
-  font-size: 0.93rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
   line-height: 1.35;
   margin-bottom: 0.35rem;
 }
 
 .signal-card__description {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  margin-bottom: 0.55rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.625rem;
+  line-height: 1.5;
 }
 
 .signal-card__meta {
@@ -88,49 +99,46 @@
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
-  margin-bottom: 0.65rem;
+  margin-bottom: 0.75rem;
 }
 
 .signal-badge {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   border-radius: 999px;
   padding: 0.15rem 0.5rem;
-  border: 1px solid transparent;
+  font-weight: 500;
 }
 
 .signal-badge--transient {
-  color: #60a5fa;
-  border-color: rgba(96, 165, 250, 0.35);
-  background: rgba(59, 130, 246, 0.08);
+  color: #2563eb;
+  background: #eff6ff;
 }
 
 .signal-badge--structural {
-  color: #fb923c;
-  border-color: rgba(251, 146, 60, 0.35);
-  background: rgba(249, 115, 22, 0.1);
+  color: #c2410c;
+  background: #fff7ed;
 }
 
 .signal-badge--ambiguous {
-  color: #facc15;
-  border-color: rgba(250, 204, 21, 0.3);
-  background: rgba(234, 179, 8, 0.1);
+  color: #a16207;
+  background: #fefce8;
 }
 
 .signal-card__materiality {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: var(--color-text-muted);
 }
 
 .signal-card__materiality--high {
-  color: #fb923c;
+  color: #ea580c;
 }
 
 .signal-card__materiality--medium {
-  color: #facc15;
+  color: #ca8a04;
 }
 
 .signal-card__materiality--low {
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }
 
 .signal-card__viewed {
@@ -149,7 +157,7 @@
 }
 
 .signal-card__source {
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   color: var(--color-text-muted);
   text-decoration: none;
 }
@@ -161,9 +169,15 @@
 .signal-card__cta {
   border: 0;
   background: none;
-  color: var(--color-accent);
-  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
   cursor: pointer;
+  transition: color 0.15s;
+}
+
+.signal-card__cta:hover {
+  color: var(--color-text);
 }
 
 /* ── In-App Notification ─────────────────── */
@@ -172,63 +186,74 @@
   right: 1rem;
   bottom: 1rem;
   width: min(360px, calc(100vw - 2rem));
-  border: 1px solid rgba(249, 115, 22, 0.5);
-  background: #171725;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
   border-radius: 12px;
-  padding: 0.85rem;
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
+  padding: 1rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   z-index: 20;
   animation: notification-in 260ms ease-out;
 }
 
 .in-app-notification__label {
   display: inline-block;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #fb923c;
+  letter-spacing: 0.05em;
+  color: #ea580c;
+  font-weight: 600;
   margin-bottom: 0.25rem;
 }
 
 .in-app-notification__headline {
-  font-size: 0.86rem;
+  font-size: 0.875rem;
+  font-weight: 500;
   line-height: 1.35;
-  margin-bottom: 0.45rem;
+  margin-bottom: 0.5rem;
 }
 
 .in-app-notification__actions {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-top: 0.65rem;
+  margin-top: 0.75rem;
 }
 
 .in-app-notification__button,
 .in-app-notification__close {
   border: 1px solid var(--color-border);
-  background: transparent;
+  background: var(--color-bg);
   color: var(--color-text);
   border-radius: 999px;
-  padding: 0.3rem 0.65rem;
-  font-size: 0.72rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
   cursor: pointer;
+  transition: background 0.12s;
+}
+
+.in-app-notification__button:hover,
+.in-app-notification__close:hover {
+  background: var(--color-surface);
 }
 
 .in-app-notification__button {
-  border-color: rgba(249, 115, 22, 0.5);
-  color: #fb923c;
+  background: var(--color-text);
+  color: var(--color-bg);
+  border-color: var(--color-text);
+}
+
+.in-app-notification__button:hover {
+  background: #333;
 }
 
 @keyframes signal-slide-in {
   0% {
     opacity: 0;
-    transform: translateY(8px);
-  }
-  80% {
-    opacity: 1;
-    transform: translateY(-1px);
+    transform: translateY(6px);
   }
   100% {
+    opacity: 1;
     transform: translateY(0);
   }
 }
@@ -241,5 +266,14 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signal-card {
+    animation: none;
+  }
+  .in-app-notification {
+    animation: none;
   }
 }

@@ -1,45 +1,62 @@
-import type { Portfolio, AccountType } from '@prism/shared'
+import type { Portfolio } from '@prism/shared'
 
 interface HoldingsListProps {
   readonly portfolio: Portfolio
-  readonly selectedAccount: AccountType | 'ALL'
 }
 
-export function HoldingsList({ portfolio, selectedAccount }: HoldingsListProps) {
-  const accounts =
-    selectedAccount === 'ALL'
-      ? portfolio.accounts
-      : portfolio.accounts.filter((a) => a.type === selectedAccount)
+function formatCurrency(value: number): string {
+  return `$${value.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
 
-  const holdings = accounts.flatMap((account) =>
-    account.holdings.map((h) => ({ ...h, accountId: account.id, accountType: account.type })),
+function formatUnits(units: number): string {
+  return units % 1 === 0
+    ? `${units.toLocaleString()} shares`
+    : `${units.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} units`
+}
+
+export function HoldingsList({ portfolio }: HoldingsListProps) {
+  const holdings = portfolio.accounts.flatMap((account) =>
+    account.holdings.map((h) => ({
+      ...h,
+      accountId: account.id,
+      accountType: account.type,
+    })),
   )
 
+  const sorted = [...holdings].sort((a, b) => b.valueCad - a.valueCad)
+
   return (
-    <div className="holdings-list">
-      <h2 className="section-title">Holdings</h2>
-      <table className="holdings-table">
-        <thead>
-          <tr>
-            <th>Ticker</th>
-            <th>Name</th>
-            <th>Account</th>
-            <th className="text-right">Value</th>
-          </tr>
-        </thead>
-        <tbody>
-          {holdings.map((h) => (
-            <tr key={`${h.accountType}-${h.ticker}`}>
-              <td className="holdings-table__ticker">{h.ticker}</td>
-              <td className="holdings-table__name">{h.name}</td>
-              <td className="holdings-table__account">{h.accountType}</td>
-              <td className="holdings-table__value text-right">
-                ${h.valueCad.toLocaleString('en-CA')}
-              </td>
+    <div className="holdings-section">
+      <div className="section-header">
+        <h2 className="section-title">Holdings</h2>
+      </div>
+
+      <div className="holdings-card">
+        <table className="holdings-table">
+          <thead>
+            <tr>
+              <th>Positions</th>
+              <th className="text-right">Total value</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {sorted.map((h) => (
+              <tr key={`${h.accountType}-${h.ticker}`} className="holdings-row">
+                <td className="holdings-row__position-cell">
+                  <div className="holdings-row__position-name">{h.ticker}</div>
+                  <div className="holdings-row__position-sub">
+                    {h.name} · {h.accountType.replace('_', ' ')}
+                  </div>
+                </td>
+                <td className="holdings-row__value">
+                  <div className="holdings-row__value-amount">{formatCurrency(h.valueCad)} CAD</div>
+                  <div className="holdings-row__value-shares">{formatUnits(h.units)}</div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

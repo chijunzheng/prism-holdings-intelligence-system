@@ -1,7 +1,5 @@
 import type { ExposureMap } from '@prism/shared'
 import { ExposureBar } from './ExposureBar'
-import { ConcentrationWarning } from './ConcentrationWarning'
-import { OverlapList } from './OverlapList'
 
 interface ExposureXRayProps {
   readonly exposureMap: ExposureMap
@@ -12,14 +10,12 @@ export function ExposureXRay({ exposureMap }: ExposureXRayProps) {
 
   return (
     <div className="exposure-xray">
-      <div className="exposure-xray__header">
+      <div className="section-header">
         <h2 className="section-title">Exposure X-Ray</h2>
-        <span className="exposure-xray__subtitle">
-          True exposure across all accounts and holdings
-        </span>
       </div>
-
-      <ConcentrationWarning warnings={exposureMap.warnings} />
+      <span className="exposure-xray__subtitle">
+        True exposure across all accounts and holdings
+      </span>
 
       <div className="exposure-xray__bars">
         {exposureMap.exposures.map((entry, i) => (
@@ -31,8 +27,6 @@ export function ExposureXRay({ exposureMap }: ExposureXRayProps) {
           />
         ))}
       </div>
-
-      <OverlapList overlaps={exposureMap.overlaps} />
 
       {!exposureMap.dataFreshness.allFresh && (
         <div className="exposure-xray__stale-warning">

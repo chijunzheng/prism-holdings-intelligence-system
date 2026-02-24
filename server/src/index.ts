@@ -19,6 +19,7 @@ import {
 } from '@prism/agents/src/chat-agent/index'
 import { buildChatContext } from '@prism/agents/src/chat-agent/context-builder'
 import type { ChatMessage as AgentChatMessage } from '@prism/agents/src/chat-agent/types'
+import { runPrismAdkPrompt } from '@prism/agents/src/adk/index'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -78,6 +79,35 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
+// Direct ADK endpoint for debugging and orchestration integration checks.
+app.post('/api/adk/chat', async (req, res) => {
+  const message = typeof req.body?.message === 'string' ? req.body.message.trim() : ''
+  const userId =
+    typeof req.body?.userId === 'string' && req.body.userId.trim()
+      ? req.body.userId.trim()
+      : 'sarah-01'
+  const sessionId =
+    typeof req.body?.sessionId === 'string' && req.body.sessionId.trim()
+      ? req.body.sessionId.trim()
+      : undefined
+
+  if (!message) {
+    res.status(400).json({ success: false, error: 'message is required' })
+    return
+  }
+
+  const result = await runPrismAdkPrompt({ message, userId, sessionId })
+  if (!result.success || !result.data) {
+    res.status(500).json({
+      success: false,
+      error: result.error ?? 'Failed to run ADK chat prompt',
+    })
+    return
+  }
+
+  res.json({ success: true, data: result.data })
+})
+
 // Demo profiles endpoint
 app.get('/api/profiles', (_req, res) => {
   const profiles = getUserProfiles().map((p) => ({
@@ -91,6 +121,15 @@ app.get('/api/profiles', (_req, res) => {
 })
 
 // Exposure analysis endpoint
+app.get('/api/portfolio/:userId', (req, res) => {
+  const portfolio = getPortfolioByUserId(req.params.userId)
+  if (!portfolio) {
+    res.status(404).json({ success: false, error: 'Portfolio not found' })
+    return
+  }
+  res.json({ success: true, data: portfolio })
+})
+
 app.get('/api/exposure/:userId', async (req, res) => {
   const portfolio = getPortfolioByUserId(req.params.userId)
   if (!portfolio) {

@@ -6,16 +6,12 @@ interface ExposureBarProps {
   readonly animationDelay: number
 }
 
-/**
- * Color coding based on concentration level.
- * Warm colors for high concentration draw attention.
- */
 function getBarColor(percentage: number): string {
-  if (percentage >= 40) return 'var(--color-negative)'
-  if (percentage >= 30) return '#f97316'
-  if (percentage >= 20) return 'var(--color-ambiguous)'
-  if (percentage >= 10) return 'var(--color-accent)'
-  return 'var(--color-text-muted)'
+  if (percentage >= 40) return '#dc2626'
+  if (percentage >= 30) return '#ea580c'
+  if (percentage >= 20) return '#ca8a04'
+  if (percentage >= 10) return '#1a1a1a'
+  return '#d4d4d4'
 }
 
 export function ExposureBar({ entry, maxPercentage, animationDelay }: ExposureBarProps) {

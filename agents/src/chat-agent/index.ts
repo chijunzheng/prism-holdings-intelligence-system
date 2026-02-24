@@ -1,13 +1,77 @@
-import { GoogleGenAI } from '@google/genai'
 import type { AgentConfig } from '../types'
-import { getGeminiApiKey } from '../utils/env'
+import { runPrismAdkPrompt } from '../adk'
+import { getGeminiApiKey, getGeminiModelName } from '../utils/env'
 import { buildSystemPrompt, buildNodeContextPrompt, buildWhatIfDetectionPrompt } from './prompts'
 import type { ChatContext, ChatMessage, WhatIfDetection } from './types'
+import { GoogleGenAI } from '@google/genai'
 
 export const config: AgentConfig = {
   name: 'chat-agent',
-  description: 'Contextual chat agent scoped to a selected causal graph node',
+  description: 'Contextual chat agent scoped to a selected causal graph node via ADK runtime',
   usesLlm: true,
+}
+
+const CHAT_SESSION_PREFIX = 'chat'
+
+function buildInitialPrompt(context: ChatContext): string {
+  const systemPrompt = buildSystemPrompt(context.profile)
+  const contextPrompt = buildNodeContextPrompt(
+    context.node,
+    context.chain,
+    context.exposureMap,
+    context.signal,
+    context.temporalAnalysis,
+  )
+
+  return [
+    systemPrompt,
+    '',
+    'TASK:',
+    'Generate the initial contextual explanation for this selected graph node.',
+    'Keep it concise and specific to this user.',
+    '',
+    contextPrompt,
+  ].join('\n')
+}
+
+function buildChatPrompt(
+  context: ChatContext,
+  history: ReadonlyArray<ChatMessage>,
+  userMessage: string,
+): string {
+  const systemPrompt = buildSystemPrompt(context.profile)
+  const contextPrompt = buildNodeContextPrompt(
+    context.node,
+    context.chain,
+    context.exposureMap,
+    context.signal,
+    context.temporalAnalysis,
+  )
+
+  const transcript = history
+    .map((message) => `${message.role === 'assistant' ? 'Assistant' : 'User'}: ${message.content}`)
+    .join('\n')
+
+  return [
+    systemPrompt,
+    '',
+    'NODE CONTEXT:',
+    contextPrompt,
+    '',
+    'CHAT HISTORY:',
+    transcript || '(none)',
+    '',
+    `LATEST USER MESSAGE: ${userMessage}`,
+    '',
+    'Respond with practical analysis only. Avoid markdown headings.',
+  ].join('\n')
+}
+
+function* chunkText(text: string, chunkSize = 96): Generator<string, void, undefined> {
+  if (!text) return
+  for (let index = 0; index < text.length; index += chunkSize) {
+    yield text.slice(index, index + chunkSize)
+  }
 }
 
 /**
@@ -16,38 +80,24 @@ export const config: AgentConfig = {
 export async function generateInitialMessage(
   context: ChatContext,
 ): Promise<{ readonly content: string; readonly error?: string }> {
-  const apiKey = getGeminiApiKey()
-  if (!apiKey) {
+  if (!getGeminiApiKey()) {
     return { content: '', error: 'Gemini API key not configured.' }
   }
 
-  try {
-    const genai = new GoogleGenAI({ apiKey })
-    const systemPrompt = buildSystemPrompt(context.profile)
-    const contextPrompt = buildNodeContextPrompt(
-      context.node,
-      context.chain,
-      context.exposureMap,
-      context.signal,
-      context.temporalAnalysis,
-    )
+  const result = await runPrismAdkPrompt({
+    userId: context.profile.id,
+    message: buildInitialPrompt(context),
+    sessionId: `${CHAT_SESSION_PREFIX}:${context.profile.id}:${context.signal.id}:${context.node.id}:init`,
+  })
 
-    const response = await genai.models.generateContent({
-      model: 'gemini-3.0-pro-preview',
-      contents: contextPrompt,
-      config: {
-        systemInstruction: systemPrompt,
-        temperature: 0.5,
-      },
-    })
-
-    return { content: response.text ?? '' }
-  } catch (error) {
+  if (!result.success || !result.data) {
     return {
       content: '',
-      error: error instanceof Error ? error.message : 'Failed to generate initial message',
+      error: result.error ?? 'Failed to generate initial message',
     }
   }
+
+  return { content: result.data.response }
 }
 
 /**
@@ -59,45 +109,24 @@ export async function* streamChatResponse(
   history: ReadonlyArray<ChatMessage>,
   userMessage: string,
 ): AsyncGenerator<string, void, undefined> {
-  const apiKey = getGeminiApiKey()
-  if (!apiKey) {
+  if (!getGeminiApiKey()) {
     yield 'Error: Gemini API key not configured.'
     return
   }
 
-  try {
-    const genai = new GoogleGenAI({ apiKey })
-    const systemPrompt = buildSystemPrompt(context.profile)
+  const result = await runPrismAdkPrompt({
+    userId: context.profile.id,
+    message: buildChatPrompt(context, history, userMessage),
+    sessionId: `${CHAT_SESSION_PREFIX}:${context.profile.id}:${context.signal.id}:${context.node.id}`,
+  })
 
-    // Build conversation history for Gemini
-    const contents = [
-      ...history.map((msg) => ({
-        role: msg.role === 'assistant' ? ('model' as const) : ('user' as const),
-        parts: [{ text: msg.content }],
-      })),
-      {
-        role: 'user' as const,
-        parts: [{ text: userMessage }],
-      },
-    ]
+  if (!result.success || !result.data) {
+    yield `Error: ${result.error ?? 'Failed to generate response'}`
+    return
+  }
 
-    const response = await genai.models.generateContentStream({
-      model: 'gemini-3.0-pro-preview',
-      contents,
-      config: {
-        systemInstruction: systemPrompt,
-        temperature: 0.5,
-      },
-    })
-
-    for await (const chunk of response) {
-      const text = chunk.text ?? ''
-      if (text) {
-        yield text
-      }
-    }
-  } catch (error) {
-    yield `Error: ${error instanceof Error ? error.message : 'Failed to generate response'}`
+  for (const chunk of chunkText(result.data.response)) {
+    yield chunk
   }
 }
 
@@ -113,8 +142,9 @@ export async function detectWhatIf(userMessage: string): Promise<WhatIfDetection
 
   try {
     const genai = new GoogleGenAI({ apiKey })
+    const modelName = getGeminiModelName()
     const response = await genai.models.generateContent({
-      model: 'gemini-3.0-pro-preview',
+      model: modelName,
       contents: buildWhatIfDetectionPrompt(userMessage),
       config: { temperature: 0 },
     })

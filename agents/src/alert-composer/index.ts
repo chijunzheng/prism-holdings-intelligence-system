@@ -50,20 +50,21 @@ export async function compose(
   const personalizationEngine = createPersonalizationEngine()
 
   try {
-    const temporalResult =
-      options?.temporalAnalysis !== undefined
-        ? { success: true as const, data: options.temporalAnalysis }
-        : await classifyTemporalReasoning(chain, profile)
-
-    if (!temporalResult.success || !temporalResult.data) {
-      return {
-        success: false,
-        error: temporalResult.error ?? 'Failed to compute temporal analysis',
-        durationMs: performance.now() - start,
+    let analysis: TemporalAnalysis
+    if (options?.temporalAnalysis !== undefined) {
+      analysis = options.temporalAnalysis
+    } else {
+      const temporalResult = await classifyTemporalReasoning(chain, profile)
+      if (!temporalResult.success || !temporalResult.data) {
+        return {
+          success: false,
+          error: temporalResult.error ?? 'Failed to compute temporal analysis',
+          durationMs: performance.now() - start,
+        }
       }
+      analysis = temporalResult.data
     }
 
-    const analysis = temporalResult.data
     const totalPortfolioValueCad = options?.totalPortfolioValueCad ?? 40_000
     const threshold = personalizationEngine.getMaterialityThreshold(profile)
     const materiality = evaluateMateriality(analysis, threshold, totalPortfolioValueCad)

@@ -15,3 +15,20 @@ export function getGeminiApiKey(): string | null {
 
   return key
 }
+
+const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro'
+
+/**
+ * Returns the Gemini model name from env with a safe default.
+ * Priority: GEMINI_MODEL -> ADK_MODEL -> default.
+ */
+export function getGeminiModelName(): string {
+  const candidates = [process.env.GEMINI_MODEL, process.env.ADK_MODEL, DEFAULT_GEMINI_MODEL]
+
+  for (const candidate of candidates) {
+    const model = candidate?.trim()
+    if (model) return model
+  }
+
+  return DEFAULT_GEMINI_MODEL
+}

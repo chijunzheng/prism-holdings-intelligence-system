@@ -84,7 +84,7 @@ graph TD
 ## Known Divergences from PRD
 
 - **Concentration percentages lower than projected:** Top-N fund holdings (~45-70% coverage) yield ~17% Canadian Financials vs. PRD's 38%. Full constituent data needed for production accuracy. See `docs/learnings/03-exposure-analyzer.md`.
-- **Agent framework:** TypeScript async functions instead of Python Google ADK. See `docs/learnings/01-project-scaffolding.md`.
+- **Agent framework:** Google ADK TypeScript SDK is now integrated (`@google/adk`) while retaining modular domain-agent functions as ADK tool implementations.
 - **LLM model:** Using Gemini 3.0 Pro Preview after Gemini 2.0 Flash became unavailable to new users.
 - **Signal materiality thresholding:** Feature 06 currently uses deterministic urgency+relevance scoring in frontend utility functions; this will be replaced by Alert Composer personalization logic in Feature 09.
 - **Temporal Reasoner implementation:** Feature 08 currently uses deterministic scoring + multi-horizon heuristics for reliability; optional LLM enrichment can be layered in later.

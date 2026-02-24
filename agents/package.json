@@ -5,8 +5,19 @@
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
+  "scripts": {
+    "adk:run": "adk run agent.ts",
+    "adk:web": "adk web",
+    "adk:api": "adk api_server"
+  },
   "dependencies": {
+    "@google/adk": "^0.3.0",
     "@google/genai": "^1.0.0",
-    "@prism/shared": "workspace:*"
+    "@prism/data": "workspace:*",
+    "@prism/shared": "workspace:*",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@google/adk-devtools": "^0.3.0"
   }
 }

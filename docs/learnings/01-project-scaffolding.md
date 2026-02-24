@@ -27,11 +27,11 @@ The prototype's key architectural need is **shared types across frontend and age
 - Vite gives faster HMR (~50ms vs ~300ms) and simpler config
 - The agents run on a separate Express server, not through framework API routes
 
-### Agent Interface Pattern (TypeScript, not Python ADK)
-- Google ADK is primarily a Python framework
-- Rather than mixing Python+TypeScript, agents are **typed async functions**: `(input: T) → Promise<AgentResult<U>>`
-- This matches ADK's conceptual model while keeping the entire prototype in one language
-- **Divergence from PRD:** PRD specified Google ADK. We use the pattern but not the framework. If ADK releases a production TypeScript SDK, migration would be straightforward since the interface is compatible.
+### Agent Interface Pattern (TypeScript + ADK JS)
+- Domain logic is implemented as **typed async functions**: `(input: T) → Promise<AgentResult<U>>`
+- These functions are now wrapped by Google ADK TypeScript runtime components (`LlmAgent`, `FunctionTool`, `InMemoryRunner`)
+- This keeps one-language TypeScript development while using an actual ADK framework runtime for orchestration
+- **Update:** PRD agent-framework alignment is now restored through ADK JS integration
 
 ### Readonly arrays in all shared types
 - Enforces immutability at the type level per coding standards

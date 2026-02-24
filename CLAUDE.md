@@ -28,7 +28,7 @@ Shared service: **Personalization Engine** (user context model queried by multip
 
 - **Frontend:** React 19 + Vite 6 + D3.js (causal graph visualization)
 - **LLM:** Gemini 3.0 Pro Preview (Gemini 2.0 Flash was deprecated for new users)
-- **Agent Framework:** TypeScript async functions matching ADK's agent pattern (not Python ADK — see docs/learnings/01 for rationale)
+- **Agent Framework:** Google ADK TypeScript SDK (`@google/adk`) with `LlmAgent`, `FunctionTool`, and `InMemoryRunner`; domain agents remain modular async functions wrapped as ADK tools
 - **Server:** Express.js on port 3001, proxied through Vite dev server
 - **Package Manager:** pnpm workspaces (5 packages: frontend, shared, agents, server, data)
 - **Data:** Pre-loaded sample portfolios (6 ETFs: VFV, XIC, ZAG, ZEB, XEG, XGD). Top-N fund holdings only (~45-70% coverage), yielding lower concentration percentages than PRD projected.

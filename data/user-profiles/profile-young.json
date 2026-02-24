@@ -1,0 +1,14 @@
+{
+  "id": "marcus-01",
+  "name": "Marcus",
+  "age": 25,
+  "riskTolerance": "high",
+  "financialLiteracy": "high",
+  "goals": ["Long-term growth", "Down payment in 8-10 years"],
+  "investmentHorizonYears": 35,
+  "context": "Concentrated in tech because 'that's what's growing'. Active on Reddit investing forums. Holds VFV + XQQ + individual Shopify stock — doesn't realize the massive tech overlap.",
+  "preferences": {
+    "maxDailyAlerts": 3,
+    "detailLevel": "detailed"
+  }
+}

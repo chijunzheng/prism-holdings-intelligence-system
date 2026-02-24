@@ -1,0 +1,23 @@
+{
+  "ticker": "XQQ",
+  "name": "iShares NASDAQ 100 Index ETF (CAD-Hedged)",
+  "provider": "BlackRock Canada",
+  "assetClass": "equity",
+  "market": "US",
+  "holdings": [
+    { "name": "Apple Inc.", "ticker": "AAPL", "weight": 9.2, "sector": "Technology", "country": "US" },
+    { "name": "Microsoft Corp.", "ticker": "MSFT", "weight": 8.1, "sector": "Technology", "country": "US" },
+    { "name": "NVIDIA Corp.", "ticker": "NVDA", "weight": 7.5, "sector": "Technology", "country": "US" },
+    { "name": "Amazon.com Inc.", "ticker": "AMZN", "weight": 5.2, "sector": "Consumer Discretionary", "country": "US" },
+    { "name": "Broadcom Inc.", "ticker": "AVGO", "weight": 4.1, "sector": "Technology", "country": "US" },
+    { "name": "Meta Platforms Inc.", "ticker": "META", "weight": 3.8, "sector": "Communication Services", "country": "US" },
+    { "name": "Tesla Inc.", "ticker": "TSLA", "weight": 3.2, "sector": "Consumer Discretionary", "country": "US" },
+    { "name": "Alphabet Inc. Class A", "ticker": "GOOGL", "weight": 2.9, "sector": "Communication Services", "country": "US" },
+    { "name": "Costco Wholesale Corp.", "ticker": "COST", "weight": 2.5, "sector": "Consumer Staples", "country": "US" },
+    { "name": "Netflix Inc.", "ticker": "NFLX", "weight": 2.1, "sector": "Communication Services", "country": "US" }
+  ],
+  "coveragePercent": 48.6,
+  "dataSource": "BlackRock Canada Fund Facts, Feb 2026",
+  "dataAsOf": "2026-02-21",
+  "refreshFrequency": "daily"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "diana-01",
+  "name": "Diana",
+  "age": 58,
+  "riskTolerance": "low",
+  "financialLiteracy": "moderate",
+  "goals": ["Retirement in 7 years", "Preserve capital", "Generate income"],
+  "investmentHorizonYears": 7,
+  "context": "Advisor put her in 'safe dividend' funds — which are all Canadian financials. Trusts advisor recommendations but doesn't realize her 45% financials concentration means a single BoC decision affects nearly half her portfolio.",
+  "preferences": {
+    "maxDailyAlerts": 1,
+    "detailLevel": "simple"
+  }
+}

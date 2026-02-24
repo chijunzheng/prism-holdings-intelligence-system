@@ -1,0 +1,23 @@
+{
+  "ticker": "ZAG",
+  "name": "BMO Aggregate Bond Index ETF",
+  "provider": "BMO Global Asset Management",
+  "assetClass": "fixed_income",
+  "market": "Canada",
+  "holdings": [
+    { "name": "Government of Canada 2.25% 2030", "weight": 4.2, "sector": "Government Bonds", "country": "CA" },
+    { "name": "Government of Canada 1.50% 2031", "weight": 3.8, "sector": "Government Bonds", "country": "CA" },
+    { "name": "Government of Canada 3.00% 2034", "weight": 3.5, "sector": "Government Bonds", "country": "CA" },
+    { "name": "Canada Housing Trust 2.35% 2028", "weight": 2.9, "sector": "Government Agencies", "country": "CA" },
+    { "name": "Province of Ontario 3.50% 2033", "weight": 2.7, "sector": "Provincial Bonds", "country": "CA" },
+    { "name": "Province of Quebec 2.75% 2029", "weight": 2.3, "sector": "Provincial Bonds", "country": "CA" },
+    { "name": "Province of Ontario 2.90% 2028", "weight": 2.1, "sector": "Provincial Bonds", "country": "CA" },
+    { "name": "Royal Bank of Canada 3.10% 2027", "weight": 1.5, "sector": "Corporate Bonds", "country": "CA" },
+    { "name": "TD Bank 2.85% 2028", "weight": 1.3, "sector": "Corporate Bonds", "country": "CA" },
+    { "name": "Province of BC 3.20% 2032", "weight": 1.2, "sector": "Provincial Bonds", "country": "CA" }
+  ],
+  "coveragePercent": 25.5,
+  "dataSource": "BMO Global Asset Management Fund Facts, Feb 2026",
+  "dataAsOf": "2026-02-21",
+  "refreshFrequency": "monthly"
+}

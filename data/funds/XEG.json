@@ -1,0 +1,23 @@
+{
+  "ticker": "XEG",
+  "name": "iShares S&P/TSX Capped Energy Index ETF",
+  "provider": "BlackRock Canada",
+  "assetClass": "equity",
+  "market": "Canada",
+  "holdings": [
+    { "name": "Canadian Natural Resources", "ticker": "CNQ", "weight": 18.5, "sector": "Energy", "country": "CA" },
+    { "name": "Suncor Energy", "ticker": "SU", "weight": 14.2, "sector": "Energy", "country": "CA" },
+    { "name": "Cenovus Energy", "ticker": "CVE", "weight": 8.9, "sector": "Energy", "country": "CA" },
+    { "name": "Imperial Oil Ltd.", "ticker": "IMO", "weight": 7.3, "sector": "Energy", "country": "CA" },
+    { "name": "Tourmaline Oil Corp.", "ticker": "TOU", "weight": 6.8, "sector": "Energy", "country": "CA" },
+    { "name": "Arc Resources Ltd.", "ticker": "ARX", "weight": 4.5, "sector": "Energy", "country": "CA" },
+    { "name": "Whitecap Resources", "ticker": "WCP", "weight": 3.2, "sector": "Energy", "country": "CA" },
+    { "name": "MEG Energy Corp.", "ticker": "MEG", "weight": 2.8, "sector": "Energy", "country": "CA" },
+    { "name": "Vermilion Energy", "ticker": "VET", "weight": 2.1, "sector": "Energy", "country": "CA" },
+    { "name": "Crescent Point Energy", "ticker": "CPG", "weight": 1.9, "sector": "Energy", "country": "CA" }
+  ],
+  "coveragePercent": 70.2,
+  "dataSource": "BlackRock Canada Fund Facts, Feb 2026",
+  "dataAsOf": "2026-02-21",
+  "refreshFrequency": "daily"
+}

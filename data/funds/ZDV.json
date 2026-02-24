@@ -1,0 +1,23 @@
+{
+  "ticker": "ZDV",
+  "name": "BMO Canadian Dividend ETF",
+  "provider": "BMO Global Asset Management",
+  "assetClass": "equity",
+  "market": "Canada",
+  "holdings": [
+    { "name": "Royal Bank of Canada", "ticker": "RY", "weight": 6.5, "sector": "Financials", "country": "CA" },
+    { "name": "Toronto-Dominion Bank", "ticker": "TD", "weight": 5.8, "sector": "Financials", "country": "CA" },
+    { "name": "Bank of Nova Scotia", "ticker": "BNS", "weight": 4.9, "sector": "Financials", "country": "CA" },
+    { "name": "Enbridge Inc.", "ticker": "ENB", "weight": 4.7, "sector": "Energy", "country": "CA" },
+    { "name": "TC Energy Corp.", "ticker": "TRP", "weight": 4.2, "sector": "Energy", "country": "CA" },
+    { "name": "Bank of Montreal", "ticker": "BMO", "weight": 4.0, "sector": "Financials", "country": "CA" },
+    { "name": "CIBC", "ticker": "CM", "weight": 3.8, "sector": "Financials", "country": "CA" },
+    { "name": "Manulife Financial", "ticker": "MFC", "weight": 3.5, "sector": "Financials", "country": "CA" },
+    { "name": "Sun Life Financial", "ticker": "SLF", "weight": 3.2, "sector": "Financials", "country": "CA" },
+    { "name": "Canadian Natural Resources", "ticker": "CNQ", "weight": 3.0, "sector": "Energy", "country": "CA" }
+  ],
+  "coveragePercent": 43.6,
+  "dataSource": "BMO Global Asset Management Fund Facts, Feb 2026",
+  "dataAsOf": "2026-02-21",
+  "refreshFrequency": "daily"
+}

@@ -1,0 +1,33 @@
+{
+  "ticker": "VFV",
+  "name": "Vanguard S&P 500 Index ETF",
+  "provider": "Vanguard Canada",
+  "assetClass": "equity",
+  "market": "US",
+  "holdings": [
+    { "name": "Apple Inc.", "ticker": "AAPL", "weight": 7.1, "sector": "Technology", "country": "US" },
+    { "name": "Microsoft Corp.", "ticker": "MSFT", "weight": 6.5, "sector": "Technology", "country": "US" },
+    { "name": "NVIDIA Corp.", "ticker": "NVDA", "weight": 5.8, "sector": "Technology", "country": "US" },
+    { "name": "Amazon.com Inc.", "ticker": "AMZN", "weight": 3.9, "sector": "Consumer Discretionary", "country": "US" },
+    { "name": "Meta Platforms Inc.", "ticker": "META", "weight": 2.7, "sector": "Communication Services", "country": "US" },
+    { "name": "Alphabet Inc. Class A", "ticker": "GOOGL", "weight": 2.1, "sector": "Communication Services", "country": "US" },
+    { "name": "Alphabet Inc. Class C", "ticker": "GOOG", "weight": 1.8, "sector": "Communication Services", "country": "US" },
+    { "name": "Berkshire Hathaway Inc.", "ticker": "BRK.B", "weight": 1.8, "sector": "Financials", "country": "US" },
+    { "name": "Broadcom Inc.", "ticker": "AVGO", "weight": 1.7, "sector": "Technology", "country": "US" },
+    { "name": "Eli Lilly and Co.", "ticker": "LLY", "weight": 1.6, "sector": "Health Care", "country": "US" },
+    { "name": "JPMorgan Chase & Co.", "ticker": "JPM", "weight": 1.5, "sector": "Financials", "country": "US" },
+    { "name": "Tesla Inc.", "ticker": "TSLA", "weight": 1.4, "sector": "Consumer Discretionary", "country": "US" },
+    { "name": "UnitedHealth Group Inc.", "ticker": "UNH", "weight": 1.2, "sector": "Health Care", "country": "US" },
+    { "name": "Visa Inc.", "ticker": "V", "weight": 1.0, "sector": "Financials", "country": "US" },
+    { "name": "Exxon Mobil Corp.", "ticker": "XOM", "weight": 1.0, "sector": "Energy", "country": "US" },
+    { "name": "Costco Wholesale Corp.", "ticker": "COST", "weight": 0.9, "sector": "Consumer Staples", "country": "US" },
+    { "name": "Mastercard Inc.", "ticker": "MA", "weight": 0.9, "sector": "Financials", "country": "US" },
+    { "name": "Procter & Gamble Co.", "ticker": "PG", "weight": 0.8, "sector": "Consumer Staples", "country": "US" },
+    { "name": "Johnson & Johnson", "ticker": "JNJ", "weight": 0.8, "sector": "Health Care", "country": "US" },
+    { "name": "Home Depot Inc.", "ticker": "HD", "weight": 0.8, "sector": "Consumer Discretionary", "country": "US" }
+  ],
+  "coveragePercent": 45.3,
+  "dataSource": "Vanguard Canada Fund Facts, Feb 2026",
+  "dataAsOf": "2026-02-21",
+  "refreshFrequency": "daily"
+}

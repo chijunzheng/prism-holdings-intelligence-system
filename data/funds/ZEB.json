@@ -1,0 +1,19 @@
+{
+  "ticker": "ZEB",
+  "name": "BMO Equal Weight Banks Index ETF",
+  "provider": "BMO Global Asset Management",
+  "assetClass": "equity",
+  "market": "Canada",
+  "holdings": [
+    { "name": "Royal Bank of Canada", "ticker": "RY", "weight": 16.7, "sector": "Financials", "country": "CA" },
+    { "name": "Toronto-Dominion Bank", "ticker": "TD", "weight": 16.7, "sector": "Financials", "country": "CA" },
+    { "name": "Bank of Nova Scotia", "ticker": "BNS", "weight": 16.7, "sector": "Financials", "country": "CA" },
+    { "name": "Bank of Montreal", "ticker": "BMO", "weight": 16.7, "sector": "Financials", "country": "CA" },
+    { "name": "CIBC", "ticker": "CM", "weight": 16.7, "sector": "Financials", "country": "CA" },
+    { "name": "National Bank of Canada", "ticker": "NA", "weight": 16.5, "sector": "Financials", "country": "CA" }
+  ],
+  "coveragePercent": 100.0,
+  "dataSource": "BMO Global Asset Management Fund Facts, Feb 2026",
+  "dataAsOf": "2026-02-21",
+  "refreshFrequency": "daily"
+}

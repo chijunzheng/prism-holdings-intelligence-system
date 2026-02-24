@@ -1,0 +1,23 @@
+{
+  "ticker": "XGD",
+  "name": "iShares S&P/TSX Global Gold Index ETF",
+  "provider": "BlackRock Canada",
+  "assetClass": "commodity",
+  "market": "Global",
+  "holdings": [
+    { "name": "Newmont Corp.", "ticker": "NEM", "weight": 15.8, "sector": "Materials", "country": "US" },
+    { "name": "Barrick Gold Corp.", "ticker": "ABX", "weight": 13.2, "sector": "Materials", "country": "CA" },
+    { "name": "Agnico Eagle Mines", "ticker": "AEM", "weight": 12.5, "sector": "Materials", "country": "CA" },
+    { "name": "Wheaton Precious Metals", "ticker": "WPM", "weight": 8.4, "sector": "Materials", "country": "CA" },
+    { "name": "Franco-Nevada Corp.", "ticker": "FNV", "weight": 7.9, "sector": "Materials", "country": "CA" },
+    { "name": "Kinross Gold Corp.", "ticker": "K", "weight": 5.6, "sector": "Materials", "country": "CA" },
+    { "name": "Pan American Silver Corp.", "ticker": "PAAS", "weight": 4.3, "sector": "Materials", "country": "CA" },
+    { "name": "Alamos Gold Inc.", "ticker": "AGI", "weight": 3.8, "sector": "Materials", "country": "CA" },
+    { "name": "B2Gold Corp.", "ticker": "BTO", "weight": 3.1, "sector": "Materials", "country": "CA" },
+    { "name": "Endeavour Mining", "ticker": "EDV", "weight": 2.7, "sector": "Materials", "country": "CA" }
+  ],
+  "coveragePercent": 77.3,
+  "dataSource": "BlackRock Canada Fund Facts, Feb 2026",
+  "dataAsOf": "2026-02-21",
+  "refreshFrequency": "daily"
+}

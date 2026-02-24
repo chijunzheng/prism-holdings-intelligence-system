@@ -1,0 +1,85 @@
+{
+  "userId": "sarah-01",
+  "accounts": [
+    {
+      "id": "sarah-tfsa",
+      "type": "TFSA",
+      "holdings": [
+        {
+          "ticker": "VFV",
+          "name": "Vanguard S&P 500 Index ETF",
+          "type": "ETF",
+          "valueCad": 14200,
+          "units": 118.3,
+          "accountType": "TFSA",
+          "dataAsOf": "2026-02-24T00:00:00Z"
+        },
+        {
+          "ticker": "XIC",
+          "name": "iShares Core S&P/TSX Capped Composite Index ETF",
+          "type": "ETF",
+          "valueCad": 9800,
+          "units": 262.0,
+          "accountType": "TFSA",
+          "dataAsOf": "2026-02-24T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "sarah-rrsp",
+      "type": "RRSP",
+      "holdings": [
+        {
+          "ticker": "ZAG",
+          "name": "BMO Aggregate Bond Index ETF",
+          "type": "BOND_ETF",
+          "valueCad": 5500,
+          "units": 363.0,
+          "accountType": "RRSP",
+          "dataAsOf": "2026-02-24T00:00:00Z"
+        },
+        {
+          "ticker": "ZEB",
+          "name": "BMO Equal Weight Banks Index ETF",
+          "type": "ETF",
+          "valueCad": 4200,
+          "units": 96.0,
+          "accountType": "RRSP",
+          "dataAsOf": "2026-02-24T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "sarah-fhsa",
+      "type": "FHSA",
+      "holdings": [
+        {
+          "ticker": "XEG",
+          "name": "iShares S&P/TSX Capped Energy Index ETF",
+          "type": "ETF",
+          "valueCad": 3800,
+          "units": 205.0,
+          "accountType": "FHSA",
+          "dataAsOf": "2026-02-24T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "sarah-nonreg",
+      "type": "NON_REGISTERED",
+      "holdings": [
+        {
+          "ticker": "XGD",
+          "name": "iShares S&P/TSX Global Gold Index ETF",
+          "type": "ETF",
+          "valueCad": 2500,
+          "units": 135.0,
+          "accountType": "NON_REGISTERED",
+          "dataAsOf": "2026-02-24T00:00:00Z"
+        }
+      ]
+    }
+  ],
+  "totalValueCad": 40000,
+  "lastUpdated": "2026-02-24T00:00:00Z"
+}

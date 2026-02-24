@@ -1,5 +1,13 @@
 import { DISCLAIMER } from '@prism/shared'
 
-export function Disclaimer() {
-  return <footer className="disclaimer">{DISCLAIMER}</footer>
+interface DisclaimerProps {
+  readonly compact?: boolean
+}
+
+export function Disclaimer({ compact = false }: DisclaimerProps) {
+  return (
+    <footer className={`disclaimer ${compact ? 'disclaimer--compact' : ''}`}>
+      {DISCLAIMER}
+    </footer>
+  )
 }

@@ -3,11 +3,22 @@ import cors from 'cors'
 import { existsSync, readFileSync } from 'fs'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
-import { getPortfolioByUserId, getFundComposition, getUserProfileById } from '@prism/data'
+import { getPortfolioByUserId, getFundComposition, getUserProfileById, getUserProfiles } from '@prism/data'
 import { analyze } from '@prism/agents/src/exposure-analyzer/index'
-import { monitor } from '@prism/agents/src/signal-monitor/index'
-import { propagate } from '@prism/agents/src/causal-propagation/index'
-import { classify as classifyTemporalReasoning } from '@prism/agents/src/temporal-reasoner/index'
+import {
+  runExposureAnalysis,
+  runSignalMonitor,
+  runGraphPipeline,
+  clearCaches,
+  type PipelineContext,
+} from '@prism/agents/src/orchestrator/index'
+import {
+  generateInitialMessage,
+  streamChatResponse,
+  detectWhatIf,
+} from '@prism/agents/src/chat-agent/index'
+import { buildChatContext } from '@prism/agents/src/chat-agent/context-builder'
+import type { ChatMessage as AgentChatMessage } from '@prism/agents/src/chat-agent/types'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -67,6 +78,18 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
+// Demo profiles endpoint
+app.get('/api/profiles', (_req, res) => {
+  const profiles = getUserProfiles().map((p) => ({
+    id: p.id,
+    name: p.name,
+    age: p.age,
+    riskTolerance: p.riskTolerance,
+    context: p.context,
+  }))
+  res.json({ success: true, data: profiles })
+})
+
 // Exposure analysis endpoint
 app.get('/api/exposure/:userId', async (req, res) => {
   const portfolio = getPortfolioByUserId(req.params.userId)
@@ -84,39 +107,78 @@ app.get('/api/exposure/:userId', async (req, res) => {
   res.json(result)
 })
 
-// Live signal endpoint
+// Helper to build pipeline context
+function buildPipelineCtx(userId: string): PipelineContext | null {
+  const portfolio = getPortfolioByUserId(userId)
+  if (!portfolio) return null
+  const profile = getUserProfileById(userId)
+  if (!profile) return null
+  return { portfolio, profile, getFundComposition }
+}
+
+// Live signal endpoint (orchestrated with caching)
 app.get('/api/signals/:userId', async (req, res) => {
-  const portfolio = getPortfolioByUserId(req.params.userId)
-  if (!portfolio) {
-    res.status(404).json({ success: false, error: 'Portfolio not found' })
+  const ctx = buildPipelineCtx(req.params.userId)
+  if (!ctx) {
+    res.status(404).json({ success: false, error: 'Portfolio or profile not found' })
     return
   }
 
-  const exposureResult = await analyze(portfolio, getFundComposition)
+  const exposureResult = await runExposureAnalysis(ctx)
   if (!exposureResult.success || !exposureResult.data) {
-    res.status(500).json({
-      success: false,
-      error: exposureResult.error ?? 'Failed to analyze exposures',
-    })
+    res.status(500).json({ success: false, error: exposureResult.error ?? 'Exposure analysis failed' })
     return
   }
 
-  const signalResult = await monitor(exposureResult.data)
+  const signalResult = await runSignalMonitor(exposureResult.data)
   if (!signalResult.success) {
-    res.status(500).json({
-      success: false,
-      error: signalResult.error ?? 'Failed to monitor signals',
-    })
+    res.status(500).json({ success: false, error: signalResult.error ?? 'Signal monitoring failed' })
     return
   }
 
   res.json(signalResult)
 })
 
-// Causal graph data endpoint (signal + chain + temporal analysis)
+// Causal graph data endpoint (full orchestrated pipeline)
 app.get('/api/graph/:userId/:signalId', async (req, res) => {
-  const { userId } = req.params
+  const ctx = buildPipelineCtx(req.params.userId)
+  if (!ctx) {
+    res.status(404).json({ success: false, error: 'Portfolio or profile not found' })
+    return
+  }
+
   const signalId = decodeURIComponent(req.params.signalId)
+  const result = await runGraphPipeline(ctx, signalId)
+
+  if (!result.success || !result.data) {
+    res.status(500).json({ success: false, error: result.error })
+    return
+  }
+
+  res.json({ success: true, data: result.data })
+})
+
+// Clear caches (used on profile switch)
+app.post('/api/cache/clear', (_req, res) => {
+  clearCaches()
+  res.json({ success: true })
+})
+
+// ── Chat Endpoints ───────────────────────────────────────────
+
+interface ChatRequestBody {
+  readonly node: import('@prism/shared').CausalChainNode
+  readonly chain: import('@prism/shared').CausalChain
+  readonly signal: import('@prism/shared').Signal
+  readonly temporalAnalysis: import('@prism/agents/src/chat-agent/types').TemporalAnalysis
+  readonly history?: ReadonlyArray<AgentChatMessage>
+  readonly message?: string
+}
+
+// Initial context message when a node is selected
+app.post('/api/chat/:userId/init', async (req, res) => {
+  const { userId } = req.params
+  const body = req.body as ChatRequestBody
 
   const portfolio = getPortfolioByUserId(userId)
   if (!portfolio) {
@@ -132,54 +194,80 @@ app.get('/api/graph/:userId/:signalId', async (req, res) => {
 
   const exposureResult = await analyze(portfolio, getFundComposition)
   if (!exposureResult.success || !exposureResult.data) {
-    res.status(500).json({
-      success: false,
-      error: exposureResult.error ?? 'Failed to analyze exposures',
-    })
+    res.status(500).json({ success: false, error: 'Failed to load exposure data' })
     return
   }
 
-  const signalResult = await monitor(exposureResult.data)
-  if (!signalResult.success || !signalResult.data) {
-    res.status(500).json({
-      success: false,
-      error: signalResult.error ?? 'Failed to monitor signals',
-    })
+  const context = buildChatContext(
+    body.node,
+    body.chain,
+    body.signal,
+    exposureResult.data,
+    profile,
+    body.temporalAnalysis,
+  )
+
+  const result = await generateInitialMessage(context)
+  if (result.error) {
+    res.status(500).json({ success: false, error: result.error })
     return
   }
 
-  const signal = signalResult.data.find((item) => item.id === signalId)
-  if (!signal) {
-    res.status(404).json({ success: false, error: 'Signal not found' })
+  res.json({ success: true, data: { content: result.content } })
+})
+
+// Streaming chat response
+app.post('/api/chat/:userId/message', async (req, res) => {
+  const { userId } = req.params
+  const body = req.body as ChatRequestBody & { readonly message: string }
+
+  const portfolio = getPortfolioByUserId(userId)
+  if (!portfolio) {
+    res.status(404).json({ success: false, error: 'Portfolio not found' })
     return
   }
 
-  const chainResult = await propagate(signal, exposureResult.data)
-  if (!chainResult.success || !chainResult.data) {
-    res.status(500).json({
-      success: false,
-      error: chainResult.error ?? 'Failed to generate causal chain',
-    })
+  const profile = getUserProfileById(userId)
+  if (!profile) {
+    res.status(404).json({ success: false, error: 'User profile not found' })
     return
   }
 
-  const temporalResult = await classifyTemporalReasoning(chainResult.data, profile)
-  if (!temporalResult.success || !temporalResult.data) {
-    res.status(500).json({
-      success: false,
-      error: temporalResult.error ?? 'Failed to generate temporal analysis',
-    })
+  const exposureResult = await analyze(portfolio, getFundComposition)
+  if (!exposureResult.success || !exposureResult.data) {
+    res.status(500).json({ success: false, error: 'Failed to load exposure data' })
     return
   }
 
-  res.json({
-    success: true,
-    data: {
-      signal,
-      chain: chainResult.data,
-      temporalAnalysis: temporalResult.data,
-    },
-  })
+  const context = buildChatContext(
+    body.node,
+    body.chain,
+    body.signal,
+    exposureResult.data,
+    profile,
+    body.temporalAnalysis,
+  )
+
+  // Set up SSE for streaming
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Connection', 'keep-alive')
+
+  const history: ReadonlyArray<AgentChatMessage> = body.history ?? []
+
+  for await (const chunk of streamChatResponse(context, history, body.message)) {
+    res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`)
+  }
+
+  res.write('data: [DONE]\n\n')
+  res.end()
+})
+
+// What-if detection endpoint
+app.post('/api/chat/detect-whatif', async (req, res) => {
+  const { message } = req.body as { message: string }
+  const result = await detectWhatIf(message)
+  res.json({ success: true, data: result })
 })
 
 app.listen(port, () => {

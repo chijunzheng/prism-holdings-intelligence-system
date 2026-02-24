@@ -3,7 +3,7 @@
 **Created:** 2026-02-24
 **Status:** In Progress
 **Total Features:** 12
-**Completed:** 10/12
+**Completed:** 12/12
 
 ## Progress Summary
 
@@ -19,8 +19,8 @@
 | 08 | Temporal Reasoner Agent | ✅ Completed | 07 | High | Backend |
 | 09 | Alert Composer Agent & Personalization | ✅ Completed | 08 | Medium | Backend |
 | 10 | Causal Graph View — D3.js Visualization | ✅ Completed | 07, 08 | High | Frontend |
-| 11 | Chat Panel — Contextual Drawer | ⬜ Not Started | 10 | High | Frontend |
-| 12 | Orchestrator & End-to-End Demo Flow | ⬜ Not Started | 06, 09, 10, 11 | High | Integration |
+| 11 | Chat Panel — Contextual Drawer | ✅ Completed | 10 | High | Frontend |
+| 12 | Orchestrator & End-to-End Demo Flow | ✅ Completed | 06, 09, 10, 11 | High | Integration |
 
 ## Dependency Graph
 
@@ -39,8 +39,8 @@ graph TD
     F08 --> F09[09: Alert Composer ✅]
     F07 --> F10[10: Causal Graph View ✅]
     F08 --> F10
-    F10 --> F11[11: Chat Panel ⬜]
-    F06 --> F12[12: Orchestrator ⬜]
+    F10 --> F11[11: Chat Panel ✅]
+    F06 --> F12[12: Orchestrator ✅]
     F09 --> F12
     F10 --> F12
     F11 --> F12
@@ -57,10 +57,10 @@ graph TD
 
 ### Track C: Frontend (Features 04, 06, 10, 11)
 ✅ 04 → ✅ 06
-✅ 10 → ⬜ 11
+✅ 10 → ✅ 11
 
 ### Track D: Integration (Feature 12)
-⬜ 12 (merges all tracks)
+✅ 12 (merges all tracks)
 
 ## Milestones
 
@@ -68,8 +68,8 @@ graph TD
 - [x] **M2: Exposure Engine Working** (Feature 03) — Can decompose holdings into true exposure
 - [x] **M3: Portfolio View Renders** (Feature 04) — User sees holdings + X-Ray
 - [x] **M4: Signal Pipeline Active** (Features 05, 07, 08) — Live events generate causal chains with temporal classification
-- [ ] **M5: Full UI Flow** (Features 06, 10, 11) — Portfolio View → Graph → Chat navigation works
-- [ ] **M6: Demo Ready** (Feature 12) — End-to-end live signal flow works any day
+- [x] **M5: Full UI Flow** (Features 06, 10, 11) — Portfolio View → Graph → Chat navigation works
+- [x] **M6: Demo Ready** (Feature 12) — End-to-end live signal flow works any day
 
 ## Risks
 

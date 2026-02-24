@@ -1,0 +1,21 @@
+{
+  "name": "@prism/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "@prism/agents": "workspace:*",
+    "@prism/data": "workspace:*",
+    "@prism/shared": "workspace:*",
+    "cors": "^2.8.5",
+    "express": "^4.21.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.0",
+    "@types/express": "^5.0.0",
+    "tsx": "^4.0.0"
+  }
+}

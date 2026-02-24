@@ -1,0 +1,68 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --color-bg: #0a0a0f;
+  --color-surface: #141420;
+  --color-border: #2a2a3a;
+  --color-text: #e8e8f0;
+  --color-text-muted: #8888aa;
+  --color-positive: #22c55e;
+  --color-negative: #ef4444;
+  --color-ambiguous: #eab308;
+  --color-accent: #6366f1;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+.view {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.view main {
+  flex: 1;
+  padding: 1.5rem;
+}
+
+.view header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.view header h1 {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.disclaimer {
+  padding: 0.75rem 1.5rem;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+}
+
+.placeholder {
+  color: var(--color-text-muted);
+  font-style: italic;
+  padding: 2rem;
+  text-align: center;
+}

@@ -49,7 +49,7 @@ export async function monitor(
     const prompt = buildSignalSearchPrompt(exposureMap.exposures)
 
     const response = await genai.models.generateContent({
-      model: 'gemini-2.5-pro',
+      model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],

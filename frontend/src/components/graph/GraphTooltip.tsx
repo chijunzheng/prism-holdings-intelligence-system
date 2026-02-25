@@ -1,3 +1,4 @@
+import { useRef, useLayoutEffect, useState } from 'react'
 import type { CausalChainNode } from '@prism/shared'
 import type { GraphTimeHorizon } from '../../types/graph'
 
@@ -16,8 +17,43 @@ function formatHorizon(horizon: GraphTimeHorizon): string {
 }
 
 export function GraphTooltip({ node, impact, horizon, x, y }: GraphTooltipProps) {
+  const ref = useRef<HTMLElement | null>(null)
+  const [offset, setOffset] = useState({ dx: 0, dy: 0 })
+
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+
+    const parent = el.offsetParent as HTMLElement | null
+    if (!parent) return
+
+    const parentRect = parent.getBoundingClientRect()
+    const tipW = el.offsetWidth
+    const tipH = el.offsetHeight
+    const pad = 8
+
+    let dx = 0
+    let dy = 0
+
+    // Flip left if tooltip overflows right edge
+    if (x + tipW + pad > parentRect.width) {
+      dx = -(tipW + 28)
+    }
+
+    // Push up if tooltip overflows bottom edge
+    if (y + tipH + pad > parentRect.height) {
+      dy = -(tipH + 28)
+    }
+
+    setOffset({ dx, dy })
+  }, [x, y])
+
   return (
-    <aside className="graph-tooltip" style={{ left: x, top: y }}>
+    <aside
+      ref={ref}
+      className="graph-tooltip"
+      style={{ left: x + offset.dx, top: y + offset.dy }}
+    >
       <p className="graph-tooltip__title">{node.label}</p>
       <p className="graph-tooltip__row">
         <span>Type</span>

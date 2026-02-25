@@ -75,37 +75,88 @@ function decomposeStock(holding: Holding): RawExposure {
 
 function decomposeEtf(holding: Holding, fund: FundComposition): ReadonlyArray<RawExposure> {
   const exposures: RawExposure[] = []
+  const sectorMix = new Map<string, { sector: string; country: string; coveredWeight: number }>()
+  let coveredWeight = 0
 
   // Allocate holding value proportionally to each constituent
   for (const constituent of fund.holdings) {
+    const country = normalizeCountry(constituent.country, fund.market)
     const valueCad = (holding.valueCad * constituent.weight) / 100
     exposures.push({
       assetName: constituent.name,
       assetTicker: constituent.ticker,
       sector: constituent.sector,
-      country: constituent.country,
+      country,
       valueCad,
       sourceFundTicker: holding.ticker,
       weightInFund: constituent.weight,
     })
-  }
 
-  // Remaining value not covered by top holdings → "Diversified Holdings"
-  // Uses fund market context instead of generic "Other" to avoid
-  // inflating a single catch-all category that triggers concentration alerts
-  const coveredPercent = fund.coveragePercent
-  if (coveredPercent < 100) {
-    const remainingValue = (holding.valueCad * (100 - coveredPercent)) / 100
-    exposures.push({
-      assetName: `${fund.name} — Remaining Holdings`,
-      assetTicker: undefined,
-      sector: 'Diversified Holdings',
-      country: fund.market,
-      valueCad: remainingValue,
-      sourceFundTicker: holding.ticker,
-      weightInFund: 100 - coveredPercent,
+    coveredWeight += constituent.weight
+    const mixKey = `${constituent.sector}::${country}`
+    const existingMix = sectorMix.get(mixKey) ?? {
+      sector: constituent.sector,
+      country,
+      coveredWeight: 0,
+    }
+    sectorMix.set(mixKey, {
+      ...existingMix,
+      coveredWeight: existingMix.coveredWeight + constituent.weight,
     })
   }
 
+  // Remaining value not covered by top holdings:
+  // infer sector distribution from known constituents to keep output actionable.
+  const remainingWeight = Math.max(0, 100 - fund.coveragePercent)
+  if (remainingWeight > 0) {
+    if (coveredWeight > 0 && sectorMix.size > 0) {
+      for (const bucket of sectorMix.values()) {
+        const inferredWeightInFund = (remainingWeight * bucket.coveredWeight) / coveredWeight
+        if (inferredWeightInFund <= 0) continue
+
+        exposures.push({
+          assetName: `${fund.name} — Inferred Remaining Constituents`,
+          assetTicker: undefined,
+          sector: bucket.sector,
+          country: bucket.country,
+          valueCad: (holding.valueCad * inferredWeightInFund) / 100,
+          sourceFundTicker: holding.ticker,
+          weightInFund: inferredWeightInFund,
+        })
+      }
+    } else {
+      exposures.push({
+        assetName: `${fund.name} — Unclassified Remaining Constituents`,
+        assetTicker: undefined,
+        sector: unclassifiedSectorForAssetClass(fund.assetClass),
+        country: normalizeCountry(undefined, fund.market),
+        valueCad: (holding.valueCad * remainingWeight) / 100,
+        sourceFundTicker: holding.ticker,
+        weightInFund: remainingWeight,
+      })
+    }
+  }
+
   return exposures
+}
+
+function normalizeCountry(country: string | undefined, fallbackMarket: string): string {
+  const raw = (country ?? fallbackMarket).trim().toUpperCase()
+  if (raw === 'CANADA' || raw === 'CAN') return 'CA'
+  if (raw === 'UNITED STATES' || raw === 'UNITED STATES OF AMERICA' || raw === 'USA') return 'US'
+  if (raw.length === 0) return 'Global'
+  return raw
+}
+
+function unclassifiedSectorForAssetClass(assetClass: FundComposition['assetClass']): string {
+  switch (assetClass) {
+    case 'equity':
+      return 'Unclassified Equity'
+    case 'fixed_income':
+      return 'Unclassified Fixed Income'
+    case 'commodity':
+      return 'Unclassified Commodity'
+    case 'mixed':
+      return 'Unclassified Multi-Asset'
+  }
 }

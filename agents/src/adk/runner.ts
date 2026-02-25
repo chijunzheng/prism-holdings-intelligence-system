@@ -67,7 +67,7 @@ export async function runPrismAdkPrompt(
   if (!hasAdkApiKey()) {
     return {
       success: false,
-      error: 'GOOGLE_API_KEY (or GEMINI_API_KEY) is required for ADK runtime',
+      error: 'GEMINI_API_KEY (or GOOGLE_GENAI_API_KEY / GOOGLE_API_KEY) is required for ADK runtime',
       durationMs: performance.now() - start,
     }
   }

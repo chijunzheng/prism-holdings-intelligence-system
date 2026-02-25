@@ -17,6 +17,8 @@ export const UserProfileSchema = z.object({
   investmentHorizonYears: z.number().int().positive(),
   /** Brief backstory for demo context */
   context: z.string(),
+  /** Short label for dropdown display */
+  shortContext: z.string().optional(),
   preferences: z.object({
     /** Max signals per day */
     maxDailyAlerts: z.number().int().min(0).max(10).default(2),

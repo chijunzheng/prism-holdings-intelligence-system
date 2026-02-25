@@ -6,9 +6,9 @@ import type { RawExposure } from './decompose'
  * Every sector gets a meaningful label — no generic "Other" bucket.
  */
 const SECTOR_DISPLAY_MAP: Record<string, string> = {
-  Financials: 'Canadian Financials',
-  Technology: 'US Technology',
-  Energy: 'Canadian Energy',
+  Financials: 'Financials',
+  Technology: 'Technology',
+  Energy: 'Energy',
   Materials: 'Gold & Materials',
   'Government Bonds': 'Government Bonds',
   'Provincial Bonds': 'Provincial Bonds',
@@ -22,8 +22,8 @@ const SECTOR_DISPLAY_MAP: Record<string, string> = {
   'Real Estate': 'Real Estate',
   Utilities: 'Utilities',
   'Individual Stock': 'Individual Stocks',
-  Other: 'Diversified Holdings',
-  Unknown: 'Diversified Holdings',
+  Other: 'Unclassified Exposure',
+  Unknown: 'Unclassified Exposure',
 }
 
 /**
@@ -32,17 +32,40 @@ const SECTOR_DISPLAY_MAP: Record<string, string> = {
  * even though the raw sector might be the same.
  */
 function categorize(sector: string, country: string): string {
-  if (sector === 'Financials' && country === 'CA') return 'Canadian Financials'
-  if (sector === 'Financials' && country === 'US') return 'US Financials'
-  if (sector === 'Technology' && country === 'US') return 'US Technology'
-  if (sector === 'Technology' && country === 'CA') return 'Canadian Technology'
-  if (sector === 'Energy' && country === 'CA') return 'Canadian Energy'
-  if (sector === 'Energy' && country === 'US') return 'US Energy'
-  if (sector === 'Materials') return 'Gold & Materials'
-  if (sector === 'Consumer Discretionary' || sector === 'Communication Services') {
-    return country === 'US' ? 'US Technology' : `${sector} (${country || 'Global'})`
+  const countryCode = normalizeCountryCode(country)
+  const countryLabel = toCountryLabel(countryCode)
+
+  if (sector === 'Diversified Holdings') {
+    return `Residual Constituents (${countryLabel})`
   }
-  return SECTOR_DISPLAY_MAP[sector] ?? `${sector} (${country || 'Global'})`
+  if (sector.startsWith('Unclassified')) {
+    return `${sector} (${countryLabel})`
+  }
+
+  if (sector === 'Financials' && countryCode === 'CA') return 'Canadian Financials'
+  if (sector === 'Financials' && countryCode === 'US') return 'US Financials'
+  if (sector === 'Technology' && countryCode === 'US') return 'US Technology'
+  if (sector === 'Technology' && countryCode === 'CA') return 'Canadian Technology'
+  if (sector === 'Energy' && countryCode === 'CA') return 'Canadian Energy'
+  if (sector === 'Energy' && countryCode === 'US') return 'US Energy'
+  if (sector === 'Materials') return 'Gold & Materials'
+  const mapped = SECTOR_DISPLAY_MAP[sector]
+  if (mapped) return mapped
+  return `${sector} (${countryLabel})`
+}
+
+function normalizeCountryCode(country: string): string {
+  const code = country.trim().toUpperCase()
+  if (code === 'CANADA' || code === 'CAN') return 'CA'
+  if (code === 'UNITED STATES' || code === 'UNITED STATES OF AMERICA' || code === 'USA') return 'US'
+  return code || 'GLOBAL'
+}
+
+function toCountryLabel(code: string): string {
+  if (code === 'CA') return 'Canada'
+  if (code === 'US') return 'US'
+  if (code === 'GLOBAL') return 'Global'
+  return code
 }
 
 /**

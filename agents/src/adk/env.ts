@@ -4,21 +4,25 @@ export function ensureAdkEnvironment(): void {
   const apiKey = getGeminiApiKey()
   if (!apiKey) return
 
-  // ADK runtime uses GOOGLE_API_KEY. Keep it aligned to GEMINI key value.
+  // Keep all SDK aliases aligned so ADK + GenAI runtime paths resolve the same key.
   if (!process.env.GOOGLE_API_KEY || process.env.GOOGLE_API_KEY !== apiKey) {
     process.env.GOOGLE_API_KEY = apiKey
   }
-
-  // Avoid SDK warning: "Both GOOGLE_API_KEY and GEMINI_API_KEY are set..."
-  // Non-ADK code still resolves key via getGeminiApiKey() fallback.
-  if (process.env.GEMINI_API_KEY) {
-    delete process.env.GEMINI_API_KEY
+  if (!process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_GENAI_API_KEY !== apiKey) {
+    process.env.GOOGLE_GENAI_API_KEY = apiKey
+  }
+  if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY !== apiKey) {
+    process.env.GEMINI_API_KEY = apiKey
   }
 }
 
 export function hasAdkApiKey(): boolean {
   ensureAdkEnvironment()
-  return Boolean(process.env.GOOGLE_API_KEY?.trim())
+  return Boolean(
+    process.env.GEMINI_API_KEY?.trim() ||
+      process.env.GOOGLE_GENAI_API_KEY?.trim() ||
+      process.env.GOOGLE_API_KEY?.trim(),
+  )
 }
 
 export function getAdkModelName(): string {

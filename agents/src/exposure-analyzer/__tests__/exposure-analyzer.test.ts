@@ -11,6 +11,15 @@ describe('Exposure Analyzer', () => {
       expect(result.data).toBeDefined()
     })
 
+    it('does not emit opaque diversified-holdings categories', async () => {
+      const portfolio = getPortfolioByUserId('sarah-01')!
+      const result = await analyze(portfolio, getFundComposition)
+      const hasOpaqueBucket = result.data!.exposures.some((e) =>
+        e.category.includes('Diversified Holdings'),
+      )
+      expect(hasOpaqueBucket).toBe(false)
+    })
+
     it('produces Canadian Financials as largest sector concentration', async () => {
       const portfolio = getPortfolioByUserId('sarah-01')!
       const result = await analyze(portfolio, getFundComposition)

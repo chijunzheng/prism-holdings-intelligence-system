@@ -165,4 +165,105 @@ export async function detectWhatIf(userMessage: string): Promise<WhatIfDetection
   }
 }
 
+/**
+ * Generates the initial welcome message for general (non-contextual) chat.
+ */
+export async function generateGeneralInitialMessage(
+  profile: import('@prism/shared').UserProfile,
+  exposureMap: import('@prism/shared').ExposureMap,
+): Promise<{ readonly content: string; readonly error?: string }> {
+  if (!getGeminiApiKey()) {
+    return { content: '', error: 'Gemini API key not configured.' }
+  }
+
+  const topExposures = exposureMap.exposures
+    .slice(0, 5)
+    .map((e) => `- ${e.category}: ${e.percentage.toFixed(1)}%`)
+    .join('\n')
+
+  const warnings = exposureMap.warnings
+    .map((w) => `- ${w.message}`)
+    .join('\n')
+
+  const prompt = [
+    buildSystemPrompt(profile),
+    '',
+    'TASK:',
+    'The user has opened a general portfolio chat. Greet them and briefly summarize their portfolio exposure.',
+    'Keep it concise (2-3 sentences). Include the disclaimer.',
+    '',
+    '## Portfolio Summary',
+    `Top exposures:\n${topExposures}`,
+    warnings ? `\nConcentration warnings:\n${warnings}` : '',
+  ].join('\n')
+
+  const result = await runPrismAdkPrompt({
+    userId: profile.id,
+    message: prompt,
+    sessionId: `${CHAT_SESSION_PREFIX}:${profile.id}:general:init`,
+  })
+
+  if (!result.success || !result.data) {
+    return {
+      content: '',
+      error: result.error ?? 'Failed to generate initial message',
+    }
+  }
+
+  return { content: result.data.response }
+}
+
+/**
+ * Streams a general chat response using portfolio/exposure context (no node/chain).
+ */
+export async function* streamGeneralChatResponse(
+  profile: import('@prism/shared').UserProfile,
+  exposureMap: import('@prism/shared').ExposureMap,
+  history: ReadonlyArray<ChatMessage>,
+  userMessage: string,
+): AsyncGenerator<string, void, undefined> {
+  if (!getGeminiApiKey()) {
+    yield 'Error: Gemini API key not configured.'
+    return
+  }
+
+  const topExposures = exposureMap.exposures
+    .slice(0, 5)
+    .map((e) => `- ${e.category}: ${e.percentage.toFixed(1)}%`)
+    .join('\n')
+
+  const transcript = history
+    .map((message) => `${message.role === 'assistant' ? 'Assistant' : 'User'}: ${message.content}`)
+    .join('\n')
+
+  const prompt = [
+    buildSystemPrompt(profile),
+    '',
+    '## Portfolio Context',
+    `Top exposures:\n${topExposures}`,
+    '',
+    'CHAT HISTORY:',
+    transcript || '(none)',
+    '',
+    `LATEST USER MESSAGE: ${userMessage}`,
+    '',
+    'Respond with practical analysis only. Avoid markdown headings.',
+  ].join('\n')
+
+  const result = await runPrismAdkPrompt({
+    userId: profile.id,
+    message: prompt,
+    sessionId: `${CHAT_SESSION_PREFIX}:${profile.id}:general`,
+  })
+
+  if (!result.success || !result.data) {
+    yield `Error: ${result.error ?? 'Failed to generate response'}`
+    return
+  }
+
+  for (const chunk of chunkText(result.data.response)) {
+    yield chunk
+  }
+}
+
 export type { ChatContext, ChatMessage, WhatIfDetection } from './types'

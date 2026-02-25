@@ -1,9 +1,12 @@
 /**
  * Returns the Gemini API key from supported env var names.
- * Accepts GEMINI_API_KEY (preferred) and GOOGLE_API_KEY (fallback).
+ * Accepts GEMINI_API_KEY (preferred), GOOGLE_GENAI_API_KEY, and GOOGLE_API_KEY.
  */
 export function getGeminiApiKey(): string | null {
-  const raw = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY
+  const raw =
+    process.env.GEMINI_API_KEY ??
+    process.env.GOOGLE_GENAI_API_KEY ??
+    process.env.GOOGLE_API_KEY
   if (!raw) return null
 
   const key = raw.trim()

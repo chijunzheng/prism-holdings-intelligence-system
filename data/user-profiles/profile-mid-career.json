@@ -7,6 +7,7 @@
   "goals": ["Retirement at 62", "Children's education fund"],
   "investmentHorizonYears": 20,
   "context": "Bought ETFs based on MoneySense 'couch potato' recommendations without analyzing overlap. Holds 6 ETFs across 4 account types and believes she is well-diversified.",
+  "shortContext": "Couch potato ETF investor",
   "preferences": {
     "maxDailyAlerts": 2,
     "detailLevel": "moderate"

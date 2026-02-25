@@ -15,6 +15,8 @@ import {
 import {
   generateInitialMessage,
   streamChatResponse,
+  generateGeneralInitialMessage,
+  streamGeneralChatResponse,
   detectWhatIf,
 } from '@prism/agents/src/chat-agent/index'
 import { buildChatContext } from '@prism/agents/src/chat-agent/context-builder'
@@ -116,6 +118,7 @@ app.get('/api/profiles', (_req, res) => {
     age: p.age,
     riskTolerance: p.riskTolerance,
     context: p.context,
+    shortContext: p.shortContext,
   }))
   res.json({ success: true, data: profiles })
 })
@@ -295,6 +298,76 @@ app.post('/api/chat/:userId/message', async (req, res) => {
   const history: ReadonlyArray<AgentChatMessage> = body.history ?? []
 
   for await (const chunk of streamChatResponse(context, history, body.message)) {
+    res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`)
+  }
+
+  res.write('data: [DONE]\n\n')
+  res.end()
+})
+
+// ── General Chat Endpoints (Ask Prism) ─────────────────────────
+
+// Initial message for general portfolio chat
+app.post('/api/chat/:userId/general/init', async (req, res) => {
+  const { userId } = req.params
+
+  const portfolio = getPortfolioByUserId(userId)
+  if (!portfolio) {
+    res.status(404).json({ success: false, error: 'Portfolio not found' })
+    return
+  }
+
+  const profile = getUserProfileById(userId)
+  if (!profile) {
+    res.status(404).json({ success: false, error: 'User profile not found' })
+    return
+  }
+
+  const exposureResult = await analyze(portfolio, getFundComposition)
+  if (!exposureResult.success || !exposureResult.data) {
+    res.status(500).json({ success: false, error: 'Failed to load exposure data' })
+    return
+  }
+
+  const result = await generateGeneralInitialMessage(profile, exposureResult.data)
+  if (result.error) {
+    res.status(500).json({ success: false, error: result.error })
+    return
+  }
+
+  res.json({ success: true, data: { content: result.content } })
+})
+
+// Streaming general chat response
+app.post('/api/chat/:userId/general/message', async (req, res) => {
+  const { userId } = req.params
+  const body = req.body as { readonly history?: ReadonlyArray<AgentChatMessage>; readonly message: string }
+
+  const portfolio = getPortfolioByUserId(userId)
+  if (!portfolio) {
+    res.status(404).json({ success: false, error: 'Portfolio not found' })
+    return
+  }
+
+  const profile = getUserProfileById(userId)
+  if (!profile) {
+    res.status(404).json({ success: false, error: 'User profile not found' })
+    return
+  }
+
+  const exposureResult = await analyze(portfolio, getFundComposition)
+  if (!exposureResult.success || !exposureResult.data) {
+    res.status(500).json({ success: false, error: 'Failed to load exposure data' })
+    return
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Connection', 'keep-alive')
+
+  const history: ReadonlyArray<AgentChatMessage> = body.history ?? []
+
+  for await (const chunk of streamGeneralChatResponse(profile, exposureResult.data, history, body.message)) {
     res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`)
   }
 

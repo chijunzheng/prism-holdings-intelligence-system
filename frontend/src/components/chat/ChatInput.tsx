@@ -1,12 +1,19 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface ChatInputProps {
   readonly onSend: (message: string) => void
   readonly disabled?: boolean
+  readonly initialValue?: string
 }
 
-export function ChatInput({ onSend, disabled = false }: ChatInputProps) {
+export function ChatInput({ onSend, disabled = false, initialValue }: ChatInputProps) {
   const [value, setValue] = useState('')
+
+  useEffect(() => {
+    if (initialValue) {
+      setValue(initialValue)
+    }
+  }, [initialValue])
 
   function handleSubmit(e: React.FormEvent): void {
     e.preventDefault()

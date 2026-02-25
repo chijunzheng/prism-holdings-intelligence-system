@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom'
+import { useAppContext } from '../../contexts/AppContext'
 import type { Overlap } from '@prism/shared'
 
 interface OverlapListProps {
@@ -5,7 +7,20 @@ interface OverlapListProps {
 }
 
 export function OverlapList({ overlaps }: OverlapListProps) {
+  const { setActiveSidebarContext } = useAppContext()
+  const navigate = useNavigate()
+
   if (overlaps.length === 0) return null
+
+  function handleClick(o: Overlap) {
+    const sources = o.sources.map((s) => s.fundTicker).join(' + ')
+    setActiveSidebarContext({
+      type: 'overlap',
+      label: o.assetName,
+      detail: `via ${sources}`,
+    })
+    navigate('/ask')
+  }
 
   return (
     <div className="overlap-list">
@@ -14,7 +29,7 @@ export function OverlapList({ overlaps }: OverlapListProps) {
       </p>
       <ul className="overlap-list__items">
         {overlaps.map((o) => (
-          <li key={o.assetTicker ?? o.assetName} className="overlap-item">
+          <li key={o.assetTicker ?? o.assetName} className="overlap-item sidebar-clickable" onClick={() => handleClick(o)}>
             <div className="overlap-item__header">
               <span className="overlap-item__name">
                 {o.assetName}
@@ -25,6 +40,7 @@ export function OverlapList({ overlaps }: OverlapListProps) {
             <span className="overlap-item__sources">
               via {o.sources.map((s) => s.fundTicker).join(' + ')}
             </span>
+            <span className="sidebar-clickable__chevron">›</span>
           </li>
         ))}
       </ul>

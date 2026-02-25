@@ -25,6 +25,14 @@ interface TooltipState {
 }
 
 const DEFAULT_SIZE = { width: 1100, height: 560 }
+const MIN_WIDTH = 760
+const MAX_WIDTH = 2200
+const MIN_HEIGHT = 420
+const MAX_HEIGHT = 720
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value))
+}
 
 export function CausalGraph({
   chain,
@@ -47,8 +55,8 @@ export function CausalGraph({
       const entry = entries[0]
       if (!entry) return
 
-      const width = Math.max(760, Math.floor(entry.contentRect.width))
-      const height = Math.max(420, Math.floor(entry.contentRect.height))
+      const width = clamp(Math.floor(entry.contentRect.width), MIN_WIDTH, MAX_WIDTH)
+      const height = clamp(Math.floor(entry.contentRect.height), MIN_HEIGHT, MAX_HEIGHT)
       setSize((prev) => {
         if (prev.width === width && prev.height === height) return prev
         return { width, height }

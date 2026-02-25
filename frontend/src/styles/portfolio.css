@@ -554,6 +554,41 @@
   font-size: 0.75rem;
 }
 
+/* ── Sidebar Clickable Items ────────────── */
+.sidebar-clickable {
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  position: relative;
+  border: none;
+  text-align: left;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+}
+
+.sidebar-clickable:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.sidebar-clickable:active {
+  transform: scale(0.99);
+}
+
+.sidebar-clickable__chevron {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.1rem;
+  color: var(--color-text-muted);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.sidebar-clickable:hover .sidebar-clickable__chevron {
+  opacity: 1;
+}
+
 /* ── Monitoring Status ───────────────────── */
 .monitoring-status {
   display: flex;

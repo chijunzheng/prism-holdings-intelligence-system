@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, Link } from 'react-router-dom'
 import type { CausalChainNode } from '@prism/shared'
 import { useAppContext } from '../contexts/AppContext'
-import { Disclaimer } from '../components/shared/Disclaimer'
 import { useSignals } from '../hooks/useSignals'
 import { useCausalChain } from '../hooks/useCausalChain'
 import type { GraphTimeHorizon } from '../types/graph'
@@ -36,7 +35,7 @@ export function CausalGraphView() {
 
   useEffect(() => {
     if (!signalId && signals.length > 0) {
-      navigate(`/graph/${encodeURIComponent(signals[0].id)}`, { replace: true })
+      navigate(`/signals/${encodeURIComponent(signals[0].id)}`, { replace: true })
     }
   }, [navigate, signalId, signals])
 
@@ -50,17 +49,9 @@ export function CausalGraphView() {
     }
   }, [counterfactualEnabled, data])
 
-  function handleBack(): void {
-    if (window.history.length > 1) {
-      navigate(-1)
-      return
-    }
-    navigate('/portfolio')
-  }
-
   function handleSignalSelect(nextSignalId: string): void {
     if (!nextSignalId) return
-    navigate(`/graph/${encodeURIComponent(nextSignalId)}`)
+    navigate(`/signals/${encodeURIComponent(nextSignalId)}`)
   }
 
   const signalErrorMessage = signalsError ? `Signals: ${signalsError}` : null
@@ -69,11 +60,11 @@ export function CausalGraphView() {
   return (
     <div className="view graph-view">
       <header className="graph-header">
-        <button type="button" className="graph-header__back" onClick={handleBack}>
-          ← Back to Portfolio
-        </button>
+        <Link to="/signals" className="graph-header__back">
+          &larr; Back to Signals
+        </Link>
         <div className="graph-header__title">
-          <h1>Causal Graph</h1>
+          <h1>Impact Analysis</h1>
           <p>Explore how this market signal propagates through your holdings.</p>
         </div>
       </header>
@@ -154,8 +145,6 @@ export function CausalGraphView() {
           </>
         )}
       </main>
-
-      <Disclaimer />
     </div>
   )
 }

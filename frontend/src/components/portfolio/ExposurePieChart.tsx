@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import type { ExposureEntry } from '@prism/shared'
+import { formatExposureCategory } from './exposure-category'
 
 interface ExposurePieChartProps {
   readonly exposures: ReadonlyArray<ExposureEntry>
@@ -95,6 +96,7 @@ export function ExposurePieChart({ exposures }: ExposurePieChartProps) {
   }, [exposures])
 
   const activeEntry = activeIndex !== null ? slices[activeIndex] : null
+  const activeCategory = activeEntry ? formatExposureCategory(activeEntry.entry.category) : null
 
   return (
     <div className="exposure-pie">
@@ -136,7 +138,7 @@ export function ExposurePieChart({ exposures }: ExposurePieChartProps) {
             dominantBaseline="central"
             style={{ fontSize: '0.75rem', fill: '#6b6b6b' }}
           >
-            {activeEntry ? activeEntry.entry.category : 'Hover for details'}
+            {activeCategory ?? 'Hover for details'}
           </text>
         </svg>
       </div>
@@ -153,7 +155,9 @@ export function ExposurePieChart({ exposures }: ExposurePieChartProps) {
               className="exposure-pie__legend-dot"
               style={{ backgroundColor: slice.color }}
             />
-            <span className="exposure-pie__legend-label">{slice.entry.category}</span>
+            <span className="exposure-pie__legend-label" title={formatExposureCategory(slice.entry.category)}>
+              {formatExposureCategory(slice.entry.category)}
+            </span>
             <span className="exposure-pie__legend-value">{slice.entry.percentage}%</span>
           </div>
         ))}

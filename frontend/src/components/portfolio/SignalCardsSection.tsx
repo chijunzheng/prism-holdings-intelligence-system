@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { MAX_ACTIVE_SIGNALS, type Signal } from '@prism/shared'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { SignalCard } from './SignalCard'
 import { InAppNotification } from './InAppNotification'
 import {
   getMateriality,
   buildSignalGraphRoute,
-  getOverflowCount,
   getVisibleSignals,
   markSignalViewed,
   readViewedSignalIds,
@@ -27,7 +26,6 @@ export function SignalCardsSection({
   error,
 }: SignalCardsSectionProps) {
   const navigate = useNavigate()
-  const [showAll, setShowAll] = useState(false)
   const [viewedSignalIds, setViewedSignalIds] = useState<ReadonlySet<string>>(
     () => readViewedSignalIds(userId),
   )
@@ -36,7 +34,6 @@ export function SignalCardsSection({
 
   useEffect(() => {
     setViewedSignalIds(readViewedSignalIds(userId))
-    setShowAll(false)
     setNotificationSignal(null)
     lastNotifiedSignalId.current = null
   }, [userId])
@@ -47,12 +44,9 @@ export function SignalCardsSection({
   )
   const orderedSignals = useMemo(() => sortSignalsForCards(materialSignals), [materialSignals])
   const visibleSignals = useMemo(
-    () =>
-      showAll ? orderedSignals : getVisibleSignals(orderedSignals, MAX_ACTIVE_SIGNALS),
-    [orderedSignals, showAll],
+    () => getVisibleSignals(orderedSignals, MAX_ACTIVE_SIGNALS),
+    [orderedSignals],
   )
-  const overflowCount = getOverflowCount(orderedSignals, MAX_ACTIVE_SIGNALS)
-
   const topHighSignal = useMemo(
     () =>
       orderedSignals.find(
@@ -87,24 +81,9 @@ export function SignalCardsSection({
     <div className="signal-cards-section">
       <div className="signal-cards-section__header">
         <h2 className="section-title">Active Signals</h2>
-        {overflowCount > 0 && !showAll && (
-          <button
-            type="button"
-            className="signal-cards-section__overflow-link"
-            onClick={() => setShowAll(true)}
-          >
-            View all ({orderedSignals.length}) →
-          </button>
-        )}
-        {showAll && orderedSignals.length > MAX_ACTIVE_SIGNALS && (
-          <button
-            type="button"
-            className="signal-cards-section__overflow-link"
-            onClick={() => setShowAll(false)}
-          >
-            Show fewer
-          </button>
-        )}
+        <Link to="/signals" className="signal-cards-section__overflow-link">
+          View all signals &rarr;
+        </Link>
       </div>
 
       {loading && (

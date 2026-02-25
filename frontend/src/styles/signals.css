@@ -1,0 +1,226 @@
+/* ── Signals Feed ──────────────────────────── */
+.signals-view {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 2.5rem;
+}
+
+.signals-view__header {
+  margin-bottom: 1.5rem;
+}
+
+.signals-view__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.25rem;
+}
+
+.signals-view__subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.signals-view__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.signals-view__empty,
+.signals-view__loading {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--color-text-secondary);
+  font-size: 0.9375rem;
+}
+
+.signals-view__error {
+  padding: 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: var(--color-negative);
+  font-size: 0.875rem;
+}
+
+/* ── Signal Item (News Card Accordion) ──────── */
+.signal-item {
+  background: var(--color-surface);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.signal-item__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  padding: 1.125rem 1.25rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+
+.signal-item__header:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.signal-item__header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.signal-item__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.signal-item__time {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.signal-item__headline {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-text);
+}
+
+.signal-item__chevron {
+  flex-shrink: 0;
+  font-size: 1.25rem;
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease;
+  line-height: 1;
+  margin-top: 0.25rem;
+}
+
+.signal-item__chevron--open {
+  transform: rotate(180deg);
+}
+
+/* ── Expanded Body ──────────────────────────── */
+.signal-item__body {
+  padding: 0 1.25rem 1.25rem;
+  animation: signal-body-in 200ms ease-out;
+}
+
+.signal-item__description {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin-bottom: 0.875rem;
+}
+
+.signal-item__details {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.875rem;
+}
+
+.signal-item__badge {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-transform: capitalize;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+}
+
+.signal-item__badge--transient {
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.signal-item__badge--structural {
+  color: #c2410c;
+  background: #fff7ed;
+}
+
+.signal-item__badge--ambiguous {
+  color: #a16207;
+  background: #fefce8;
+}
+
+.signal-item__affected {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.signal-item__actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.signal-item__source-link {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 50%;
+}
+
+.signal-item__source-link:hover {
+  text-decoration: underline;
+  color: var(--color-text-secondary);
+}
+
+.signal-item__cta {
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+
+.signal-item__cta:hover {
+  opacity: 0.7;
+}
+
+@keyframes signal-body-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signal-item__body {
+    animation: none;
+  }
+  .signal-item__chevron {
+    transition: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .signals-view {
+    padding: 1rem;
+  }
+}

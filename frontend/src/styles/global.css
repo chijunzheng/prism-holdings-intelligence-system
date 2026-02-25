@@ -73,40 +73,190 @@ button {
   text-align: center;
 }
 
-/* ── Profile Switcher (Demo Tool) ──────────────────── */
+/* ── Profile Switcher (Wealthsimple Style) ─────────── */
 
-.profile-switcher {
+.ws-profile {
   position: fixed;
   top: 0.6rem;
   right: 1.5rem;
   z-index: 100;
+}
+
+.ws-profile__trigger {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.65rem;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(8px);
+  gap: 0.35rem;
+  padding: 0.35rem 0.6rem 0.35rem 0.35rem;
+  border: none;
+  border-radius: 100px;
+  background: var(--color-surface, #f4f4f5);
+  cursor: pointer;
+  transition: background 0.15s ease;
 }
 
-.profile-switcher__label {
+.ws-profile__trigger:hover {
+  background: var(--color-border, #e4e4e7);
+}
+
+.ws-profile__avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-text, #1a1a1a);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.ws-profile__chevron {
+  color: var(--color-text-muted, #71717a);
+  transition: transform 0.2s ease;
+}
+
+.ws-profile__chevron--open {
+  transform: rotate(180deg);
+}
+
+.ws-profile__dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  width: 260px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  padding: 0.5rem 0;
+  animation: ws-dropdown-in 0.15s ease-out;
+}
+
+@keyframes ws-dropdown-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ws-profile__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+}
+
+.ws-profile__header-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-text, #1a1a1a);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.ws-profile__header-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ws-profile__header-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text, #1a1a1a);
+}
+
+.ws-profile__header-context {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #71717a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ws-profile__divider {
+  height: 1px;
+  background: var(--color-border, #e4e4e7);
+  margin: 0.25rem 0;
+}
+
+.ws-profile__section-label {
   font-size: 0.68rem;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-text-muted);
-  white-space: nowrap;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted, #71717a);
+  padding: 0.5rem 1rem 0.25rem;
 }
 
-.profile-switcher__select {
-  background: var(--color-bg);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  padding: 0.3rem 0.45rem;
-  font-size: 0.74rem;
-  font-family: inherit;
-  max-width: 280px;
+.ws-profile__item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s ease;
+}
+
+.ws-profile__item:hover {
+  background: var(--color-surface, #f4f4f5);
+}
+
+.ws-profile__item--active {
+  background: var(--color-surface, #f4f4f5);
+}
+
+.ws-profile__item-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--color-border, #e4e4e7);
+  color: var(--color-text, #1a1a1a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.ws-profile__item--active .ws-profile__item-avatar {
+  background: var(--color-text, #1a1a1a);
+  color: #fff;
+}
+
+.ws-profile__item-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.ws-profile__item-name {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-text, #1a1a1a);
+}
+
+.ws-profile__item-context {
+  font-size: 0.7rem;
+  color: var(--color-text-muted, #71717a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ws-profile__check {
+  color: var(--color-text, #1a1a1a);
+  flex-shrink: 0;
 }
 
 /* ── Error Boundary ────────────────────────────────── */

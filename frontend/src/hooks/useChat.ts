@@ -11,10 +11,11 @@ export interface ChatMessage {
 
 interface UseChatOptions {
   readonly userId: string
-  readonly node: CausalChainNode | null
-  readonly chain: CausalChain | null
-  readonly signal: Signal | null
-  readonly temporalAnalysis: TemporalAnalysis | null
+  readonly mode?: 'contextual' | 'general'
+  readonly node?: CausalChainNode | null
+  readonly chain?: CausalChain | null
+  readonly signal?: Signal | null
+  readonly temporalAnalysis?: TemporalAnalysis | null
 }
 
 interface UseChatReturn {
@@ -32,23 +33,58 @@ function nextMessageId(): string {
 
 export function useChat({
   userId,
-  node,
-  chain,
-  signal,
-  temporalAnalysis,
+  mode = 'contextual',
+  node = null,
+  chain = null,
+  signal = null,
+  temporalAnalysis = null,
 }: UseChatOptions): UseChatReturn {
   const [messages, setMessages] = useState<ReadonlyArray<ChatMessage>>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  // Reset chat when node changes
+  const isGeneral = mode === 'general'
+
+  // Reset chat when node changes (contextual) or on mount (general)
   useEffect(() => {
     abortControllerRef.current?.abort()
     setMessages([])
     setError(null)
     setIsLoading(false)
 
+    if (isGeneral) {
+      // Init general chat
+      setIsLoading(true)
+      const controller = new AbortController()
+      abortControllerRef.current = controller
+
+      fetch(`/api/chat/${userId}/general/init`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+        signal: controller.signal,
+      })
+        .then((res) => res.json())
+        .then((payload: { success: boolean; data?: { content: string }; error?: string }) => {
+          if (!payload.success || !payload.data) {
+            throw new Error(payload.error ?? 'Failed to initialize chat')
+          }
+          setMessages([
+            { id: nextMessageId(), role: 'assistant', content: payload.data.content },
+          ])
+          setIsLoading(false)
+        })
+        .catch((err: Error) => {
+          if (err.name === 'AbortError') return
+          setError(err.message)
+          setIsLoading(false)
+        })
+
+      return () => controller.abort()
+    }
+
+    // Contextual mode
     if (!node || !chain || !signal || !temporalAnalysis) return
 
     setIsLoading(true)
@@ -79,11 +115,12 @@ export function useChat({
       })
 
     return () => controller.abort()
-  }, [node?.id, chain?.id, signal?.id, userId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isGeneral ? null : node?.id, isGeneral ? null : chain?.id, isGeneral ? null : signal?.id, userId, isGeneral]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const sendMessage = useCallback(
     (content: string) => {
-      if (!node || !chain || !signal || !temporalAnalysis || isLoading) return
+      if (isLoading) return
+      if (!isGeneral && (!node || !chain || !signal || !temporalAnalysis)) return
 
       const userMsg: ChatMessage = { id: nextMessageId(), role: 'user', content }
       const assistantId = nextMessageId()
@@ -104,17 +141,18 @@ export function useChat({
         content: m.content,
       }))
 
-      fetch(`/api/chat/${userId}/message`, {
+      const endpoint = isGeneral
+        ? `/api/chat/${userId}/general/message`
+        : `/api/chat/${userId}/message`
+
+      const body = isGeneral
+        ? { history, message: content }
+        : { node, chain, signal, temporalAnalysis, history, message: content }
+
+      fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          node,
-          chain,
-          signal,
-          temporalAnalysis,
-          history,
-          message: content,
-        }),
+        body: JSON.stringify(body),
         signal: controller.signal,
       })
         .then(async (res) => {
@@ -174,7 +212,7 @@ export function useChat({
           setMessages((prev) => prev.filter((m) => m.id !== assistantId))
         })
     },
-    [chain, isLoading, messages, node, signal, temporalAnalysis, userId],
+    [chain, isGeneral, isLoading, messages, node, signal, temporalAnalysis, userId],
   )
 
   return { messages, isLoading, error, sendMessage }

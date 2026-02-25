@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useExposureData } from '../hooks/useExposureData'
 import { usePortfolio } from '../hooks/usePortfolio'
 import { useSignals } from '../hooks/useSignals'
@@ -17,7 +18,8 @@ function formatCurrency(value: number): string {
 }
 
 export function PortfolioView() {
-  const { userId } = useAppContext()
+  const { userId, setActiveSidebarContext } = useAppContext()
+  const navigate = useNavigate()
   const { portfolio, loading: portfolioLoading } = usePortfolio(userId)
   const { exposureMap, loading: exposureLoading, error } = useExposureData(userId)
   const { signals } = useSignals(userId)
@@ -83,11 +85,35 @@ export function PortfolioView() {
 
         {exposureMap && (
           <aside className="portfolio-sidebar">
-            <div className="sidebar-card">
+            <div
+              className="sidebar-card sidebar-clickable"
+              onClick={() => {
+                setActiveSidebarContext({
+                  type: 'exposure',
+                  label: `${exposureMap.exposures.length} categories`,
+                  detail: 'Sector and geographic exposure breakdown',
+                })
+                navigate('/ask')
+              }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setActiveSidebarContext({
+                    type: 'exposure',
+                    label: `${exposureMap.exposures.length} categories`,
+                    detail: 'Sector and geographic exposure breakdown',
+                  })
+                  navigate('/ask')
+                }
+              }}
+            >
               <span className="sidebar-card__label">Exposure categories</span>
               <span className="sidebar-card__value">{exposureMap.exposures.length}</span>
               <div className="sidebar-card__divider" />
               <MonitoringStatus exposureMap={exposureMap} />
+              <span className="sidebar-clickable__chevron">›</span>
             </div>
 
             {exposureMap.warnings.length > 0 && (

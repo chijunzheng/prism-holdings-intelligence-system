@@ -1,4 +1,5 @@
 import type { ExposureEntry } from '@prism/shared'
+import { formatExposureCategory } from './exposure-category'
 
 interface ExposureBarProps {
   readonly entry: ExposureEntry
@@ -16,11 +17,12 @@ function getBarColor(percentage: number): string {
 
 export function ExposureBar({ entry, maxPercentage, animationDelay }: ExposureBarProps) {
   const widthPercent = (entry.percentage / maxPercentage) * 100
+  const category = formatExposureCategory(entry.category)
 
   return (
     <div className="exposure-bar">
       <div className="exposure-bar__header">
-        <span className="exposure-bar__label">{entry.category}</span>
+        <span className="exposure-bar__label">{category}</span>
         <span className="exposure-bar__value">
           {entry.percentage}% · ${entry.valueCad.toLocaleString('en-CA', { maximumFractionDigits: 0 })}
         </span>

@@ -30,6 +30,7 @@
   padding: 0.5rem 0.85rem;
   cursor: pointer;
   font-size: 0.875rem;
+  text-decoration: none;
   transition: background 0.12s;
 }
 
@@ -204,7 +205,7 @@
 /* ── SVG Canvas ──────────────────────────── */
 .causal-graph {
   position: relative;
-  min-height: 540px;
+  height: clamp(420px, 56vh, 620px);
   border-radius: 10px;
   overflow: hidden;
   background: #fafafa;
@@ -411,7 +412,7 @@
   }
 
   .causal-graph {
-    min-height: 460px;
+    height: clamp(420px, 52vh, 540px);
   }
 }
 
@@ -430,6 +431,6 @@
   }
 
   .causal-graph {
-    min-height: 420px;
+    height: 420px;
   }
 }

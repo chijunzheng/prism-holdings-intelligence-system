@@ -9,12 +9,20 @@ interface DemoProfile {
   readonly context: string
 }
 
+interface HoldingContext {
+  readonly ticker: string
+  readonly name: string
+  readonly accountType: string
+}
+
 interface AppState {
   readonly userId: string
   readonly profiles: ReadonlyArray<DemoProfile>
   readonly profilesLoading: boolean
+  readonly activeHoldingContext: HoldingContext | null
   readonly setUserId: (id: string) => void
   readonly loadProfiles: () => void
+  readonly setActiveHoldingContext: (context: HoldingContext | null) => void
 }
 
 const AppContext = createContext<AppState | null>(null)
@@ -31,6 +39,7 @@ export function AppProvider({ children }: AppProviderProps) {
     // Clear server-side caches when switching profiles
     fetch('/api/cache/clear', { method: 'POST' }).catch(() => {})
   }, [])
+  const [activeHoldingContext, setActiveHoldingContext] = useState<HoldingContext | null>(null)
   const [profiles, setProfiles] = useState<ReadonlyArray<DemoProfile>>([])
   const [profilesLoading, setProfilesLoading] = useState(false)
 
@@ -52,7 +61,7 @@ export function AppProvider({ children }: AppProviderProps) {
   }, [profiles.length])
 
   return (
-    <AppContext.Provider value={{ userId, profiles, profilesLoading, setUserId, loadProfiles }}>
+    <AppContext.Provider value={{ userId, profiles, profilesLoading, activeHoldingContext, setUserId, loadProfiles, setActiveHoldingContext }}>
       {children}
     </AppContext.Provider>
   )

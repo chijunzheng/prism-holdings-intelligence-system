@@ -48,6 +48,17 @@ function splitLabel(label: string): readonly string[] {
   return [label.slice(0, splitIdx), label.slice(splitIdx + 1)]
 }
 
+/**
+ * Extracts a short display name for asset nodes that fits inside a circle.
+ * "NVIDIA Corp. (NVDA)" → "NVDA", "Vanguard S&P 500 Index ETF (VFV)" → "VFV"
+ * Falls back to first 6 chars if no ticker found.
+ */
+function assetShortLabel(label: string): string {
+  const tickerMatch = label.match(/\(([A-Z]{1,5})\)/)
+  if (tickerMatch) return tickerMatch[1]
+  return label.length > 6 ? label.slice(0, 6) : label
+}
+
 function handleNodeHover(
   event: MouseEvent<SVGGElement>,
   node: CausalChainNode,
@@ -76,6 +87,8 @@ export function GraphNode({
   const isMultiLine = lines.length > 1
   const rectWidth = isAsset ? 0 : computeRectWidth(isMultiLine ? lines.reduce((a, b) => (a.length > b.length ? a : b), '') : node.label)
   const rectHeight = isMultiLine ? 56 : 44
+
+  const shortLabel = isAsset ? assetShortLabel(node.label) : ''
 
   return (
     <g
@@ -110,20 +123,23 @@ export function GraphNode({
         />
       )}
 
-      {isMultiLine ? (
+      {isAsset ? (
+        <>
+          <text className="graph-node__label graph-node__label--asset" textAnchor="middle" dominantBaseline="central" dy={-5}>
+            {shortLabel}
+          </text>
+          <text className="graph-node__impact" textAnchor="middle" dy={9}>
+            {displayImpact >= 0 ? '+' : '-'}${Math.abs(displayImpact).toFixed(0)}
+          </text>
+        </>
+      ) : isMultiLine ? (
         <text className="graph-node__label" textAnchor="middle" dominantBaseline="central">
           <tspan x={0} dy={-7}>{lines[0]}</tspan>
           <tspan x={0} dy={14}>{lines[1]}</tspan>
         </text>
       ) : (
-        <text className="graph-node__label" textAnchor="middle" dominantBaseline="central" dy={isAsset ? -6 : 0}>
+        <text className="graph-node__label" textAnchor="middle" dominantBaseline="central">
           {node.label}
-        </text>
-      )}
-
-      {isAsset && (
-        <text className="graph-node__impact" textAnchor="middle" dy={12}>
-          {displayImpact >= 0 ? '+' : '-'}${Math.abs(displayImpact).toFixed(0)}
         </text>
       )}
     </g>

@@ -28,7 +28,7 @@ BEHAVIORAL RULES (MANDATORY — violations are unacceptable):
 8. Keep responses concise — 2-4 paragraphs max unless the user asks for detail.
 9. Adapt language complexity to the user's financial literacy level: ${profile.financialLiteracy}.
 
-DISCLAIMER: You MUST include this in your FIRST message only: "This is educational analysis, not financial advice. Consult a qualified financial advisor before making investment decisions."`
+NOTE: A persistent disclaimer is shown in the app UI. Do NOT repeat the disclaimer in your messages."`
 }
 
 /**
@@ -91,7 +91,7 @@ ${sources}
 
 ${chain.isSpeculative ? '**WARNING:** This causal chain extends beyond 3 hops and should be flagged as speculative.' : ''}
 
-Summarize this node's role concisely. Include the disclaimer in your first message.`
+Summarize this node's role concisely.`
 }
 
 /**

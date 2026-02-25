@@ -24,18 +24,23 @@ export function ControlsSidebar({
 }: ControlsSidebarProps) {
   return (
     <div className="controls-sidebar">
-      <TimeSlider value={horizon} onChange={onHorizonChange} />
+      <div title="Adjust the time horizon to see how impact changes over 1 week, 1 month, or 6 months">
+        <TimeSlider value={horizon} onChange={onHorizonChange} />
+      </div>
 
-      <CounterfactualToggle
-        enabled={counterfactualEnabled}
-        available={counterfactualAvailable}
-        onToggle={onCounterfactualToggle}
-      />
+      <div title="Compare your current portfolio against a rebalanced version to see how diversification would reduce impact">
+        <CounterfactualToggle
+          enabled={counterfactualEnabled}
+          available={counterfactualAvailable}
+          onToggle={onCounterfactualToggle}
+        />
+      </div>
 
       <button
         type="button"
         className="graph-control graph-control--button"
         onClick={onExpandToggle}
+        title="Show or hide individual stock-level nodes (3rd-order effects) in the causal graph"
       >
         {expandedDepth ? 'Collapse 3rd-order' : 'Expand 3rd-order'}
       </button>

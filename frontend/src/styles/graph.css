@@ -30,6 +30,12 @@
   pointer-events: none;
 }
 
+.graph-node__label--asset {
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
 .graph-node__impact {
   fill: var(--color-text-secondary);
   font-size: 0.5rem;

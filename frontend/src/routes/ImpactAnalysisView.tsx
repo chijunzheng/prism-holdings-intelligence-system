@@ -28,7 +28,7 @@ export function ImpactAnalysisView() {
   const [selectedNode, setSelectedNode] = useState<CausalChainNode | null>(null)
   const [horizon, setHorizon] = useState<GraphTimeHorizon>('oneMonth')
   const [counterfactualEnabled, setCounterfactualEnabled] = useState(false)
-  const [expandedDepth, setExpandedDepth] = useState(false)
+  const [expandedDepth, setExpandedDepth] = useState(true)
   const [activeRightTab, setActiveRightTab] = useState<RightTab>('details')
   const [rightPanelOpen, setRightPanelOpen] = useState(false)
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>('signals')

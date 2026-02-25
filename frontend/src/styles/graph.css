@@ -151,6 +151,36 @@
 }
 
 /* ── Legend ───────────────────────────────── */
+/* ── Pan/Zoom ───────────────────────────── */
+.causal-graph__svg {
+  cursor: grab;
+}
+
+.causal-graph__svg--grabbing {
+  cursor: grabbing;
+}
+
+.causal-graph__reset {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.12s;
+  z-index: 10;
+}
+
+.causal-graph__reset:hover {
+  background: var(--color-accent-subtle);
+}
+
+/* ── Legend ───────────────────────────────── */
 .graph-legend {
   border: 1px solid var(--color-border);
   border-radius: 8px;

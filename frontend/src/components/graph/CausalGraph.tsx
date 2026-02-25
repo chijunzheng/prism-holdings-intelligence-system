@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CausalChain, CausalChainNode } from '@prism/shared'
 import type { GraphTimeHorizon, TemporalAnalysis } from '../../types/graph'
 import { useGraphLayout } from '../../hooks/useGraphLayout'
@@ -24,14 +24,56 @@ interface TooltipState {
   readonly y: number
 }
 
+interface PanZoomState {
+  readonly panX: number
+  readonly panY: number
+  readonly scale: number
+}
+
 const DEFAULT_SIZE = { width: 1100, height: 560 }
 const MIN_WIDTH = 760
 const MAX_WIDTH = 2200
 const MIN_HEIGHT = 420
 const MAX_HEIGHT = 720
+const MIN_SCALE = 0.3
+const MAX_SCALE = 3.0
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
+}
+
+function fitToContent(
+  positions: ReadonlyMap<string, { x: number; y: number }>,
+  containerWidth: number,
+  containerHeight: number,
+): PanZoomState {
+  if (positions.size === 0) return { panX: 0, panY: 0, scale: 1 }
+
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+  for (const pos of positions.values()) {
+    minX = Math.min(minX, pos.x)
+    minY = Math.min(minY, pos.y)
+    maxX = Math.max(maxX, pos.x)
+    maxY = Math.max(maxY, pos.y)
+  }
+
+  const padding = 80
+  const contentWidth = maxX - minX + padding * 2
+  const contentHeight = maxY - minY + padding * 2
+  const scale = clamp(
+    Math.min(containerWidth / contentWidth, containerHeight / contentHeight),
+    MIN_SCALE,
+    1.0,
+  )
+  const centerX = (minX + maxX) / 2
+  const centerY = (minY + maxY) / 2
+  const panX = containerWidth / 2 - centerX * scale
+  const panY = containerHeight / 2 - centerY * scale
+
+  return { panX, panY, scale }
 }
 
 export function CausalGraph({
@@ -46,6 +88,9 @@ export function CausalGraph({
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [size, setSize] = useState(DEFAULT_SIZE)
   const [tooltip, setTooltip] = useState<TooltipState | null>(null)
+  const [panZoom, setPanZoom] = useState<PanZoomState>({ panX: 0, panY: 0, scale: 1 })
+  const isPanning = useRef(false)
+  const lastPointer = useRef({ x: 0, y: 0 })
 
   useEffect(() => {
     const element = containerRef.current
@@ -72,6 +117,13 @@ export function CausalGraph({
     height: size.height,
     expandedDepth,
   })
+
+  // Fit to content when positions change
+  useEffect(() => {
+    if (positions.size > 0) {
+      setPanZoom(fitToContent(positions, size.width, size.height))
+    }
+  }, [positions, size.width, size.height])
 
   const impactByNodeId = useMemo(() => {
     const map = new Map<string, number>()
@@ -102,9 +154,59 @@ export function CausalGraph({
     })
   }
 
+  const handleWheel = useCallback((event: React.WheelEvent<SVGSVGElement>) => {
+    event.preventDefault()
+    const svgEl = event.currentTarget
+    const rect = svgEl.getBoundingClientRect()
+    const cursorX = event.clientX - rect.left
+    const cursorY = event.clientY - rect.top
+
+    setPanZoom((prev) => {
+      const zoomFactor = event.deltaY < 0 ? 1.08 : 1 / 1.08
+      const newScale = clamp(prev.scale * zoomFactor, MIN_SCALE, MAX_SCALE)
+      const ratio = newScale / prev.scale
+      const newPanX = cursorX - (cursorX - prev.panX) * ratio
+      const newPanY = cursorY - (cursorY - prev.panY) * ratio
+      return { panX: newPanX, panY: newPanY, scale: newScale }
+    })
+  }, [])
+
+  const handlePointerDown = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
+    if ((event.target as Element).closest('.graph-node')) return
+    isPanning.current = true
+    lastPointer.current = { x: event.clientX, y: event.clientY }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }, [])
+
+  const handlePointerMove = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
+    if (!isPanning.current) return
+    const dx = event.clientX - lastPointer.current.x
+    const dy = event.clientY - lastPointer.current.y
+    lastPointer.current = { x: event.clientX, y: event.clientY }
+    setPanZoom((prev) => ({ ...prev, panX: prev.panX + dx, panY: prev.panY + dy }))
+  }, [])
+
+  const handlePointerUp = useCallback(() => {
+    isPanning.current = false
+  }, [])
+
+  const handleReset = useCallback(() => {
+    setPanZoom(fitToContent(positions, size.width, size.height))
+  }, [positions, size.width, size.height])
+
   return (
     <div className="causal-graph" ref={containerRef}>
-      <svg width="100%" height="100%" viewBox={`0 0 ${size.width} ${size.height}`}>
+      <svg
+        width="100%"
+        height="100%"
+        viewBox={`0 0 ${size.width} ${size.height}`}
+        className={isPanning.current ? 'causal-graph__svg--grabbing' : 'causal-graph__svg'}
+        onWheel={handleWheel}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+      >
         <defs>
           <marker
             id="graph-arrowhead"
@@ -119,31 +221,37 @@ export function CausalGraph({
           </marker>
         </defs>
 
-        {edges.map((edge) => {
-          const source = positions.get(edge.source)
-          const target = positions.get(edge.target)
-          if (!source || !target) return null
-          return <GraphEdge key={edge.id} edge={edge} source={source} target={target} />
-        })}
+        <g transform={`translate(${panZoom.panX} ${panZoom.panY}) scale(${panZoom.scale})`}>
+          {edges.map((edge) => {
+            const source = positions.get(edge.source)
+            const target = positions.get(edge.target)
+            if (!source || !target) return null
+            return <GraphEdge key={edge.id} edge={edge} source={source} target={target} />
+          })}
 
-        {nodes.map((node) => {
-          const position = positions.get(node.id)
-          if (!position) return null
+          {nodes.map((node) => {
+            const position = positions.get(node.id)
+            if (!position) return null
 
-          return (
-            <GraphNode
-              key={node.id}
-              node={node}
-              position={position}
-              displayImpact={impactByNodeId.get(node.id) ?? 0}
-              selected={node.id === selectedNodeId}
-              onSelect={onNodeSelect}
-              onHover={handleNodeHover}
-              onHoverEnd={() => setTooltip(null)}
-            />
-          )
-        })}
+            return (
+              <GraphNode
+                key={node.id}
+                node={node}
+                position={position}
+                displayImpact={impactByNodeId.get(node.id) ?? 0}
+                selected={node.id === selectedNodeId}
+                onSelect={onNodeSelect}
+                onHover={handleNodeHover}
+                onHoverEnd={() => setTooltip(null)}
+              />
+            )
+          })}
+        </g>
       </svg>
+
+      <button className="causal-graph__reset" onClick={handleReset} type="button">
+        Reset view
+      </button>
 
       {tooltip && (
         <GraphTooltip

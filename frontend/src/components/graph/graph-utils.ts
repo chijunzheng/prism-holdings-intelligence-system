@@ -207,8 +207,8 @@ export function computeGraphPositions(
   }
 
   const orderedRanks = [0, 1, 2, 3]
-  const leftPad = 90
-  const rightPad = 90
+  const leftPad = 130
+  const rightPad = 130
   const topPad = 56
   const bottomPad = 56
   const usableWidth = Math.max(320, width - leftPad - rightPad)

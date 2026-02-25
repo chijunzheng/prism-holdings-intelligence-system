@@ -11,7 +11,7 @@ export const config: AgentConfig = {
   usesLlm: true,
 }
 
-const MAX_RETRIES = 2
+const MAX_RETRIES = 1
 
 /**
  * Generates a causal propagation chain from a signal event

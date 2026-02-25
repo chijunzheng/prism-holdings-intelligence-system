@@ -15,11 +15,13 @@ interface RawSignalResponse {
   }>
 }
 
+const VALID_URGENCIES = new Set(['low', 'medium', 'high', 'critical'])
+const VALID_TEMPORAL = new Set(['transient', 'structural', 'ambiguous'])
+
 /**
  * Generates a deterministic-ish ID from headline content.
  */
 function generateSignalId(headline: string): string {
-  // Simple hash-like ID from headline for dedup
   const hash = headline
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '')
@@ -28,8 +30,25 @@ function generateSignalId(headline: string): string {
 }
 
 /**
+ * Normalizes a string enum value from Gemini (handles capitalization, quotes, etc.)
+ */
+function normalizeEnum(value: string, validValues: ReadonlySet<string>, fallback: string): string {
+  const normalized = value.toLowerCase().trim().replace(/['"]/g, '')
+  return validValues.has(normalized) ? normalized : fallback
+}
+
+/**
+ * Sanitizes a source URL — Gemini sometimes returns malformed or placeholder URLs.
+ */
+function sanitizeSourceUrl(url: string): string {
+  const trimmed = url.trim()
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed
+  return `https://${trimmed}`
+}
+
+/**
  * Parses raw Gemini response text into typed Signal objects.
- * Handles malformed responses gracefully.
+ * Normalizes common LLM quirks (capitalization, missing fields) before Zod validation.
  */
 export function parseSignalResponse(responseText: string): ReadonlyArray<Signal> {
   // Extract JSON array from response (Gemini may include markdown fences)
@@ -49,26 +68,36 @@ export function parseSignalResponse(responseText: string): ReadonlyArray<Signal>
 
   for (const raw of rawSignals) {
     try {
+      if (!raw.headline || !raw.description) continue
+
+      const sources = (raw.sources ?? [])
+        .filter((s) => s.title && s.url)
+        .map((s) => ({
+          title: s.title,
+          url: sanitizeSourceUrl(s.url),
+          publisher: s.publisher ?? undefined,
+          publishedAt: undefined, // Drop publishedAt — Gemini rarely returns valid ISO datetime
+        }))
+
       const signal = SignalSchema.parse({
         id: generateSignalId(raw.headline),
         headline: raw.headline,
         description: raw.description,
-        affectedExposures: raw.affectedExposures,
-        relevanceScore: Math.min(1, Math.max(0, raw.relevanceScore)),
-        urgency: raw.urgency,
-        temporalClassification: raw.temporalClassification,
-        sources: raw.sources.map((s) => ({
-          title: s.title,
-          url: s.url,
-          publisher: s.publisher,
-          publishedAt: s.publishedAt,
-        })),
+        affectedExposures: raw.affectedExposures ?? [],
+        relevanceScore: Math.min(1, Math.max(0, Number(raw.relevanceScore) || 0.5)),
+        urgency: normalizeEnum(raw.urgency ?? 'medium', VALID_URGENCIES, 'medium'),
+        temporalClassification: normalizeEnum(
+          raw.temporalClassification ?? 'ambiguous',
+          VALID_TEMPORAL,
+          'ambiguous',
+        ),
+        sources,
         detectedAt: new Date().toISOString(),
         acknowledged: false,
       })
       signals.push(signal)
     } catch {
-      // Skip malformed individual signals, continue with rest
+      // Skip signals that still fail validation after normalization
       continue
     }
   }
@@ -86,7 +115,6 @@ export function deduplicateSignals(
   const seen = new Map<string, Signal>()
 
   for (const signal of signals) {
-    // Normalize headline for comparison
     const key = signal.headline.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20)
     const existing = seen.get(key)
 

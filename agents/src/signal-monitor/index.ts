@@ -4,7 +4,7 @@ import { MAX_SIGNAL_MONITOR_RESULTS } from '@prism/shared'
 import type { AgentConfig, AgentResult } from '../types'
 import { buildSignalSearchPrompt } from './prompts'
 import { parseSignalResponse, deduplicateSignals } from './parse'
-import { getGeminiApiKey } from '../utils/env'
+import { getGeminiApiKey, getGeminiModelName } from '../utils/env'
 
 export const config: AgentConfig = {
   name: 'signal-monitor',
@@ -49,7 +49,7 @@ export async function monitor(
     const prompt = buildSignalSearchPrompt(exposureMap.exposures)
 
     const response = await genai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: getGeminiModelName(),
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],

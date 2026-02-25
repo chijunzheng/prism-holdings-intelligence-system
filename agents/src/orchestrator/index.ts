@@ -1,7 +1,7 @@
 import type { Signal, ExposureMap, CausalChain, UserProfile, Portfolio, FundComposition } from '@prism/shared'
 import type { AgentConfig, AgentResult } from '../types'
 import { analyze } from '../exposure-analyzer/index'
-import { monitor } from '../signal-monitor/index'
+import { monitor, clearCache as clearSignalMonitorCache } from '../signal-monitor/index'
 import { propagate } from '../causal-propagation/index'
 import { classify } from '../temporal-reasoner/index'
 import type { TemporalAnalysis } from '../temporal-reasoner/types'
@@ -149,4 +149,5 @@ export async function runGraphPipeline(
 export function clearCaches(): void {
   exposureCache.clear()
   signalCache.clear()
+  clearSignalMonitorCache()
 }

@@ -74,6 +74,27 @@
   justify-content: flex-end;
 }
 
+.chat-message--divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+}
+
+.chat-message--divider::before,
+.chat-message--divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.chat-message__divider-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
 .chat-message__bubble {
   max-width: 92%;
   border-radius: 10px;

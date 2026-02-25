@@ -4,7 +4,7 @@ import type { TemporalAnalysis } from '../types/graph'
 
 export interface ChatMessage {
   readonly id: string
-  readonly role: 'user' | 'assistant'
+  readonly role: 'user' | 'assistant' | 'divider'
   readonly content: string
   readonly isStreaming?: boolean
 }
@@ -23,6 +23,8 @@ interface UseChatReturn {
   readonly isLoading: boolean
   readonly error: string | null
   readonly sendMessage: (content: string) => void
+  readonly addDivider: (label: string) => void
+  readonly isInitialized: boolean
 }
 
 let messageIdCounter = 0
@@ -30,6 +32,14 @@ function nextMessageId(): string {
   messageIdCounter += 1
   return `msg-${messageIdCounter}`
 }
+
+// Module-level cache for general chat sessions so they survive route changes
+interface GeneralChatCache {
+  readonly userId: string
+  readonly messages: ReadonlyArray<ChatMessage>
+}
+
+let generalChatCache: GeneralChatCache | null = null
 
 export function useChat({
   userId,
@@ -46,15 +56,35 @@ export function useChat({
 
   const isGeneral = mode === 'general'
 
+  // Persist general chat messages to module cache on every change
+  useEffect(() => {
+    if (isGeneral && messages.length > 0) {
+      generalChatCache = { userId, messages }
+    }
+  }, [isGeneral, messages, userId])
+
+  // Clear cache when switching users
+  useEffect(() => {
+    if (isGeneral && generalChatCache && generalChatCache.userId !== userId) {
+      generalChatCache = null
+    }
+  }, [isGeneral, userId])
+
   // Reset chat when node changes (contextual) or on mount (general)
   useEffect(() => {
-    abortControllerRef.current?.abort()
-    setMessages([])
-    setError(null)
-    setIsLoading(false)
-
     if (isGeneral) {
+      // Restore from cache if available for same user
+      if (generalChatCache && generalChatCache.userId === userId) {
+        setMessages(generalChatCache.messages)
+        setIsLoading(false)
+        setError(null)
+        return
+      }
+
       // Init general chat
+      abortControllerRef.current?.abort()
+      setMessages([])
+      setError(null)
       setIsLoading(true)
       const controller = new AbortController()
       abortControllerRef.current = controller
@@ -70,9 +100,10 @@ export function useChat({
           if (!payload.success || !payload.data) {
             throw new Error(payload.error ?? 'Failed to initialize chat')
           }
-          setMessages([
+          const initMessages: ReadonlyArray<ChatMessage> = [
             { id: nextMessageId(), role: 'assistant', content: payload.data.content },
-          ])
+          ]
+          setMessages(initMessages)
           setIsLoading(false)
         })
         .catch((err: Error) => {
@@ -83,6 +114,12 @@ export function useChat({
 
       return () => controller.abort()
     }
+
+    // Contextual mode — always reset
+    abortControllerRef.current?.abort()
+    setMessages([])
+    setError(null)
+    setIsLoading(false)
 
     // Contextual mode
     if (!node || !chain || !signal || !temporalAnalysis) return
@@ -215,5 +252,14 @@ export function useChat({
     [chain, isGeneral, isLoading, messages, node, signal, temporalAnalysis, userId],
   )
 
-  return { messages, isLoading, error, sendMessage }
+  const addDivider = useCallback((label: string) => {
+    setMessages((prev) => [
+      ...prev,
+      { id: nextMessageId(), role: 'divider' as const, content: label },
+    ])
+  }, [])
+
+  const isInitialized = messages.length >= 1 && !isLoading
+
+  return { messages, isLoading, error, sendMessage, addDivider, isInitialized }
 }

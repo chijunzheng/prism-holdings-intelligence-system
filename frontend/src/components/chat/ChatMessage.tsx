@@ -34,6 +34,14 @@ function renderContent(content: string): ReadonlyArray<ReactNode> {
 }
 
 export function ChatMessage({ message }: ChatMessageProps) {
+  if (message.role === 'divider') {
+    return (
+      <div className="chat-message chat-message--divider">
+        <span className="chat-message__divider-label">{message.content}</span>
+      </div>
+    )
+  }
+
   const isAssistant = message.role === 'assistant'
 
   return (

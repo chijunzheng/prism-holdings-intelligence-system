@@ -61,9 +61,20 @@ function buildAutoSendMessage(ctx: SidebarContext): string {
   }
 }
 
+function getDividerLabel(ctx: SidebarContext): string {
+  switch (ctx.type) {
+    case 'concentration':
+      return `New topic: ${ctx.label} concentration`
+    case 'overlap':
+      return `New topic: ${ctx.label} overlap`
+    case 'exposure':
+      return `New topic: Exposure analysis`
+  }
+}
+
 export function InsightsView() {
   const { userId, activeHoldingContext, activeSidebarContext, setActiveSidebarContext } = useAppContext()
-  const { messages, isLoading, error, sendMessage } = useChat({
+  const { messages, isLoading, error, sendMessage, addDivider, isInitialized } = useChat({
     userId,
     mode: 'general',
   })
@@ -71,53 +82,62 @@ export function InsightsView() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const sendMessageRef = useRef(sendMessage)
+  const addDividerRef = useRef(addDivider)
   const autoSentRef = useRef(false)
-  const [autoSendContext, setAutoSendContext] = useState<SidebarContext | null>(null)
+  const [pendingSidebarContext, setPendingSidebarContext] = useState<SidebarContext | null>(null)
   const [showFollowUps, setShowFollowUps] = useState(false)
   const [userSentManual, setUserSentManual] = useState(false)
+  // Track whether this is the very first sidebar click (no prior user messages)
+  const hasExistingConversation = messages.length > 1
 
-  // Keep sendMessage ref current without triggering effects
+  // Keep refs current without triggering effects
   sendMessageRef.current = sendMessage
+  addDividerRef.current = addDivider
 
-  // Capture sidebar context on mount/change, reset auto-send tracking
+  // Capture sidebar context on change, reset auto-send tracking
   useEffect(() => {
     if (activeSidebarContext) {
-      setAutoSendContext(activeSidebarContext)
+      setPendingSidebarContext(activeSidebarContext)
       autoSentRef.current = false
       setShowFollowUps(false)
       setUserSentManual(false)
     }
   }, [activeSidebarContext])
 
-  // Auto-send when chat is ready (init complete = messages.length >= 1 && !isLoading)
-  const chatReady = messages.length >= 1 && !isLoading
+  // Auto-send when chat is ready (initialized and not loading)
   useEffect(() => {
-    if (autoSendContext && chatReady && !autoSentRef.current) {
+    if (pendingSidebarContext && isInitialized && !isLoading && !autoSentRef.current) {
       autoSentRef.current = true
-      const message = buildAutoSendMessage(autoSendContext)
+      const message = buildAutoSendMessage(pendingSidebarContext)
+
+      // If there's an existing conversation, insert a visual divider first
+      if (hasExistingConversation) {
+        addDividerRef.current(getDividerLabel(pendingSidebarContext))
+      }
+
       // Clear sidebar context from app state so navigating away and back doesn't re-trigger
       setActiveSidebarContext(null)
       // Use ref to avoid depending on sendMessage identity
       sendMessageRef.current(message)
     }
-  }, [autoSendContext, chatReady, setActiveSidebarContext])
+  }, [pendingSidebarContext, isInitialized, isLoading, hasExistingConversation, setActiveSidebarContext])
 
   // Show follow-up suggestions after auto-sent message response completes
   useEffect(() => {
-    if (autoSendContext && autoSentRef.current && !isLoading && messages.length >= 3) {
-      // messages: [init greeting, user auto-send, assistant response]
+    if (pendingSidebarContext && autoSentRef.current && !isLoading && messages.length >= 3) {
       const lastMsg = messages[messages.length - 1]
       if (lastMsg.role === 'assistant' && !lastMsg.isStreaming) {
         setShowFollowUps(true)
       }
     }
-  }, [autoSendContext, isLoading, messages])
+  }, [pendingSidebarContext, isLoading, messages])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const showWelcome = messages.length <= 1 && !isLoading && !autoSendContext
+  // Show welcome only when there's just the init message and no pending sidebar action
+  const showWelcome = messages.length <= 1 && !isLoading && !pendingSidebarContext
 
   const suggestedPrompts = useMemo(() => {
     if (activeSidebarContext) return getSidebarContextPrompts(activeSidebarContext)
@@ -127,9 +147,9 @@ export function InsightsView() {
 
   // Follow-up prompts (remaining after auto-send)
   const followUpPrompts = useMemo(() => {
-    if (!autoSendContext) return []
-    return getSidebarContextPrompts(autoSendContext).slice(1)
-  }, [autoSendContext])
+    if (!pendingSidebarContext) return []
+    return getSidebarContextPrompts(pendingSidebarContext).slice(1)
+  }, [pendingSidebarContext])
 
   const handleSend = useCallback(
     (content: string) => {
@@ -162,6 +182,9 @@ export function InsightsView() {
     }
   }, [exposureMap])
 
+  // Hide init greeting on welcome screen; show all messages otherwise (including dividers)
+  const visibleMessages = showWelcome ? messages.slice(1) : messages
+
   return (
     <div className="insights-view">
       <div className="insights-view__messages">
@@ -171,8 +194,7 @@ export function InsightsView() {
 
         {error && <p className="insights-view__error">{error}</p>}
 
-        {/* Hide the init greeting when welcome screen is visible — it's redundant */}
-        {(showWelcome ? messages.slice(1) : messages).map((msg) => (
+        {visibleMessages.map((msg) => (
           <ChatMessage key={msg.id} message={msg} />
         ))}
 

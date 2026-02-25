@@ -71,7 +71,7 @@ describe('signal-utils', () => {
   })
 
   it('builds graph route with encoded signal id', () => {
-    expect(buildSignalGraphRoute('sig-with spaces')).toBe('/signals/sig-with%20spaces')
+    expect(buildSignalGraphRoute('sig-with spaces')).toBe('/signals?signal=sig-with%20spaces')
   })
 
   it('persists viewed-state using storage key scoped by user', () => {

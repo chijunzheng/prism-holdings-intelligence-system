@@ -53,7 +53,7 @@ export function getOverflowCount(
 }
 
 export function buildSignalGraphRoute(signalId: string): string {
-  return `/signals/${encodeURIComponent(signalId)}`
+  return `/signals?signal=${encodeURIComponent(signalId)}`
 }
 
 export function viewedSignalsStorageKey(userId: string): string {

@@ -4,8 +4,7 @@ import { ErrorBoundary } from './components/shared/ErrorBoundary'
 import { ProfileSwitcher } from './components/shared/ProfileSwitcher'
 import { AppLayout } from './components/shared/AppLayout'
 import { PortfolioView } from './routes/PortfolioView'
-import { CausalGraphView } from './routes/CausalGraphView'
-import { SignalsView } from './routes/SignalsView'
+import { ImpactAnalysisView } from './routes/ImpactAnalysisView'
 import { InsightsView } from './routes/InsightsView'
 
 export function App() {
@@ -18,8 +17,7 @@ export function App() {
             <Route element={<AppLayout />}>
               <Route path="/" element={<Navigate to="/portfolio" replace />} />
               <Route path="/portfolio" element={<PortfolioView />} />
-              <Route path="/signals" element={<SignalsView />} />
-              <Route path="/signals/:signalId" element={<CausalGraphView />} />
+              <Route path="/signals" element={<ImpactAnalysisView />} />
               <Route path="/ask" element={<InsightsView />} />
             </Route>
           </Routes>

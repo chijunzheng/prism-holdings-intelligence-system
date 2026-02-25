@@ -13,7 +13,7 @@ interface ChatPanelProps {
   readonly chain: CausalChain | null
   readonly signal: Signal | null
   readonly temporalAnalysis: TemporalAnalysis | null
-  readonly onClose: () => void
+  readonly onClose?: () => void
 }
 
 export function ChatPanel({
@@ -52,9 +52,11 @@ export function ChatPanel({
             </p>
           )}
         </div>
-        <button type="button" className="chat-panel__close" onClick={onClose}>
-          Close
-        </button>
+        {onClose && (
+          <button type="button" className="chat-panel__close" onClick={onClose}>
+            Close
+          </button>
+        )}
       </div>
 
       {!node && (

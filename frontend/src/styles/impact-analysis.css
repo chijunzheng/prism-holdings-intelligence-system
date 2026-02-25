@@ -1,0 +1,485 @@
+/* ── Impact Analysis Command Center ────────── */
+
+.impact-analysis {
+  display: grid;
+  grid-template-columns: 240px minmax(500px, 1fr) 320px;
+  grid-template-rows: 1fr;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── Left Panel ───────────────────────────── */
+.impact-left {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.impact-left__header {
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.impact-left__title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.impact-left__subtitle {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  margin-top: 0.15rem;
+}
+
+.impact-signal-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.impact-left__controls {
+  border-top: 1px solid var(--color-border);
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* ── Signal Card (Compact) ────────────────── */
+.impact-signal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.impact-signal-card:hover {
+  background: var(--color-surface);
+}
+
+.impact-signal-card.is-selected {
+  background: var(--color-surface);
+  border-color: var(--color-text);
+}
+
+.impact-signal-card__source {
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.impact-signal-card__time {
+  font-weight: 400;
+}
+
+.impact-signal-card__headline {
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--color-text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.impact-signal-card__badge {
+  font-size: 0.5625rem;
+  font-weight: 500;
+  text-transform: capitalize;
+  border-radius: 999px;
+  padding: 0.1rem 0.4rem;
+  align-self: flex-start;
+}
+
+.impact-signal-card__badge--transient {
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.impact-signal-card__badge--structural {
+  color: #c2410c;
+  background: #fff7ed;
+}
+
+.impact-signal-card__badge--ambiguous {
+  color: #a16207;
+  background: #fefce8;
+}
+
+/* ── Center Panel ─────────────────────────── */
+.impact-center {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.impact-center__header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.impact-center__headline {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.impact-center__summary {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  margin-top: 0.2rem;
+}
+
+.impact-center__graph {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.impact-center__graph .causal-graph {
+  height: 100%;
+}
+
+.impact-center__status {
+  padding: 2rem;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.impact-center__error {
+  margin: 1rem;
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: var(--color-negative);
+  font-size: 0.875rem;
+}
+
+.impact-center__error button {
+  margin-top: 0.55rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  border-radius: 8px;
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.8125rem;
+}
+
+/* ── Right Panel ──────────────────────────── */
+.impact-right {
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.impact-right__tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.impact-right__tab {
+  flex: 1;
+  padding: 0.625rem 0.5rem;
+  border: none;
+  background: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+.impact-right__tab:hover {
+  color: var(--color-text-secondary);
+}
+
+.impact-right__tab.is-active {
+  color: var(--color-text);
+  border-bottom-color: var(--color-text);
+}
+
+.impact-right__content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* ── Node Details ─────────────────────────── */
+.node-details {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.node-details__placeholder {
+  padding: 2rem 1rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.node-details__label {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.node-details__type {
+  font-size: 0.6875rem;
+  text-transform: capitalize;
+  color: var(--color-text-muted);
+}
+
+.node-details__row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+  padding: 0.25rem 0;
+}
+
+.node-details__row dt {
+  color: var(--color-text-secondary);
+}
+
+.node-details__row dd {
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.node-details__description {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+/* ── Actions Panel ────────────────────────── */
+.actions-panel {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.actions-panel__empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.actions-panel__item {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 0.75rem;
+  background: var(--color-surface);
+}
+
+.actions-panel__horizon {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.actions-panel__summary {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin-top: 0.25rem;
+}
+
+.actions-panel__rationale {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin-top: 0.35rem;
+  line-height: 1.45;
+}
+
+.actions-panel__tradeoffs {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  margin-top: 0.35rem;
+  font-style: italic;
+}
+
+.actions-panel__shift {
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-top: 0.35rem;
+}
+
+/* ── Controls Sidebar (vertical stack) ────── */
+.controls-sidebar .graph-control {
+  padding: 0.5rem 0.625rem;
+  border-radius: 8px;
+}
+
+.controls-sidebar .graph-control__label {
+  font-size: 0.625rem;
+}
+
+.controls-sidebar .time-slider__option {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.controls-sidebar .graph-control--button {
+  font-size: 0.75rem;
+  padding: 0.5rem;
+}
+
+.controls-sidebar .graph-legend {
+  padding: 0.5rem 0.625rem;
+  border-radius: 8px;
+}
+
+.controls-sidebar .graph-legend__title {
+  font-size: 0.5625rem;
+  margin-bottom: 0.35rem;
+}
+
+.controls-sidebar .graph-legend__items {
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
+}
+
+/* ── Chat in Right Panel ──────────────────── */
+.impact-right__content .chat-panel {
+  padding: 0.75rem;
+}
+
+.impact-right__content .chat-panel__header {
+  display: none; /* header is redundant since we have tab */
+}
+
+.impact-right__content .chat-panel__close {
+  display: none;
+}
+
+/* ── Mobile Tab Switcher ──────────────────── */
+.impact-mobile-tabs {
+  display: none;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.impact-mobile-tabs__tab {
+  flex: 1;
+  padding: 0.75rem;
+  border: none;
+  background: none;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.impact-mobile-tabs__tab.is-active {
+  color: var(--color-text);
+  border-bottom-color: var(--color-text);
+}
+
+/* ── Responsive: Tablet ───────────────────── */
+@media (max-width: 1200px) {
+  .impact-analysis {
+    grid-template-columns: 180px minmax(400px, 1fr);
+  }
+
+  .impact-right {
+    position: fixed;
+    top: 56px;
+    right: 0;
+    bottom: 0;
+    width: 320px;
+    background: var(--color-bg);
+    z-index: 40;
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.1);
+    transform: translateX(100%);
+    transition: transform 0.2s ease;
+  }
+
+  .impact-right.is-open {
+    transform: translateX(0);
+  }
+
+  .impact-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.2);
+    z-index: 39;
+  }
+
+  .impact-overlay.is-visible {
+    display: block;
+  }
+}
+
+/* ── Responsive: Mobile ───────────────────── */
+@media (max-width: 768px) {
+  .impact-analysis {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .impact-mobile-tabs {
+    display: flex;
+  }
+
+  .impact-left,
+  .impact-center,
+  .impact-right {
+    display: none;
+    border: none;
+  }
+
+  .impact-left.is-active-mobile,
+  .impact-center.is-active-mobile,
+  .impact-right.is-active-mobile {
+    display: flex;
+    overflow-y: auto;
+  }
+
+  .impact-right {
+    position: static;
+    width: 100%;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .impact-right.is-active-mobile {
+    display: flex;
+  }
+
+  .impact-center__graph .causal-graph {
+    height: 420px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .impact-right {
+    transition: none;
+  }
+}

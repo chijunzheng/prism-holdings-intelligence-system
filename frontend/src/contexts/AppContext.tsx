@@ -7,6 +7,7 @@ interface DemoProfile {
   readonly age: number
   readonly riskTolerance: string
   readonly context: string
+  readonly shortContext?: string
 }
 
 interface HoldingContext {
@@ -15,14 +16,22 @@ interface HoldingContext {
   readonly accountType: string
 }
 
+export interface SidebarContext {
+  readonly type: 'concentration' | 'exposure' | 'overlap'
+  readonly label: string
+  readonly detail: string
+}
+
 interface AppState {
   readonly userId: string
   readonly profiles: ReadonlyArray<DemoProfile>
   readonly profilesLoading: boolean
   readonly activeHoldingContext: HoldingContext | null
+  readonly activeSidebarContext: SidebarContext | null
   readonly setUserId: (id: string) => void
   readonly loadProfiles: () => void
   readonly setActiveHoldingContext: (context: HoldingContext | null) => void
+  readonly setActiveSidebarContext: (context: SidebarContext | null) => void
 }
 
 const AppContext = createContext<AppState | null>(null)
@@ -40,6 +49,7 @@ export function AppProvider({ children }: AppProviderProps) {
     fetch('/api/cache/clear', { method: 'POST' }).catch(() => {})
   }, [])
   const [activeHoldingContext, setActiveHoldingContext] = useState<HoldingContext | null>(null)
+  const [activeSidebarContext, setActiveSidebarContext] = useState<SidebarContext | null>(null)
   const [profiles, setProfiles] = useState<ReadonlyArray<DemoProfile>>([])
   const [profilesLoading, setProfilesLoading] = useState(false)
 
@@ -61,7 +71,7 @@ export function AppProvider({ children }: AppProviderProps) {
   }, [profiles.length])
 
   return (
-    <AppContext.Provider value={{ userId, profiles, profilesLoading, activeHoldingContext, setUserId, loadProfiles, setActiveHoldingContext }}>
+    <AppContext.Provider value={{ userId, profiles, profilesLoading, activeHoldingContext, activeSidebarContext, setUserId, loadProfiles, setActiveHoldingContext, setActiveSidebarContext }}>
       {children}
     </AppContext.Provider>
   )

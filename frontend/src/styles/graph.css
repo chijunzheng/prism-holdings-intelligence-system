@@ -53,51 +53,31 @@
 .graph-tooltip {
   position: absolute;
   pointer-events: none;
-  width: 230px;
+  width: auto;
+  max-width: 200px;
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: #ffffff;
-  padding: 0.625rem 0.75rem;
+  padding: 0.5rem 0.625rem;
   z-index: 30;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .graph-tooltip__title {
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  margin-bottom: 0.15rem;
-}
-
-.graph-tooltip__desc {
-  font-size: 0.625rem;
-  color: var(--color-text-muted);
-  margin-bottom: 0.25rem;
-}
-
-.graph-tooltip__mechanism {
-  font-size: 0.6875rem;
-  color: var(--color-text-secondary);
-  line-height: 1.35;
-  margin-bottom: 0.25rem;
-}
-
-.graph-tooltip__divider {
-  height: 1px;
-  background: var(--color-border);
-  margin: 0.35rem 0;
+  margin-bottom: 0.2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .graph-tooltip__row {
   display: flex;
   justify-content: space-between;
+  gap: 0.75rem;
   font-size: 0.6875rem;
   color: var(--color-text-secondary);
-  padding: 0.1rem 0;
-}
-
-.graph-tooltip__row--impact {
-  color: var(--color-text);
-  font-weight: 500;
 }
 
 .graph-tooltip__row strong {
@@ -107,7 +87,7 @@
 .graph-tooltip__hint {
   font-size: 0.5625rem;
   color: var(--color-text-muted);
-  margin-top: 0.35rem;
+  margin-top: 0.25rem;
   text-align: center;
 }
 

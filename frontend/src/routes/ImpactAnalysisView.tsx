@@ -184,7 +184,7 @@ export function ImpactAnalysisView() {
           activeTab={activeRightTab}
           onTabChange={setActiveRightTab}
           className={rightPanelOpen ? 'is-open' : ''}
-          detailsContent={<NodeDetails node={selectedNode} />}
+          detailsContent={<NodeDetails node={selectedNode} chain={data?.chain ?? null} horizon={horizon} />}
           chatContent={
             <ChatPanel
               userId={userId}

@@ -13,7 +13,6 @@ import { ControlsSidebar } from '../components/impact/ControlsSidebar'
 import { RightPanel } from '../components/impact/RightPanel'
 import { NodeDetails } from '../components/impact/NodeDetails'
 import { ActionsPanel } from '../components/impact/ActionsPanel'
-import { Disclaimer } from '../components/shared/Disclaimer'
 import '../styles/impact-analysis.css'
 import '../styles/graph.css'
 import '../styles/chat.css'
@@ -178,7 +177,6 @@ export function ImpactAnalysisView() {
             </div>
           )}
 
-          <Disclaimer compact />
         </div>
 
         {/* ── Right: Tabbed Panel ─────────────── */}

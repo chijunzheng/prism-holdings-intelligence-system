@@ -115,7 +115,7 @@ export function CausalGraph({
             orient="auto"
             markerUnits="strokeWidth"
           >
-            <path d="M 0 0 L 8 3 L 0 6 z" fill="#64748b" />
+            <path d="M 0 0 L 8 3 L 0 6 z" fill="#c0c0c0" />
           </marker>
         </defs>
 

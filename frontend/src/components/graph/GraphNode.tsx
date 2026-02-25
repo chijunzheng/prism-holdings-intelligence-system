@@ -16,31 +16,24 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
 
-function truncateLabel(label: string, max = 24): string {
-  if (label.length <= max) return label
-  return `${label.slice(0, max - 1)}…`
-}
-
 function nodeFill(node: CausalChainNode, displayImpact: number): string {
-  if (node.type === 'event') return '#eff6ff'
-  if (node.type === 'mechanism') return '#f1f5f9'
-  if (node.type === 'sector') return '#f0fdfa'
+  if (node.type === 'event') return '#ffffff'
+  if (node.type === 'mechanism') return '#fafafa'
+  if (node.type === 'sector') return '#f8f8f8'
 
-  if (displayImpact > 20) return '#f0fdf4'
-  if (displayImpact < -20) return '#fef2f2'
-  return '#fefce8'
+  // Asset nodes: subtle tint based on impact direction
+  if (displayImpact > 20) return '#f0faf4'
+  if (displayImpact < -20) return '#fdf2f2'
+  return '#f9f9f6'
 }
 
-function nodeStroke(node: CausalChainNode): string {
-  if (node.type === 'event') return '#3b82f6'
-  if (node.type === 'mechanism') return '#94a3b8'
-  if (node.type === 'sector') return '#14b8a6'
-  return '#f59e0b'
+function nodeStroke(selected: boolean): string {
+  return selected ? '#1a1a1a' : '#d4d4d4'
 }
 
 function assetRadius(displayImpact: number): number {
   const normalized = Math.abs(displayImpact) / 240
-  return clamp(24 + normalized, 24, 42)
+  return clamp(26 + normalized, 26, 40)
 }
 
 function handleNodeHover(
@@ -62,8 +55,8 @@ export function GraphNode({
   onHoverEnd,
 }: GraphNodeProps) {
   const fill = nodeFill(node, displayImpact)
-  const stroke = nodeStroke(node)
-  const strokeWidth = selected ? 3 : 1.5
+  const stroke = nodeStroke(selected)
+  const strokeWidth = selected ? 1.5 : 0.75
   const isAsset = node.type === 'asset'
   const radius = assetRadius(displayImpact)
 
@@ -89,29 +82,23 @@ export function GraphNode({
         <circle r={radius} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
       ) : (
         <rect
-          x={-72}
-          y={-26}
-          width={144}
-          height={52}
-          rx={node.type === 'mechanism' ? 24 : 12}
+          x={-76}
+          y={-22}
+          width={152}
+          height={44}
+          rx={8}
           fill={fill}
           stroke={stroke}
           strokeWidth={strokeWidth}
         />
       )}
 
-      <text className="graph-node__label" textAnchor="middle" dominantBaseline="central">
-        {truncateLabel(node.label)}
+      <text className="graph-node__label" textAnchor="middle" dominantBaseline="central" dy={isAsset ? -6 : 0}>
+        {node.label}
       </text>
 
-      {node.temporalClassification && (
-        <text className="graph-node__classification" textAnchor="middle" y={28}>
-          {node.temporalClassification.replace('_', ' ')}
-        </text>
-      )}
-
       {isAsset && (
-        <text className="graph-node__impact" textAnchor="middle" y={44}>
+        <text className="graph-node__impact" textAnchor="middle" dy={12}>
           {displayImpact >= 0 ? '+' : '-'}${Math.abs(displayImpact).toFixed(0)}
         </text>
       )}

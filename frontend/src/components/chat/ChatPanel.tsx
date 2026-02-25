@@ -5,7 +5,6 @@ import { useChat } from '../../hooks/useChat'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
 import { SuggestedPrompts } from './SuggestedPrompts'
-import { Disclaimer } from '../shared/Disclaimer'
 
 interface ChatPanelProps {
   readonly userId: string
@@ -90,8 +89,6 @@ export function ChatPanel({
           )}
 
           <ChatInput onSend={sendMessage} disabled={isLoading} />
-
-          <Disclaimer compact />
         </>
       )}
     </div>

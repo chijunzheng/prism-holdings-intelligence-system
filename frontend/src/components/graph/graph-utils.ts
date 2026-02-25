@@ -1,9 +1,9 @@
 import type { CausalChain, CausalChainEdge, CausalChainNode } from '@prism/shared'
 import type { GraphNodePosition, GraphTimeHorizon, TemporalAnalysis } from '../../types/graph'
 
-const MIN_EDGE_OPACITY = 0.3
-const MAX_EDGE_THICKNESS = 8
-const MIN_EDGE_THICKNESS = 1
+const MIN_EDGE_OPACITY = 0.35
+const MAX_EDGE_THICKNESS = 3.5
+const MIN_EDGE_THICKNESS = 0.75
 const CLUSTER_NODE_ID = 'cluster-assets'
 
 function clamp(value: number, min: number, max: number): number {
@@ -21,17 +21,17 @@ function asAssetNode(node: CausalChainNode): CausalChainNode & { type: 'asset' }
 }
 
 export function getEdgeColor(direction: CausalChainEdge['direction']): string {
-  if (direction === 'positive') return '#22c55e'
-  if (direction === 'negative') return '#ef4444'
-  return '#eab308'
+  if (direction === 'positive') return '#6ec98a'
+  if (direction === 'negative') return '#e08080'
+  return '#d4b45c'
 }
 
 export function getEdgeOpacity(confidence: number): number {
-  return clamp(confidence, MIN_EDGE_OPACITY, 1)
+  return clamp(confidence, MIN_EDGE_OPACITY, 0.85)
 }
 
 export function getEdgeThickness(magnitude: number): number {
-  return clamp(MIN_EDGE_THICKNESS + magnitude * (MAX_EDGE_THICKNESS - MIN_EDGE_THICKNESS), 1, 8)
+  return clamp(MIN_EDGE_THICKNESS + magnitude * (MAX_EDGE_THICKNESS - MIN_EDGE_THICKNESS), MIN_EDGE_THICKNESS, MAX_EDGE_THICKNESS)
 }
 
 export function computeNodeDepths(chain: CausalChain): ReadonlyMap<string, number> {
@@ -207,8 +207,8 @@ export function computeGraphPositions(
   }
 
   const orderedRanks = [0, 1, 2, 3]
-  const leftPad = 80
-  const rightPad = 80
+  const leftPad = 90
+  const rightPad = 90
   const topPad = 56
   const bottomPad = 56
   const usableWidth = Math.max(320, width - leftPad - rightPad)

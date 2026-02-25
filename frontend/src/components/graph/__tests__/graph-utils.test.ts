@@ -129,17 +129,17 @@ function buildTemporalAnalysis(): TemporalAnalysis {
 
 describe('graph-utils', () => {
   it('encodes edge color, opacity, and thickness bounds', () => {
-    expect(getEdgeColor('positive')).toBe('#22c55e')
-    expect(getEdgeColor('negative')).toBe('#ef4444')
-    expect(getEdgeColor('ambiguous')).toBe('#eab308')
+    expect(getEdgeColor('positive')).toBe('#6ec98a')
+    expect(getEdgeColor('negative')).toBe('#e08080')
+    expect(getEdgeColor('ambiguous')).toBe('#d4b45c')
 
-    expect(getEdgeOpacity(0.1)).toBe(0.3)
+    expect(getEdgeOpacity(0.1)).toBe(0.35)
     expect(getEdgeOpacity(0.7)).toBe(0.7)
-    expect(getEdgeOpacity(3)).toBe(1)
+    expect(getEdgeOpacity(3)).toBe(0.85)
 
-    expect(getEdgeThickness(0)).toBe(1)
-    expect(getEdgeThickness(1)).toBe(8)
-    expect(getEdgeThickness(0.5)).toBeGreaterThan(1)
+    expect(getEdgeThickness(0)).toBe(0.75)
+    expect(getEdgeThickness(1)).toBe(3.5)
+    expect(getEdgeThickness(0.5)).toBeGreaterThan(0.75)
   })
 
   it('computes depths and filters graph by hop depth', () => {

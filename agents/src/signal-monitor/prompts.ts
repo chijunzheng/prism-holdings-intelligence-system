@@ -8,7 +8,7 @@ export function buildSignalSearchPrompt(
   topExposures: ReadonlyArray<ExposureEntry>,
 ): string {
   const exposureList = topExposures
-    .slice(0, 5)
+    .slice(0, 3)
     .map((e) => `- ${e.category} (${e.percentage}% of portfolio)`)
     .join('\n')
 
@@ -17,7 +17,8 @@ export function buildSignalSearchPrompt(
 The investor has the following concentrated exposures:
 ${exposureList}
 
-Search for the most significant RECENT market events (last 72 hours) that could impact these specific sectors. Focus on:
+Search for the most significant RECENT market events (last 72 hours) that could impact these specific sectors.
+If little happened in 72 hours, broaden to the last 7 days and include clearly relevant events. Focus on:
 1. Central bank decisions (Bank of Canada, Federal Reserve)
 2. Trade policy changes (tariffs, CUSMA, sanctions)
 3. Commodity price moves (oil, gold, metals)
@@ -27,11 +28,13 @@ Search for the most significant RECENT market events (last 72 hours) that could 
 For each event found, provide a JSON array with this exact structure:
 [
   {
-    "headline": "Short event headline",
-    "description": "2-3 sentence description of what happened and why it matters",
+    "headline": "Concise event headline (max 8 words)",
+    "description": "One sentence: what happened and why it matters. Max 15 words.",
+    "portfolioSummary": "One short sentence on portfolio impact. Max 15 words. Example: 'Benefits your 16% energy exposure but may pressure financials.'",
     "affectedExposures": ["Category names from the list above that are affected"],
     "relevanceScore": 0.0-1.0,
     "urgency": "low" | "medium" | "high" | "critical",
+    "sentiment": "positive" | "negative" | "mixed",
     "temporalClassification": "transient" | "structural" | "ambiguous",
     "sources": [
       {
@@ -44,10 +47,13 @@ For each event found, provide a JSON array with this exact structure:
 ]
 
 Rules:
-- Only include events with relevanceScore >= 0.5 to this specific portfolio
+- Prefer events with relevanceScore >= 0.5, but include weaker links (0.3-0.49) if no stronger signals are found
 - Include source citations for every event
+- Classify sentiment: "positive" if the event benefits the investor's holdings, "negative" if it hurts them, "mixed" if competing effects
 - Classify temporal impact: "transient" (days-weeks), "structural" (months-years), "ambiguous" (unclear)
 - Maximum 5 signals, ranked by relevance
+- Return at least 1 signal when plausible market events exist for these exposures
 - If competing effects exist (positive AND negative for same sector), include both
+- BREVITY IS CRITICAL: headlines, descriptions, and portfolioSummary must be short enough to display on a small card without truncation. Avoid filler words, qualifiers, and redundant context.
 - Return ONLY the JSON array, no other text`
 }

@@ -26,7 +26,11 @@ export const SignalSchema = z.object({
   /** Direct relevance to user's portfolio (0-1) */
   relevanceScore: z.number().min(0).max(1),
   urgency: SignalUrgency,
+  /** Whether this signal is positive, negative, or mixed for the user's portfolio */
+  sentiment: z.enum(['positive', 'negative', 'mixed']).default('negative'),
   temporalClassification: TemporalClassification,
+  /** One-sentence personalized summary of how this event affects the user's specific holdings */
+  portfolioSummary: z.string().optional(),
   /** Sources from Gemini Search grounding */
   sources: z.array(SourceCitationSchema).readonly(),
   detectedAt: z.string().datetime(),

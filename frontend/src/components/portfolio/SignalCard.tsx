@@ -1,11 +1,7 @@
 import type { Signal, ExposureEntry } from '@prism/shared'
 import type { KeyboardEvent } from 'react'
-import type { Materiality } from './signal-utils'
-import { SignalBadge } from './SignalBadge'
-
 interface SignalCardProps {
   readonly signal: Signal
-  readonly materiality: Materiality
   readonly viewed: boolean
   readonly onViewAnalysis: (signal: Signal) => void
   readonly exposures?: ReadonlyArray<ExposureEntry>
@@ -39,11 +35,14 @@ function estimateImpact(
   const affectedValue = affected.reduce((sum, e) => sum + e.valueCad, 0)
   const affectedPct = (affectedValue / totalValue) * 100
 
-  const impactMultiplier = signal.urgency === 'critical' ? -0.05
-    : signal.urgency === 'high' ? -0.03
-    : signal.urgency === 'medium' ? -0.02
-    : -0.01
-  const dollarImpact = affectedValue * impactMultiplier * signal.relevanceScore
+  const magnitude = signal.urgency === 'critical' ? 0.05
+    : signal.urgency === 'high' ? 0.03
+    : signal.urgency === 'medium' ? 0.02
+    : 0.01
+  const direction = signal.sentiment === 'positive' ? 1
+    : signal.sentiment === 'negative' ? -1
+    : -0.5
+  const dollarImpact = affectedValue * magnitude * direction * signal.relevanceScore
 
   return { dollarImpact, affectedPct }
 }
@@ -61,9 +60,25 @@ function handleCardKeyDown(
   }
 }
 
+function getTemporalDescription(classification: string): string {
+  switch (classification) {
+    case 'transient': return 'Short-term effect'
+    case 'structural': return 'Long-term shift'
+    case 'ambiguous': return 'Uncertain duration'
+    default: return ''
+  }
+}
+
+function buildImpactSentence(
+  dollarImpact: number,
+  affectedPct: number,
+): string {
+  const direction = dollarImpact < 0 ? 'decline' : 'gain'
+  return `Est. ${formatDollarImpact(dollarImpact)} ${direction} across ${affectedPct.toFixed(0)}% of your holdings`
+}
+
 export function SignalCard({
   signal,
-  materiality,
   viewed,
   onViewAnalysis,
   exposures = [],
@@ -71,53 +86,43 @@ export function SignalCard({
 }: SignalCardProps) {
   const source = signal.sources[0]
   const impact = estimateImpact(signal, exposures, totalPortfolioValue)
-  const isAdvisorFlag = materiality === 'high' && signal.urgency !== 'low'
+  const temporalDesc = getTemporalDescription(signal.temporalClassification)
 
   return (
     <article
-      className={`signal-card signal-card--${signal.temporalClassification} signal-card--${materiality} ${viewed ? 'signal-card--viewed' : ''}`}
+      className={`signal-card ${viewed ? 'signal-card--viewed' : ''}`}
       role="button"
       tabIndex={0}
       onClick={() => onViewAnalysis(signal)}
       onKeyDown={(event) => handleCardKeyDown(event, signal, onViewAnalysis)}
     >
-      {/* Dollar impact callout */}
-      {impact && (
-        <div className="signal-card__impact-callout">
-          <span className={`signal-card__dollar-impact ${impact.dollarImpact < 0 ? 'signal-card__dollar-impact--negative' : 'signal-card__dollar-impact--positive'}`}>
-            {formatDollarImpact(impact.dollarImpact)}
-          </span>
-          <span className="signal-card__affected-pct">
-            {impact.affectedPct.toFixed(0)}% of portfolio
-          </span>
-        </div>
-      )}
+      <div className="signal-card__body">
+        <h3 className="signal-card__title">{signal.headline}</h3>
 
-      <h3 className="signal-card__headline">{signal.headline}</h3>
-      <p className="signal-card__description">{signal.description}</p>
-
-      <div className="signal-card__meta">
-        <SignalBadge classification={signal.temporalClassification} />
-        <span className="signal-card__meta-separator" />
-        <span className={`signal-card__materiality signal-card__materiality--${materiality}`}>
-          {materiality.charAt(0).toUpperCase()}{materiality.slice(1)}
-        </span>
-        {isAdvisorFlag && (
-          <>
-            <span className="signal-card__meta-separator" />
-            <span className="signal-card__advisor-flag">Discuss with advisor</span>
-          </>
+        {signal.portfolioSummary ? (
+          <p className="signal-card__summary" title={signal.portfolioSummary}>
+            {signal.portfolioSummary}
+          </p>
+        ) : (
+          <p className="signal-card__desc" title={signal.description}>{signal.description}</p>
         )}
-        {viewed && <span className="signal-card__viewed-badge">Viewed</span>}
+
+        {impact && (
+          <p className={`signal-card__impact ${impact.dollarImpact < 0 ? 'signal-card__impact--neg' : 'signal-card__impact--pos'}`}>
+            {buildImpactSentence(impact.dollarImpact, impact.affectedPct)}
+          </p>
+        )}
+
+        {temporalDesc && (
+          <span className="signal-card__temporal">{temporalDesc}</span>
+        )}
       </div>
 
       <div className="signal-card__footer">
-        {source && (
-          <span className="signal-card__source-text">
-            {source.publisher ?? source.title}
-          </span>
-        )}
-        <span className="signal-card__cta-text">
+        <span className="signal-card__source">
+          {source?.publisher ?? source?.title ?? ''}
+        </span>
+        <span className="signal-card__action">
           View analysis &rarr;
         </span>
       </div>
@@ -128,11 +133,12 @@ export function SignalCard({
 export function SignalCardSkeleton() {
   return (
     <div className="signal-card signal-card--skeleton" aria-hidden="true">
-      <div className="skeleton-line skeleton-line--short" />
-      <div className="skeleton-line skeleton-line--wide" />
-      <div className="skeleton-line skeleton-line--medium" />
-      <div className="signal-card__meta">
-        <span className="skeleton-badge" />
+      <div className="signal-card__body">
+        <div className="skeleton-line skeleton-line--wide" />
+        <div className="skeleton-line skeleton-line--medium" />
+        <div className="skeleton-line skeleton-line--short" />
+      </div>
+      <div className="signal-card__footer">
         <span className="skeleton-badge" />
       </div>
     </div>

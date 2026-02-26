@@ -8,7 +8,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 0.75rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .signal-cards-section__overflow-link {
@@ -16,11 +16,13 @@
   background: none;
   color: var(--color-text-secondary);
   cursor: pointer;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
+  font-weight: 400;
   display: flex;
   align-items: center;
   gap: 0.25rem;
   transition: color 0.15s;
+  text-decoration: none;
 }
 
 .signal-cards-section__overflow-link:hover {
@@ -29,24 +31,29 @@
 
 .signal-cards-section__status,
 .signal-cards-section__error {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   color: var(--color-text-muted);
-  padding: 0.75rem 1.25rem;
+  padding: 1.25rem;
   background: var(--color-surface);
   border-radius: 12px;
-  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border);
 }
 
 .signal-cards-section__error {
   color: var(--color-negative);
-  background: #fef2f2;
 }
 
-/* ── Signal Card List — horizontal scroll on homepage ── */
+.signal-cards-section__meta {
+  margin-top: 0.5rem;
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}
+
+/* ── Signal Card List — horizontal cards ── */
 .signal-cards-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
 }
 
 /* ── Signal Card ─────────────────────────── */
@@ -54,71 +61,52 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 12px;
-  padding: 1.25rem;
   cursor: pointer;
-  box-shadow: var(--shadow-card);
-  transition: box-shadow 0.15s ease, transform 0.1s ease;
+  transition: background 0.15s ease;
   animation: signal-slide-in 320ms ease-out;
   display: flex;
   flex-direction: column;
-  gap: 0;
-  border-left-width: 3px;
+  overflow: hidden;
 }
 
-.signal-card:hover,
+.signal-card:hover {
+  background: #fafafa;
+}
+
 .signal-card:focus-visible {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transform: translateY(-1px);
-  outline: none;
+  outline: 2px solid var(--color-text);
+  outline-offset: 2px;
 }
 
 .signal-card:active {
-  transform: scale(0.995);
+  background: #f5f5f5;
 }
 
-/* Temporal border colors */
-.signal-card--transient { border-left-color: #3b82f6; }
-.signal-card--structural { border-left-color: #ea580c; }
-.signal-card--ambiguous { border-left-color: #ca8a04; }
+.signal-card--viewed {
+  opacity: 0.6;
+}
 
-.signal-card--viewed { opacity: 0.65; }
-
-/* ── Impact Callout (top of card) ────────── */
-.signal-card__impact-callout {
+/* ── Card Body ──────────────────────────── */
+.signal-card__body {
+  padding: 1.25rem 1.25rem 1rem;
+  flex: 1;
   display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  margin-bottom: 0.625rem;
+  flex-direction: column;
 }
 
-.signal-card__dollar-impact {
-  font-size: 1.25rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-  line-height: 1;
-}
-
-.signal-card__dollar-impact--negative { color: var(--color-negative); }
-.signal-card__dollar-impact--positive { color: var(--color-positive); }
-
-.signal-card__affected-pct {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-}
-
-/* ── Headline & Description ──────────────── */
-.signal-card__headline {
+/* ── Title & Description ────────────────── */
+.signal-card__title {
   font-size: 0.9375rem;
-  font-weight: 600;
-  line-height: 1.35;
-  margin-bottom: 0.375rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--color-text);
+  margin-bottom: 0.5rem;
 }
 
-.signal-card__description {
+.signal-card__desc {
   font-size: 0.8125rem;
   color: var(--color-text-secondary);
-  line-height: 1.5;
+  line-height: 1.55;
   margin-bottom: 0.75rem;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -126,73 +114,39 @@
   overflow: hidden;
 }
 
-/* ── Meta Row (badges) ───────────────────── */
-.signal-card__meta {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+/* ── AI Portfolio Summary ───────────────── */
+.signal-card__summary {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
   margin-bottom: 0.75rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.signal-card__meta-separator {
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: var(--color-border);
-  flex-shrink: 0;
+/* ── Impact Sentence ────────────────────── */
+.signal-card__impact {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.4;
+  margin-bottom: 0.625rem;
 }
 
-.signal-badge {
-  font-size: 0.6875rem;
-  border-radius: 999px;
-  padding: 0.2rem 0.5rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  text-transform: uppercase;
+.signal-card__impact--neg {
+  color: var(--color-negative, #b91c1c);
 }
 
-.signal-badge--transient {
-  color: #2563eb;
-  background: #eff6ff;
+.signal-card__impact--pos {
+  color: var(--color-positive, #15803d);
 }
 
-.signal-badge--structural {
-  color: #c2410c;
-  background: #fff7ed;
-}
-
-.signal-badge--ambiguous {
-  color: #a16207;
-  background: #fefce8;
-}
-
-.signal-card__materiality {
+/* ── Temporal Label ─────────────────────── */
+.signal-card__temporal {
   font-size: 0.75rem;
   color: var(--color-text-muted);
-}
-
-.signal-card__materiality--high { color: #ea580c; }
-.signal-card__materiality--medium { color: #ca8a04; }
-.signal-card__materiality--low { color: var(--color-text-muted); }
-
-.signal-card__advisor-flag {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: #dc2626;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 999px;
-  padding: 0.15rem 0.5rem;
-}
-
-.signal-card__viewed-badge {
-  font-size: 0.6875rem;
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  padding: 0.1rem 0.45rem;
-  margin-left: auto;
+  margin-top: auto;
 }
 
 /* ── Footer ──────────────────────────────── */
@@ -200,31 +154,33 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 0.625rem;
+  padding: 0.75rem 1.25rem;
   border-top: 1px solid var(--color-border);
-  margin-top: auto;
 }
 
-.signal-card__source-text {
+.signal-card__source {
   font-size: 0.75rem;
   color: var(--color-text-muted);
 }
 
-.signal-card__cta-text {
+.signal-card__action {
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--color-text-secondary);
   transition: color 0.15s;
 }
 
-.signal-card:hover .signal-card__cta-text {
+.signal-card:hover .signal-card__action {
   color: var(--color-text);
 }
 
 /* ── Skeleton Loading ────────────────────── */
 .signal-card--skeleton {
   pointer-events: none;
-  min-height: 140px;
+  min-height: 180px;
+}
+
+.signal-card--skeleton .signal-card__body {
   gap: 0.625rem;
 }
 
@@ -235,16 +191,16 @@
   animation: skeleton-shimmer 1.5s ease-in-out infinite;
 }
 
-.skeleton-line--short { width: 30%; height: 20px; }
+.skeleton-line--short { width: 30%; height: 18px; }
 .skeleton-line--wide { width: 85%; }
 .skeleton-line--medium { width: 60%; }
 
 .skeleton-badge {
   display: inline-block;
   width: 60px;
-  height: 20px;
+  height: 18px;
   background: var(--color-border);
-  border-radius: 999px;
+  border-radius: 4px;
   animation: skeleton-shimmer 1.5s ease-in-out infinite;
 }
 
@@ -264,7 +220,7 @@
 .in-app-notification {
   position: fixed;
   right: 1rem;
-  bottom: 1rem;
+  top: 4rem;
   width: min(360px, calc(100vw - 2rem));
   border: 1px solid var(--color-border);
   background: var(--color-surface);
@@ -344,6 +300,12 @@
 }
 
 /* ── Responsive ──────────────────────────── */
+@media (max-width: 1024px) {
+  .signal-cards-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .signal-cards-list {
     grid-template-columns: 1fr;

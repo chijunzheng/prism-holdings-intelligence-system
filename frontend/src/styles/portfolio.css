@@ -60,7 +60,7 @@
   background: var(--color-positive);
 }
 
-/* ── Two-Column Layout ───────────────────── */
+/* ── Two-Column Layout (legacy, kept for other views) ── */
 .portfolio-content {
   max-width: var(--max-width);
   margin: 0 auto;
@@ -81,6 +81,227 @@
   gap: 1rem;
   position: sticky;
   top: 4.5rem;
+}
+
+/* ── Redesigned Intelligence-First Layout ── */
+.portfolio-redesign {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 2rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* ── Intelligence Briefing Hero ──────────── */
+.intelligence-briefing {
+  padding: 1rem 0 0.5rem;
+  animation: briefing-fade-in 0.4s ease-out;
+}
+
+.intelligence-briefing--loading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.5rem 0;
+}
+
+.intelligence-briefing__value {
+  font-size: 2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--color-text);
+  margin-bottom: 0.75rem;
+}
+
+.intelligence-briefing__headline {
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.intelligence-briefing--alert .intelligence-briefing__headline {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.intelligence-briefing--warning .intelligence-briefing__headline {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.intelligence-briefing__subtext {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  max-width: 560px;
+}
+
+.intelligence-briefing__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.875rem;
+  padding: 0.5rem 1.125rem;
+  border: 1px solid var(--color-text);
+  border-radius: 999px;
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.intelligence-briefing__cta:hover {
+  background: #333;
+}
+
+.intelligence-briefing__cta:active {
+  transform: scale(0.98);
+}
+
+@keyframes briefing-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Exposure + Risk Radar Row ───────────── */
+.exposure-radar-row {
+  display: grid;
+  grid-template-columns: 1fr var(--sidebar-width);
+  gap: 2.5rem;
+  align-items: start;
+}
+
+.exposure-radar-row .exposure-section {
+  margin-bottom: 0;
+}
+
+/* ── Risk Radar ──────────────────────────── */
+.risk-radar {
+  background: var(--color-surface);
+  border-radius: 12px;
+  padding: 1.5rem 1.25rem;
+  box-shadow: var(--shadow-card);
+  position: sticky;
+  top: 4.5rem;
+}
+
+.risk-radar__title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 1.25rem;
+}
+
+.risk-radar__grade-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem 0 1.25rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.risk-radar__grade {
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.risk-radar__grade-label {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  margin-top: 0.375rem;
+  font-weight: 500;
+}
+
+.risk-radar__composite {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  margin-top: 0.125rem;
+}
+
+.risk-radar__dimensions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.risk-radar__dimension-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.3rem;
+}
+
+.risk-radar__dimension-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.risk-radar__dimension-score {
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.risk-radar__bar-track {
+  height: 4px;
+  background: var(--color-bg);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.risk-radar__bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s ease-out;
+}
+
+.risk-radar__dimension-insight {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: 0.25rem;
+  line-height: 1.4;
+}
+
+/* ── Collapsible Holdings ────────────────── */
+.holdings-collapsible {
+  border-top: 1px solid var(--color-border);
+  padding-top: 1rem;
+}
+
+.holdings-collapsible__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.5rem 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.holdings-collapsible__toggle:hover {
+  opacity: 0.8;
+}
+
+.holdings-collapsible__chevron {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
 }
 
 /* ── Account Type Selector ───────────────── */
@@ -171,6 +392,7 @@
   border-radius: 12px;
   padding: 0 1.25rem;
   overflow: hidden;
+  box-shadow: var(--shadow-card);
 }
 
 .holdings-table {
@@ -206,6 +428,12 @@
 
 .holdings-row:last-child {
   border-bottom: none;
+}
+
+.holdings-row__position-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .holdings-row__position-name {
@@ -405,6 +633,7 @@
   background: var(--color-surface);
   border-radius: 12px;
   padding: 1.25rem;
+  box-shadow: var(--shadow-card);
 }
 
 .sidebar-card__label {
@@ -542,6 +771,12 @@
   font-weight: 500;
 }
 
+.overlap-item__right {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
 .overlap-item__total {
   font-variant-numeric: tabular-nums;
   color: var(--color-ambiguous);
@@ -575,10 +810,6 @@
 }
 
 .sidebar-clickable__chevron {
-  position: absolute;
-  right: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
   font-size: 1.1rem;
   color: var(--color-text-muted);
   opacity: 0;
@@ -648,5 +879,23 @@
 
   .portfolio-value__amount {
     font-size: 1.75rem;
+  }
+
+  .portfolio-redesign {
+    padding: 1rem;
+    gap: 1.5rem;
+  }
+
+  .exposure-radar-row {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .risk-radar {
+    position: static;
+  }
+
+  .intelligence-briefing__headline {
+    font-size: 1.25rem;
   }
 }

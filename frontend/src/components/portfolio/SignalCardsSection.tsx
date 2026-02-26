@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { MAX_ACTIVE_SIGNALS, type Signal } from '@prism/shared'
+import { MAX_ACTIVE_SIGNALS, type ExposureEntry, type Signal } from '@prism/shared'
 import { Link, useNavigate } from 'react-router-dom'
-import { SignalCard } from './SignalCard'
+import { SignalCard, SignalCardSkeleton } from './SignalCard'
 import { InAppNotification } from './InAppNotification'
 import {
   getMateriality,
@@ -17,6 +17,8 @@ interface SignalCardsSectionProps {
   readonly signals: ReadonlyArray<Signal>
   readonly loading: boolean
   readonly error: string | null
+  readonly exposures?: ReadonlyArray<ExposureEntry>
+  readonly totalPortfolioValue?: number
 }
 
 export function SignalCardsSection({
@@ -24,6 +26,8 @@ export function SignalCardsSection({
   signals,
   loading,
   error,
+  exposures = [],
+  totalPortfolioValue = 0,
 }: SignalCardsSectionProps) {
   const navigate = useNavigate()
   const [viewedSignalIds, setViewedSignalIds] = useState<ReadonlySet<string>>(
@@ -78,7 +82,7 @@ export function SignalCardsSection({
   }
 
   return (
-    <div className="signal-cards-section">
+    <section className="signal-cards-section" id="signal-cards">
       <div className="signal-cards-section__header">
         <h2 className="section-title">Active Signals</h2>
         <Link to="/signals" className="signal-cards-section__overflow-link">
@@ -87,9 +91,10 @@ export function SignalCardsSection({
       </div>
 
       {loading && (
-        <p className="signal-cards-section__status">
-          Scanning live market events for material signals...
-        </p>
+        <div className="signal-cards-list">
+          <SignalCardSkeleton />
+          <SignalCardSkeleton />
+        </div>
       )}
 
       {error && <p className="signal-cards-section__error">Unable to load signals: {error}</p>}
@@ -100,7 +105,7 @@ export function SignalCardsSection({
         </p>
       )}
 
-      {!error && visibleSignals.length > 0 && (
+      {!loading && !error && visibleSignals.length > 0 && (
         <div className="signal-cards-list">
           {visibleSignals.map((signal) => (
             <SignalCard
@@ -109,6 +114,8 @@ export function SignalCardsSection({
               materiality={getMateriality(signal)}
               viewed={viewedSignalIds.has(signal.id)}
               onViewAnalysis={handleViewAnalysis}
+              exposures={exposures}
+              totalPortfolioValue={totalPortfolioValue}
             />
           ))}
         </div>
@@ -120,6 +127,6 @@ export function SignalCardsSection({
         onDismiss={() => setNotificationSignal(null)}
         onOpenAnalysis={handleViewAnalysis}
       />
-    </div>
+    </section>
   )
 }

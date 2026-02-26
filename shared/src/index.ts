@@ -5,6 +5,7 @@ export * from './types/causal-chain'
 export * from './types/signal'
 export * from './types/user-profile'
 export * from './types/fund'
+export * from './types/health-score'
 
 // Constants
 export * from './constants/temporal'

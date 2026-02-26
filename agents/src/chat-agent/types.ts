@@ -11,6 +11,7 @@ export interface TemporalImpactEstimate {
 export interface TemporalAnalysis {
   readonly classification: string
   readonly confidence: number
+  readonly totalPortfolioValueCad?: number
   readonly timeBuckets: {
     readonly oneWeek: TemporalImpactEstimate
     readonly oneMonth: TemporalImpactEstimate

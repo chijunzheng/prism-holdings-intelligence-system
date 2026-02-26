@@ -52,6 +52,7 @@ export interface ImpactClassification {
 export interface TemporalAnalysis {
   readonly classification: TemporalClassification
   readonly confidence: number
+  readonly totalPortfolioValueCad?: number
   readonly methodology: ClassificationMethodology
   readonly impactClassifications: ReadonlyArray<ImpactClassification>
   readonly timeBuckets: {
@@ -77,6 +78,10 @@ export interface TemporalReasoningContext {
 export interface RecommendationInputs {
   readonly profile: UserProfile
   readonly context: TemporalReasoningContext
+  readonly totalPortfolioValueCad: number
+  readonly holdingWeightsByTicker?: Readonly<Record<string, number>>
   readonly oneWeekDirection: ImpactDirection
   readonly sixMonthDirection: ImpactDirection
+  readonly oneWeekExpectedImpactCad: number
+  readonly sixMonthExpectedImpactCad: number
 }

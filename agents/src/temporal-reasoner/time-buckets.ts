@@ -58,24 +58,24 @@ export function estimateTimeBuckets(
   const multipliers = multipliersFor(context.classification)
   const baselineMagnitude = Math.max(Math.abs(context.netDollarImpact), 100)
   const baselineDirection = context.netDollarImpact !== 0 ? Math.sign(context.netDollarImpact) : 0
-  const directionFromEdges =
-    context.directionBias === 0 ? baselineDirection || -1 : Math.sign(context.directionBias)
+  const edgeDirection = context.directionBias === 0 ? 0 : Math.sign(context.directionBias)
+  const directionFromSignal = baselineDirection || edgeDirection || -1
 
   const spreadFactor = context.classification === 'ambiguous' ? 0.5 : 0.3
 
-  let oneWeek = baselineMagnitude * multipliers.oneWeek * directionFromEdges
-  let oneMonth = baselineMagnitude * multipliers.oneMonth * directionFromEdges
-  let sixMonth = baselineMagnitude * multipliers.sixMonth * directionFromEdges
+  let oneWeek = baselineMagnitude * multipliers.oneWeek * directionFromSignal
+  let oneMonth = baselineMagnitude * multipliers.oneMonth * directionFromSignal
+  let sixMonth = baselineMagnitude * multipliers.sixMonth * directionFromSignal
 
-  // When effects compete, force divergence in long horizon to surface explicit tension.
+  // When effects compete, reduce conviction, but do not force a direction flip.
   if (context.classification === 'ambiguous' && context.hasCompetingEffects) {
-    oneWeek = baselineMagnitude * 0.28 * directionFromEdges
-    oneMonth = baselineMagnitude * 0.2 * directionFromEdges
-    sixMonth = baselineMagnitude * 0.24 * -directionFromEdges
+    oneWeek = baselineMagnitude * 0.26 * directionFromSignal
+    oneMonth = baselineMagnitude * 0.2 * directionFromSignal
+    sixMonth = baselineMagnitude * 0.18 * directionFromSignal
   } else if (context.hasCompetingEffects && context.directionBias === 0) {
-    oneWeek = baselineMagnitude * 0.32 * directionFromEdges
-    oneMonth = baselineMagnitude * 0.18 * directionFromEdges
-    sixMonth = baselineMagnitude * 0.22 * -directionFromEdges
+    oneWeek = baselineMagnitude * 0.3 * directionFromSignal
+    oneMonth = baselineMagnitude * 0.24 * directionFromSignal
+    sixMonth = baselineMagnitude * 0.2 * directionFromSignal
   }
 
   return {

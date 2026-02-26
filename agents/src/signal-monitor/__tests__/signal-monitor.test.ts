@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { buildSignalSearchPrompt } from '../prompts'
-import { parseSignalResponse, deduplicateSignals } from '../parse'
+import { parseSignalResponse, parseSignalResponseWithDiagnostics, deduplicateSignals } from '../parse'
 import type { ExposureEntry } from '@prism/shared'
 
 const sampleExposures: ReadonlyArray<ExposureEntry> = [
@@ -74,6 +74,47 @@ describe('Signal Monitor', () => {
     it('returns empty array for malformed response', () => {
       const signals = parseSignalResponse('This is not JSON at all')
       expect(signals).toHaveLength(0)
+    })
+
+    it('emits parse diagnostics for malformed response', () => {
+      const result = parseSignalResponseWithDiagnostics('This is not JSON at all')
+      expect(result.signals).toHaveLength(0)
+      expect(result.diagnostics.payloadDetected).toBe(false)
+      expect(result.diagnostics.rawSignalCount).toBe(0)
+    })
+
+    it('parses object-wrapped arrays', () => {
+      const response = JSON.stringify({
+        signals: [
+          {
+            headline: 'Fed Signals Potential Rate Pause',
+            description: 'Federal Reserve officials indicated a possible pause in tightening.',
+            affectedExposures: ['US Technology'],
+            relevanceScore: 0.72,
+            urgency: 'medium',
+            temporalClassification: 'ambiguous',
+            sources: [{ title: 'Reuters', url: 'https://www.reuters.com' }],
+          },
+        ],
+      })
+
+      const signals = parseSignalResponse(response)
+      expect(signals).toHaveLength(1)
+      expect(signals[0].headline).toContain('Fed Signals')
+    })
+
+    it('parses free-text responses that embed fenced JSON', () => {
+      const response = [
+        'Here are the top events I found:',
+        '',
+        '```json',
+        '[{"headline":"Oil jumps on supply concerns","description":"Brent crude moved higher after supply disruptions.","affectedExposures":["Canadian Energy"],"relevanceScore":0.81,"urgency":"high","temporalClassification":"transient","sources":[{"title":"Bloomberg","url":"https://www.bloomberg.com"}]}]',
+        '```',
+      ].join('\n')
+
+      const signals = parseSignalResponse(response)
+      expect(signals).toHaveLength(1)
+      expect(signals[0].affectedExposures).toContain('Canadian Energy')
     })
 
     it('skips individual malformed signals but parses valid ones', () => {

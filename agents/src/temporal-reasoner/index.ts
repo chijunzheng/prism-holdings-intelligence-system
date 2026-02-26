@@ -14,6 +14,11 @@ export const config: AgentConfig = {
 
 export type { TemporalAnalysis } from './types'
 
+export interface TemporalReasoningRuntimeContext {
+  readonly totalPortfolioValueCad?: number
+  readonly holdingWeightsByTicker?: Readonly<Record<string, number>>
+}
+
 /**
  * Temporal Reasoner (Feature 08)
  * Produces multi-horizon temporal analysis from a validated causal chain
@@ -22,28 +27,49 @@ export type { TemporalAnalysis } from './types'
 export async function classify(
   chain: CausalChain,
   profile: UserProfile,
+  runtime?: number | TemporalReasoningRuntimeContext,
 ): Promise<AgentResult<TemporalAnalysis>> {
   const start = performance.now()
 
   try {
+    const runtimeContext: TemporalReasoningRuntimeContext =
+      typeof runtime === 'number' ? { totalPortfolioValueCad: runtime } : (runtime ?? {})
     const context = classifyTemporalDynamics(chain)
     const timeBuckets = estimateTimeBuckets(context)
+    const inferredPortfolioValue =
+      context.impactClassifications.reduce(
+        (sum, impact) => sum + Math.abs(impact.dollarImpact),
+        0,
+      ) * 8
+    const resolvedPortfolioValueCad = Math.max(
+      10_000,
+      Math.round(runtimeContext.totalPortfolioValueCad ?? inferredPortfolioValue),
+    )
     const recommendations = buildRecommendations({
       profile,
       context,
+      totalPortfolioValueCad: resolvedPortfolioValueCad,
+      holdingWeightsByTicker: runtimeContext.holdingWeightsByTicker,
       oneWeekDirection: timeBuckets.oneWeek.direction,
       sixMonthDirection: timeBuckets.sixMonth.direction,
+      oneWeekExpectedImpactCad: timeBuckets.oneWeek.expectedDollarImpact,
+      sixMonthExpectedImpactCad: timeBuckets.sixMonth.expectedDollarImpact,
     })
     const tension = detectRecommendationTension(recommendations, {
       profile,
       context,
+      totalPortfolioValueCad: resolvedPortfolioValueCad,
+      holdingWeightsByTicker: runtimeContext.holdingWeightsByTicker,
       oneWeekDirection: timeBuckets.oneWeek.direction,
       sixMonthDirection: timeBuckets.sixMonth.direction,
+      oneWeekExpectedImpactCad: timeBuckets.oneWeek.expectedDollarImpact,
+      sixMonthExpectedImpactCad: timeBuckets.sixMonth.expectedDollarImpact,
     })
 
     const analysis: TemporalAnalysis = {
       classification: context.classification,
       confidence: context.confidence,
+      totalPortfolioValueCad: resolvedPortfolioValueCad,
       methodology: context.methodology,
       impactClassifications: context.impactClassifications,
       timeBuckets,

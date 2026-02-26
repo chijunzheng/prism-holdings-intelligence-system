@@ -3,11 +3,15 @@ import { Type, type Schema } from '@google/genai'
 import { z } from 'zod'
 import { getFundComposition, getPortfolioByUserId, getUserProfileById } from '@prism/data'
 import type { CausalChain, ExposureMap, Signal } from '@prism/shared'
-import { analyze } from '../exposure-analyzer'
-import { monitor } from '../signal-monitor'
-import { propagate } from '../causal-propagation'
-import { classify, type TemporalAnalysis } from '../temporal-reasoner'
 import { compose, type AlertOutput } from '../alert-composer'
+import {
+  prewarmCausalChains,
+  runExposureAnalysis,
+  runGraphPipeline,
+  runSignalMonitor,
+  type PipelineContext,
+} from '../orchestrator'
+import type { TemporalAnalysis } from '../temporal-reasoner'
 
 interface ToolErrorResult {
   readonly ok: false
@@ -47,6 +51,39 @@ interface SignalListContext {
 
 type SignalListToolResult = SignalListContext | ToolErrorResult
 
+interface SignalListDetailedContext {
+  readonly ok: true
+  readonly userId: string
+  readonly signals: ReadonlyArray<Signal>
+}
+
+type SignalListDetailedToolResult = SignalListDetailedContext | ToolErrorResult
+
+interface SignalGraphPipelineContext {
+  readonly ok: true
+  readonly userId: string
+  readonly signal: Signal
+  readonly chain: CausalChain
+  readonly temporalAnalysis: TemporalAnalysis
+}
+
+type SignalGraphPipelineToolResult = SignalGraphPipelineContext | ToolErrorResult
+
+function isTruthyEnv(value: string | undefined): boolean {
+  if (!value) return false
+  const normalized = value.trim().toLowerCase()
+  return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on'
+}
+
+const TRACE_ADK_TOOLS =
+  isTruthyEnv(process.env.DEBUG_IMPACT_TRACE) || isTruthyEnv(process.env.PRISM_TRACE)
+
+function traceAdkTool(scope: string, payload: Record<string, unknown>): void {
+  if (!TRACE_ADK_TOOLS) return
+  // eslint-disable-next-line no-console
+  console.log(`[PrismTrace][adk-tool:${scope}]`, payload)
+}
+
 const buildSignalGraphContextParams = z.object({
   userId: z.string().min(1).describe('Portfolio owner id, e.g. sarah-01'),
   signalId: z
@@ -60,12 +97,48 @@ const listSignalsParams = z.object({
   userId: z.string().min(1).describe('Portfolio owner id, e.g. sarah-01'),
 })
 
+const buildSignalGraphPipelineParams = z.object({
+  userId: z.string().min(1).describe('Portfolio owner id, e.g. sarah-01'),
+  signalId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe('Optional signal id to inspect. Defaults to highest-priority active signal.'),
+})
+
 const listSignalsToolSchema: Schema = {
   type: Type.OBJECT,
   properties: {
     userId: {
       type: Type.STRING,
       description: 'Portfolio owner id, e.g. sarah-01',
+    },
+  },
+  required: ['userId'],
+}
+
+const listSignalsDetailedToolSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    userId: {
+      type: Type.STRING,
+      description: 'Portfolio owner id, e.g. sarah-01',
+    },
+  },
+  required: ['userId'],
+}
+
+const buildSignalGraphPipelineToolSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    userId: {
+      type: Type.STRING,
+      description: 'Portfolio owner id, e.g. sarah-01',
+    },
+    signalId: {
+      type: Type.STRING,
+      description:
+        'Optional signal id to inspect. Defaults to highest-priority active signal.',
     },
   },
   required: ['userId'],
@@ -117,55 +190,120 @@ function toError(message: string): ToolErrorResult {
   return { ok: false, error: message }
 }
 
-export async function buildSignalGraphContext(input: {
-  userId: string
-  signalId?: string
-}): Promise<SignalGraphToolResult> {
-  const userId = input.userId.trim()
-  const signalId = input.signalId?.trim()
-
+function buildPipelineContext(userId: string): PipelineContext | ToolErrorResult {
   const portfolio = getPortfolioByUserId(userId)
   if (!portfolio) return toError(`Portfolio not found for user ${userId}`)
 
   const profile = getUserProfileById(userId)
   if (!profile) return toError(`User profile not found for user ${userId}`)
 
-  const exposureResult = await analyze(portfolio, getFundComposition)
+  return { portfolio, profile, getFundComposition }
+}
+
+async function resolveExposureAndSignals(
+  userId: string,
+): Promise<
+  | {
+      readonly ok: true
+      readonly ctx: PipelineContext
+      readonly exposureMap: ExposureMap
+      readonly signals: ReadonlyArray<Signal>
+    }
+  | ToolErrorResult
+> {
+  const startedAt = performance.now()
+  traceAdkTool('resolve:start', { userId })
+  const ctxOrError = buildPipelineContext(userId)
+  if ('ok' in ctxOrError && ctxOrError.ok === false) {
+    traceAdkTool('resolve:error', {
+      userId,
+      stage: 'context',
+      error: ctxOrError.error,
+      durationMs: Math.round(performance.now() - startedAt),
+    })
+    return ctxOrError
+  }
+  const ctx = ctxOrError as PipelineContext
+
+  const exposureResult = await runExposureAnalysis(ctx)
   if (!exposureResult.success || !exposureResult.data) {
+    traceAdkTool('resolve:error', {
+      userId,
+      stage: 'exposure',
+      error: exposureResult.error ?? 'Exposure analysis failed',
+      durationMs: Math.round(performance.now() - startedAt),
+    })
     return toError(exposureResult.error ?? 'Exposure analysis failed')
   }
+  traceAdkTool('resolve:exposure', {
+    userId,
+    exposureCount: exposureResult.data.exposures.length,
+    durationMs: Math.round(exposureResult.durationMs),
+  })
 
-  const signalResult = await monitor(exposureResult.data)
+  const signalResult = await runSignalMonitor(exposureResult.data)
   if (!signalResult.success || !signalResult.data) {
+    traceAdkTool('resolve:error', {
+      userId,
+      stage: 'signals',
+      error: signalResult.error ?? 'Signal monitoring failed',
+      durationMs: Math.round(performance.now() - startedAt),
+    })
     return toError(signalResult.error ?? 'Signal monitoring failed')
   }
+  traceAdkTool('resolve:signals', {
+    userId,
+    signalCount: signalResult.data.length,
+    durationMs: Math.round(signalResult.durationMs),
+  })
+
+  void prewarmCausalChains(exposureResult.data, signalResult.data)
+
+  traceAdkTool('resolve:success', {
+    userId,
+    signalCount: signalResult.data.length,
+    exposureCount: exposureResult.data.exposures.length,
+    totalDurationMs: Math.round(performance.now() - startedAt),
+  })
+
+  return {
+    ok: true,
+    ctx,
+    exposureMap: exposureResult.data,
+    signals: signalResult.data,
+  }
+}
+
+export async function buildSignalGraphContext(input: {
+  userId: string
+  signalId?: string
+}): Promise<SignalGraphToolResult> {
+  const userId = input.userId.trim()
+  const signalId = input.signalId?.trim()
+  const base = await resolveExposureAndSignals(userId)
+  if (!base.ok) return base
 
   const selectedSignal = signalId
-    ? signalResult.data.find((signal) => signal.id === signalId)
-    : signalResult.data[0]
+    ? base.signals.find((signal) => signal.id === signalId)
+    : base.signals[0]
 
   if (!selectedSignal) {
     const suffix = signalId ? `: ${signalId}` : ''
     return toError(`No active signal available${suffix}`)
   }
 
-  const chainResult = await propagate(selectedSignal, exposureResult.data)
-  if (!chainResult.success || !chainResult.data) {
-    return toError(chainResult.error ?? 'Causal propagation failed')
+  const graphResult = await runGraphPipeline(base.ctx, selectedSignal.id)
+  if (!graphResult.success || !graphResult.data) {
+    return toError(graphResult.error ?? 'Graph pipeline failed')
   }
 
-  const temporalResult = await classify(chainResult.data, profile)
-  if (!temporalResult.success || !temporalResult.data) {
-    return toError(temporalResult.error ?? 'Temporal reasoning failed')
-  }
-
-  const totalPortfolioValueCad = exposureResult.data.exposures.reduce(
+  const totalPortfolioValueCad = base.exposureMap.exposures.reduce(
     (sum, entry) => sum + entry.valueCad,
     0,
   )
 
-  const alertResult = await compose(chainResult.data, profile, {
-    temporalAnalysis: temporalResult.data,
+  const alertResult = await compose(graphResult.data.chain, base.ctx.profile, {
+    temporalAnalysis: graphResult.data.temporalAnalysis,
     totalPortfolioValueCad,
   })
 
@@ -173,33 +311,69 @@ export async function buildSignalGraphContext(input: {
     ok: true,
     userId,
     selectedSignal: summarizeSignal(selectedSignal),
-    exposureSummary: topExposureSummary(exposureResult.data),
-    chain: chainResult.data,
-    temporalAnalysis: temporalResult.data,
+    exposureSummary: topExposureSummary(base.exposureMap),
+    chain: graphResult.data.chain,
+    temporalAnalysis: graphResult.data.temporalAnalysis,
     alertPreview: alertResult.success ? alertResult.data ?? null : null,
   }
 }
 
 export async function listActiveSignals(input: { userId: string }): Promise<SignalListToolResult> {
   const userId = input.userId.trim()
+  const base = await resolveExposureAndSignals(userId)
+  if (!base.ok) return base
 
-  const portfolio = getPortfolioByUserId(userId)
-  if (!portfolio) return toError(`Portfolio not found for user ${userId}`)
+  return {
+    ok: true,
+    userId,
+    signals: base.signals.map(summarizeSignal),
+  }
+}
 
-  const exposureResult = await analyze(portfolio, getFundComposition)
-  if (!exposureResult.success || !exposureResult.data) {
-    return toError(exposureResult.error ?? 'Exposure analysis failed')
+export async function listActiveSignalsDetailed(input: {
+  userId: string
+}): Promise<SignalListDetailedToolResult> {
+  const userId = input.userId.trim()
+  const base = await resolveExposureAndSignals(userId)
+  if (!base.ok) return base
+
+  return {
+    ok: true,
+    userId,
+    signals: base.signals,
+  }
+}
+
+export async function buildSignalGraphPipeline(input: {
+  userId: string
+  signalId?: string
+}): Promise<SignalGraphPipelineToolResult> {
+  const userId = input.userId.trim()
+  const signalId = input.signalId?.trim()
+
+  const base = await resolveExposureAndSignals(userId)
+  if (!base.ok) return base
+
+  const selectedSignal = signalId
+    ? base.signals.find((signal) => signal.id === signalId)
+    : base.signals[0]
+
+  if (!selectedSignal) {
+    const suffix = signalId ? `: ${signalId}` : ''
+    return toError(`No active signal available${suffix}`)
   }
 
-  const signalResult = await monitor(exposureResult.data)
-  if (!signalResult.success || !signalResult.data) {
-    return toError(signalResult.error ?? 'Signal monitoring failed')
+  const graphResult = await runGraphPipeline(base.ctx, selectedSignal.id)
+  if (!graphResult.success || !graphResult.data) {
+    return toError(graphResult.error ?? 'Graph pipeline failed')
   }
 
   return {
     ok: true,
     userId,
-    signals: signalResult.data.map(summarizeSignal),
+    signal: graphResult.data.signal,
+    chain: graphResult.data.chain,
+    temporalAnalysis: graphResult.data.temporalAnalysis,
   }
 }
 
@@ -227,4 +401,32 @@ export const buildSignalGraphContextTool = new FunctionTool({
   },
 })
 
+export const listActiveSignalsDetailedTool = new FunctionTool({
+  name: 'list_active_signals_detailed',
+  description:
+    'Fetch full active market signal payloads for a specific user portfolio and exposure profile.',
+  parameters: listSignalsDetailedToolSchema,
+  execute: async (input) => {
+    const parsed = listSignalsParams.safeParse(input)
+    if (!parsed.success) return toError('Invalid input for list_active_signals_detailed')
+    return listActiveSignalsDetailed(parsed.data)
+  },
+})
+
+export const buildSignalGraphPipelineTool = new FunctionTool({
+  name: 'build_signal_graph_pipeline',
+  description:
+    'Run full Prism graph pipeline and return complete signal + chain + temporal analysis payload.',
+  parameters: buildSignalGraphPipelineToolSchema,
+  execute: async (input) => {
+    const parsed = buildSignalGraphPipelineParams.safeParse(input)
+    if (!parsed.success) return toError('Invalid input for build_signal_graph_pipeline')
+    return buildSignalGraphPipeline(parsed.data)
+  },
+})
+
 export const prismPipelineTools = [listActiveSignalsTool, buildSignalGraphContextTool]
+export const prismEndpointPipelineTools = [
+  listActiveSignalsDetailedTool,
+  buildSignalGraphPipelineTool,
+]

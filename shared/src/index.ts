@@ -6,6 +6,8 @@ export * from './types/signal'
 export * from './types/user-profile'
 export * from './types/fund'
 export * from './types/health-score'
+export * from './types/notification'
+export * from './types/strategy'
 
 // Constants
 export * from './constants/temporal'

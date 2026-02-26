@@ -7,6 +7,9 @@ import {
   UserProfileSchema,
   FundCompositionSchema,
   ExposureMapSchema,
+  StrategyDraftSchema,
+  StrategyEvaluateRequestSchema,
+  StrategyEvaluationSchema,
 } from '../index'
 
 describe('Shared Type Schemas', () => {
@@ -208,5 +211,110 @@ describe('Shared Type Schemas', () => {
       },
     }
     expect(ExposureMapSchema.parse(map)).toBeTruthy()
+  })
+
+  it('validates a StrategyDraft', () => {
+    const draft = {
+      signalId: 'sig-01',
+      signalHeadline: 'BoC Holds Rate at 2.25%',
+      generatedAt: '2026-02-26T10:00:00Z',
+      objective: 'minimize_one_month_downside_with_six_month_guardrail',
+      constraints: {
+        turnoverCapPct: 5,
+        hardMaxTurnoverPct: 10,
+        allowCashBuffer: true,
+        taxAware: true,
+        noMicrocaps: true,
+        excludeLeveragedEtfs: true,
+        maxNewPositions: 2,
+      },
+      candidates: [
+        {
+          id: 'cand-zag',
+          ticker: 'ZAG',
+          name: 'BMO Aggregate Bond Index ETF',
+          type: 'etf',
+          rationale: 'Diversifies rate-sensitive downside.',
+          confidence: 0.78,
+          expectedMitigationCad: 180,
+          proposedShiftPct: 1.2,
+          diversificationScore: 0.85,
+          estimatedTurnoverCostCad: 14,
+          estimatedTaxCostCad: 10,
+          isLargeCapProxy: false,
+          liquidityTier: 'high',
+          rankScore: 102.4,
+        },
+      ],
+      scenario: {
+        items: [
+          {
+            candidateId: 'cand-zag',
+            ticker: 'ZAG',
+            name: 'BMO Aggregate Bond Index ETF',
+            type: 'etf',
+            rationale: 'Diversifies rate-sensitive downside.',
+            confidence: 0.78,
+            expectedMitigationCad: 180,
+            diversificationScore: 0.85,
+            estimatedTurnoverCostCad: 14,
+            estimatedTaxCostCad: 10,
+            allocationPct: 1.2,
+          },
+        ],
+      },
+      baselineOneMonthCad: -1250,
+      baselineSixMonthCad: -600,
+      seedSummary: 'Build mitigation draft',
+      humanDecisionRequired: true,
+    }
+    expect(StrategyDraftSchema.parse(draft)).toBeTruthy()
+  })
+
+  it('validates StrategyEvaluateRequest', () => {
+    const req = {
+      signalId: 'sig-01',
+      scenario: {
+        items: [
+          {
+            candidateId: 'cand-zag',
+            ticker: 'ZAG',
+            name: 'BMO Aggregate Bond Index ETF',
+            type: 'etf',
+            rationale: 'Diversifies rate-sensitive downside.',
+            confidence: 0.78,
+            expectedMitigationCad: 180,
+            diversificationScore: 0.85,
+            estimatedTurnoverCostCad: 14,
+            estimatedTaxCostCad: 10,
+            allocationPct: 1.2,
+          },
+        ],
+      },
+      explicitOverride: false,
+    }
+    expect(StrategyEvaluateRequestSchema.parse(req)).toBeTruthy()
+  })
+
+  it('validates StrategyEvaluation', () => {
+    const evaluation = {
+      generatedAt: '2026-02-26T10:00:00Z',
+      objective: 'minimize_one_month_downside_with_six_month_guardrail',
+      baselineOneMonthCad: -1250,
+      proposedOneMonthCad: -820,
+      baselineSixMonthCad: -600,
+      proposedSixMonthCad: -420,
+      downsideReductionCad: 430,
+      sixMonthGuardrailDeltaCad: 180,
+      diversificationGain: 1.4,
+      turnoverPct: 2.4,
+      turnoverCapPct: 5,
+      taxPenaltyCad: 18,
+      score: 168.2,
+      objectiveSatisfied: true,
+      warnings: [],
+      humanDecisionRequired: true,
+    }
+    expect(StrategyEvaluationSchema.parse(evaluation)).toBeTruthy()
   })
 })

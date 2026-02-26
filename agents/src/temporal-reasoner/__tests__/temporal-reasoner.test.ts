@@ -185,6 +185,25 @@ function makeSingleDirectionChain(): CausalChain {
   }
 }
 
+function makePositiveDirectionChain(): CausalChain {
+  const chain = makeSingleDirectionChain()
+  return {
+    ...chain,
+    nodes: chain.nodes.map((node) => {
+      if (node.type !== 'asset') return node
+      return {
+        ...node,
+        label: 'CNQ',
+        metadata: { ticker: 'CNQ' },
+        dollarImpact: Math.abs(node.dollarImpact ?? 300),
+        percentageImpact: 2.5,
+      }
+    }),
+    edges: chain.edges.map((edge) => ({ ...edge, direction: 'positive' })),
+    summary: 'Commodity upside supports Canadian energy cash flows in the medium term.',
+  }
+}
+
 describe('Temporal Reasoner', () => {
   it('returns structured temporal analysis with impact classifications', async () => {
     const result = await classify(makeCompetingChain(), PROFILE_MODERATE)
@@ -234,6 +253,51 @@ describe('Temporal Reasoner', () => {
     expect(recommendationText).toMatch(/\$[0-9,]+/)
     expect(recommendationText).toContain('58')
     expect(recommendationText.toLowerCase()).toContain('low')
+  })
+
+  it('aligns short-horizon recommendations with negative impact direction', async () => {
+    const result = await classify(makeSingleDirectionChain(), PROFILE_MODERATE)
+    expect(result.success).toBe(true)
+
+    const shortTerm = result.data!.recommendations.find((r) => r.horizon === 'one_week')
+    expect(shortTerm).toBeDefined()
+    expect(shortTerm!.summary.toLowerCase()).toContain('trim')
+    expect(shortTerm!.proposedShiftCad).toBeLessThan(0)
+  })
+
+  it('aligns short-horizon recommendations with positive impact direction', async () => {
+    const result = await classify(makePositiveDirectionChain(), PROFILE_MODERATE)
+    expect(result.success).toBe(true)
+
+    const shortTerm = result.data!.recommendations.find((r) => r.horizon === 'one_week')
+    expect(shortTerm).toBeDefined()
+    expect(shortTerm!.summary.toLowerCase()).toContain('add')
+    expect(shortTerm!.proposedShiftCad).toBeGreaterThan(0)
+  })
+
+  it('applies sizing guardrails to prevent oversized concentrated buys', async () => {
+    const result = await classify(makePositiveDirectionChain(), PROFILE_MODERATE, 200_000)
+    expect(result.success).toBe(true)
+
+    const oneWeek = result.data!.recommendations.find((r) => r.horizon === 'one_week')
+    const oneMonth = result.data!.recommendations.find((r) => r.horizon === 'one_month')
+    const sixMonth = result.data!.recommendations.find((r) => r.horizon === 'six_month')
+    expect(oneWeek).toBeDefined()
+    expect(oneMonth).toBeDefined()
+    expect(sixMonth).toBeDefined()
+
+    // Moderate profile caps should prevent aggressive single-name sizing.
+    expect(oneWeek!.proposedShiftCad).toBeLessThanOrEqual(1200)
+    expect(oneMonth!.proposedShiftCad).toBeLessThanOrEqual(2000)
+    expect(sixMonth!.proposedShiftCad).toBeLessThanOrEqual(3200)
+  })
+
+  it('does not force long-horizon direction flips for competing effects', async () => {
+    const result = await classify(makeCompetingChain(), PROFILE_MODERATE)
+    expect(result.success).toBe(true)
+
+    const { oneWeek, sixMonth } = result.data!.timeBuckets
+    expect(oneWeek.direction).toBe(sixMonth.direction)
   })
 
   it('produces counterfactual analysis output', async () => {

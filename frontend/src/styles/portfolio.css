@@ -90,7 +90,7 @@
   padding: 2rem 2.5rem;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 2.5rem;
 }
 
 /* ── Intelligence Briefing Hero ──────────── */
@@ -173,8 +173,8 @@
 /* ── Exposure + Risk Radar Row ───────────── */
 .exposure-radar-row {
   display: grid;
-  grid-template-columns: 1fr var(--sidebar-width);
-  gap: 2.5rem;
+  grid-template-columns: 1fr 280px;
+  gap: 4rem;
   align-items: start;
 }
 
@@ -186,32 +186,30 @@
 .risk-radar {
   background: var(--color-surface);
   border-radius: 12px;
-  padding: 1.5rem 1.25rem;
+  padding: 1.25rem;
   box-shadow: var(--shadow-card);
-  position: sticky;
-  top: 4.5rem;
 }
 
 .risk-radar__title {
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
 }
 
 .risk-radar__grade-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0.75rem 0 1.25rem;
-  margin-bottom: 1.25rem;
+  padding: 0.5rem 0 1rem;
+  margin-bottom: 1rem;
   border-bottom: 1px solid var(--color-border);
 }
 
 .risk-radar__grade {
-  font-size: 3rem;
+  font-size: 2.5rem;
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.04em;
@@ -220,7 +218,7 @@
 .risk-radar__grade-label {
   font-size: 0.8125rem;
   color: var(--color-text-secondary);
-  margin-top: 0.375rem;
+  margin-top: 0.25rem;
   font-weight: 500;
 }
 
@@ -274,6 +272,103 @@
   color: var(--color-text-muted);
   margin-top: 0.25rem;
   line-height: 1.4;
+}
+
+.risk-radar--clickable {
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.1s;
+}
+
+.risk-radar--clickable:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.risk-radar--clickable:active {
+  transform: scale(0.995);
+}
+
+.risk-radar__cta {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  transition: color 0.15s;
+}
+
+.risk-radar--clickable:hover .risk-radar__cta {
+  color: var(--color-text);
+}
+
+/* ── Holdings + X-Ray Sidebar Row ──────────── */
+.holdings-radar-row {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 4rem;
+  align-items: start;
+}
+
+.holdings-xray-sidebar {
+  position: static;
+  margin-top: 2.875rem;
+}
+
+.holdings-xray-sidebar__section + .holdings-xray-sidebar__section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.holdings-xray-sidebar__section-desc {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+
+.holdings-xray-sidebar__list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.holdings-xray-sidebar__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.holdings-xray-sidebar__item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.holdings-xray-sidebar__ticker {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+
+.holdings-xray-sidebar__value {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+
+.holdings-xray-sidebar__detail {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ── Collapsible Holdings ────────────────── */
@@ -385,6 +480,10 @@
 /* ── Holdings Table (Wealthsimple card) ──── */
 .holdings-section {
   margin-bottom: 2.5rem;
+}
+
+.holdings-section > .section-title {
+  margin-bottom: 1rem;
 }
 
 .holdings-card {
@@ -886,12 +985,14 @@
     gap: 1.5rem;
   }
 
-  .exposure-radar-row {
+  .exposure-radar-row,
+  .holdings-radar-row {
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
 
-  .risk-radar {
+  .risk-radar,
+  .holdings-xray-sidebar {
     position: static;
   }
 

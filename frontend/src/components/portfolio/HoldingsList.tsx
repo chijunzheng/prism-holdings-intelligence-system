@@ -1,4 +1,5 @@
 import type { Holding, Portfolio } from '@prism/shared'
+import { TickerIcon } from '../common/TickerIcon'
 
 export type FlattenedHolding = Holding & {
   readonly accountId: string
@@ -35,10 +36,6 @@ export function HoldingsList({ portfolio, selectedTicker, onSelect }: HoldingsLi
 
   return (
     <div className="holdings-section">
-      <div className="section-header">
-        <h2 className="section-title">Holdings</h2>
-      </div>
-
       <div className="holdings-card">
         <table className="holdings-table">
           <thead>
@@ -73,9 +70,12 @@ export function HoldingsList({ portfolio, selectedTicker, onSelect }: HoldingsLi
                   aria-selected={isSelected || undefined}
                 >
                   <td className="holdings-row__position-cell">
-                    <div className="holdings-row__position-name">{h.ticker}</div>
-                    <div className="holdings-row__position-sub">
-                      {h.name} · {h.accountType.replace('_', ' ')}
+                    <TickerIcon ticker={h.ticker} size={36} />
+                    <div>
+                      <div className="holdings-row__position-name">{h.ticker}</div>
+                      <div className="holdings-row__position-sub">
+                        {h.name} · {h.accountType.replace('_', ' ')}
+                      </div>
                     </div>
                   </td>
                   <td className="holdings-row__value">

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import type { ExposureMap, HealthScore, Signal } from '@prism/shared'
 
 interface IntelligenceBriefingProps {
@@ -19,28 +20,74 @@ interface Narrative {
   readonly showCta: boolean
 }
 
+interface CoverageSummary {
+  readonly coveragePct: number
+  readonly matchedExposureCount: number
+  readonly topExposureCategory: string | null
+}
+
+function normalizeLabel(value: string): string {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ')
+}
+
+function matchesExposure(affectedExposure: string, exposureCategory: string): boolean {
+  const affected = normalizeLabel(affectedExposure)
+  const category = normalizeLabel(exposureCategory)
+  return affected.includes(category) || category.includes(affected)
+}
+
+function computeCoverageSummary(
+  signals: ReadonlyArray<Signal>,
+  exposureMap: ExposureMap | null,
+): CoverageSummary | null {
+  if (!exposureMap || signals.length === 0) return null
+
+  const matched = exposureMap.exposures.filter((exposure) =>
+    signals.some((signal) =>
+      signal.affectedExposures.some((affected) => matchesExposure(affected, exposure.category)),
+    ),
+  )
+
+  if (matched.length === 0) return null
+
+  const coveragePct = Math.min(
+    100,
+    matched.reduce((sum, exposure) => sum + exposure.percentage, 0),
+  )
+  const topExposure = [...matched].sort((a, b) => b.percentage - a.percentage)[0]
+
+  return {
+    coveragePct,
+    matchedExposureCount: matched.length,
+    topExposureCategory: topExposure?.category ?? null,
+  }
+}
+
 function generateNarrative(
   healthScore: HealthScore | null,
   signals: ReadonlyArray<Signal>,
   exposureMap: ExposureMap | null,
 ): Narrative {
   // Priority 1: Active high/critical signals
-  const materialSignals = signals.filter((s) => s.urgency === 'critical' || s.urgency === 'high')
+  const materialSignals = signals
+    .filter((s) => s.urgency === 'critical' || s.urgency === 'high')
+    .sort((a, b) => b.relevanceScore - a.relevanceScore)
+
   if (materialSignals.length > 0) {
-    const topSignal = materialSignals[0]
-    const affectedPct = exposureMap
-      ? exposureMap.exposures
-          .filter((e) => topSignal.affectedExposures.some((ae) =>
-            e.category.toLowerCase().includes(ae.toLowerCase()),
-          ))
-          .reduce((sum, e) => sum + e.percentage, 0)
-      : 0
+    const coverage = computeCoverageSummary(materialSignals, exposureMap)
+    const signalCount = materialSignals.length
+    const signalLabel = `${signalCount} live signal${signalCount > 1 ? 's' : ''}`
+    const verb = signalCount > 1 ? 'touch' : 'touches'
+    const coverageText = coverage ? `${coverage.coveragePct.toFixed(0)}%` : 'key parts'
+    const topExposureText = coverage?.topExposureCategory
+      ? `, led by ${coverage.topExposureCategory}`
+      : ''
 
     return {
-      headline: affectedPct > 0
-        ? `A live event is affecting ${affectedPct.toFixed(0)}% of your portfolio.`
-        : topSignal.headline,
-      subtext: 'Tap a signal card below to see how it flows through your holdings.',
+      headline: `${signalLabel} currently ${verb} ${coverageText} of your portfolio${topExposureText}.`,
+      subtext: coverage
+        ? `Coverage reflects the combined exposure footprint of active high-priority signals across ${coverage.matchedExposureCount} exposure bucket${coverage.matchedExposureCount > 1 ? 's' : ''}.`
+        : 'High-priority live signals are active; open Impact Analysis for full causal pathways and actions.',
       tone: 'alert',
       showCta: true,
     }
@@ -49,9 +96,12 @@ function generateNarrative(
   // Priority 2: Medium signals exist
   const mediumSignals = signals.filter((s) => s.urgency === 'medium')
   if (mediumSignals.length > 0) {
+    const coverage = computeCoverageSummary(mediumSignals, exposureMap)
+    const verb = mediumSignals.length > 1 ? 'are monitoring' : 'is monitoring'
+    const coverageText = coverage ? `${coverage.coveragePct.toFixed(0)}%` : 'parts'
     return {
-      headline: `${mediumSignals.length} market event${mediumSignals.length > 1 ? 's' : ''} may affect your holdings.`,
-      subtext: 'Review the signals below for details on potential impact.',
+      headline: `${mediumSignals.length} live signal${mediumSignals.length > 1 ? 's' : ''} ${verb} ${coverageText} of your portfolio exposure.`,
+      subtext: 'Potential effects are moderate; review signal drill-downs for path-level detail.',
       tone: 'warning',
       showCta: true,
     }
@@ -80,13 +130,6 @@ function generateNarrative(
     subtext: 'Prism is monitoring live market events for anything that could affect your portfolio.',
     tone: 'healthy',
     showCta: false,
-  }
-}
-
-function scrollToSignals() {
-  const el = document.getElementById('signal-cards')
-  if (el) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 }
 
@@ -120,13 +163,9 @@ export function IntelligenceBriefing({
         {narrative.subtext}
       </p>
       {narrative.showCta && (
-        <button
-          type="button"
-          className="intelligence-briefing__cta"
-          onClick={scrollToSignals}
-        >
-          See what's happening
-        </button>
+        <Link to="/signals" className="intelligence-briefing__cta">
+          Review live impact
+        </Link>
       )}
     </section>
   )

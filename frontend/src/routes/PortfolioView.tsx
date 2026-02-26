@@ -6,23 +6,32 @@ import { usePortfolioHealth } from '../hooks/usePortfolioHealth'
 import { useAppContext } from '../contexts/AppContext'
 import { HoldingsList } from '../components/portfolio/HoldingsList'
 import { HoldingsDrawer } from '../components/portfolio/HoldingsDrawer'
+import { AskPrismDrawer } from '../components/portfolio/AskPrismDrawer'
 import { ExposurePieChart } from '../components/portfolio/ExposurePieChart'
 import { IntelligenceBriefing } from '../components/portfolio/IntelligenceBriefing'
 import { SignalCardsSection } from '../components/portfolio/SignalCardsSection'
 import { RiskRadar } from '../components/portfolio/RiskRadar'
-import { DISCLAIMER } from '@prism/shared'
+import { HoldingsXRaySidebar } from '../components/portfolio/HoldingsXRaySidebar'
 import type { FlattenedHolding } from '../components/portfolio/HoldingsList'
 import '../styles/portfolio.css'
+import '../styles/signal-cards.css'
+import '../styles/ask-prism-drawer.css'
 
 export function PortfolioView() {
-  const { userId } = useAppContext()
+  const { userId, askPrismOpen, setAskPrismOpen, setActiveSidebarContext } = useAppContext()
   const { portfolio, loading: portfolioLoading } = usePortfolio(userId)
   const { exposureMap, loading: exposureLoading, error } = useExposureData(userId)
-  const { signals, loading: signalsLoading, error: signalsError } = useSignals(userId)
+  const {
+    signals,
+    loading: signalsLoading,
+    error: signalsError,
+    mode: signalsMode,
+    requestId: signalsRequestId,
+  } = useSignals(userId)
   const { healthScore } = usePortfolioHealth(exposureMap)
 
   const [selectedHolding, setSelectedHolding] = useState<FlattenedHolding | null>(null)
-  const [holdingsExpanded, setHoldingsExpanded] = useState(false)
+
 
   const handleSelectHolding = useCallback((holding: FlattenedHolding) => {
     setSelectedHolding((prev) =>
@@ -36,8 +45,6 @@ export function PortfolioView() {
 
   const loading = portfolioLoading || exposureLoading
   const totalValue = portfolio?.totalValueCad ?? 0
-  const hasSignals = signals.length > 0
-  const shouldExpandHoldings = holdingsExpanded || !hasSignals
 
   return (
     <div className="view portfolio-view">
@@ -58,17 +65,48 @@ export function PortfolioView() {
           loading={loading}
         />
 
-        {/* 2. Live Signal Cards */}
+        {/* 2. Signal Cards — horizontal row */}
         <SignalCardsSection
           userId={userId}
           signals={signals}
           loading={signalsLoading}
           error={signalsError}
+          mode={signalsMode}
+          requestId={signalsRequestId}
           exposures={exposureMap?.exposures}
           totalPortfolioValue={totalValue}
         />
 
-        {/* 3. Exposure + Risk Radar side by side */}
+        {/* 3. Holdings — familiar context first */}
+        {!loading && portfolio && (
+          <div className="holdings-radar-row">
+            <section className="holdings-section">
+              <h2 className="section-title">Your Holdings</h2>
+              <HoldingsList
+                portfolio={portfolio}
+                selectedTicker={selectedHolding?.ticker}
+                onSelect={handleSelectHolding}
+              />
+            </section>
+            {exposureMap && (
+              <HoldingsXRaySidebar
+                exposureMap={exposureMap}
+                signals={signals}
+                totalPortfolioValue={totalValue}
+                onDiscussWithPrism={() => {
+                  setActiveSidebarContext({
+                    type: 'exposure',
+                    label: 'Holdings exposure',
+                    detail: 'Most exposed holdings and hidden overlaps in my portfolio.',
+                  })
+                  setAskPrismOpen(true)
+                }}
+              />
+            )}
+          </div>
+        )}
+
+        {/* 4. Exposure X-Ray (left) + Risk Radar (right) */}
         {!loading && exposureMap && (
           <div className="exposure-radar-row">
             <div className="exposure-section">
@@ -81,38 +119,26 @@ export function PortfolioView() {
               <ExposurePieChart exposures={exposureMap.exposures} />
             </div>
 
-            {healthScore && <RiskRadar healthScore={healthScore} />}
+            {healthScore && (
+              <RiskRadar
+                healthScore={healthScore}
+                onClick={() => {
+                  setActiveSidebarContext({
+                    type: 'health',
+                    label: `Health: ${healthScore.grade} (${healthScore.composite}/100)`,
+                    detail: [
+                      healthScore.subScores.diversification.insight,
+                      healthScore.subScores.concentration.insight,
+                      healthScore.subScores.overlap.insight,
+                    ].join('. '),
+                  })
+                  setAskPrismOpen(true)
+                }}
+              />
+            )}
           </div>
         )}
 
-        {/* 4. Collapsible Holdings */}
-        {!loading && portfolio && (
-          <section className="holdings-collapsible">
-            <button
-              type="button"
-              className="holdings-collapsible__toggle"
-              onClick={() => setHoldingsExpanded((prev) => !prev)}
-              aria-expanded={shouldExpandHoldings}
-            >
-              <h2 className="section-title">Your Holdings</h2>
-              <span className="holdings-collapsible__chevron">
-                {shouldExpandHoldings ? '\u25B2' : '\u25BC'}
-              </span>
-            </button>
-            {shouldExpandHoldings && (
-              <HoldingsList
-                portfolio={portfolio}
-                selectedTicker={selectedHolding?.ticker}
-                onSelect={handleSelectHolding}
-              />
-            )}
-          </section>
-        )}
-
-        {/* 5. Disclaimer */}
-        <footer className="disclaimer">
-          {DISCLAIMER}
-        </footer>
       </div>
 
       {selectedHolding && (
@@ -122,6 +148,20 @@ export function PortfolioView() {
           signals={signals}
           onClose={handleCloseDrawer}
         />
+      )}
+
+      {!askPrismOpen && (
+        <button
+          type="button"
+          className="ask-prism-fab"
+          onClick={() => setAskPrismOpen(true)}
+        >
+          Ask Prism
+        </button>
+      )}
+
+      {askPrismOpen && (
+        <AskPrismDrawer onClose={() => setAskPrismOpen(false)} />
       )}
     </div>
   )

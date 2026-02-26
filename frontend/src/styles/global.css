@@ -11,13 +11,14 @@
   --color-surface: #ffffff;
   --color-border: #e8e8e8;
   --color-text: #1a1a1a;
-  --color-text-secondary: #6b6b6b;
-  --color-text-muted: #999999;
+  --color-text-secondary: #484848;
+  --color-text-muted: #737373;
   --color-positive: #0da750;
   --color-negative: #d92b2b;
   --color-ambiguous: #c87d15;
   --color-accent: #1a1a1a;
   --color-accent-subtle: #f0f0f0;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
   --max-width: 1200px;
@@ -76,10 +77,8 @@ button {
 /* ── Profile Switcher (Wealthsimple Style) ─────────── */
 
 .ws-profile {
-  position: fixed;
-  top: 0.6rem;
-  right: 1.5rem;
-  z-index: 100;
+  position: relative;
+  z-index: 20;
 }
 
 .ws-profile__trigger {

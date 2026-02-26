@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CausalChain, CausalChainNode } from '@prism/shared'
+import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react'
 import type { GraphTimeHorizon, TemporalAnalysis } from '../../types/graph'
 import { useGraphLayout } from '../../hooks/useGraphLayout'
 import { getHorizonAdjustedImpact } from './graph-utils'
@@ -13,6 +14,7 @@ interface CausalGraphProps {
   readonly horizon: GraphTimeHorizon
   readonly counterfactualEnabled: boolean
   readonly expandedDepth: boolean
+  readonly clusterAssets?: boolean
   readonly selectedNodeId: string | null
   readonly onNodeSelect: (node: CausalChainNode) => void
 }
@@ -82,15 +84,39 @@ export function CausalGraph({
   horizon,
   counterfactualEnabled,
   expandedDepth,
+  clusterAssets = true,
   selectedNodeId,
   onNodeSelect,
 }: CausalGraphProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [size, setSize] = useState(DEFAULT_SIZE)
-  const [tooltip, setTooltip] = useState<TooltipState | null>(null)
+  const [hoverTooltip, setHoverTooltip] = useState<TooltipState | null>(null)
+  const [pinnedTooltip, setPinnedTooltip] = useState<TooltipState | null>(null)
   const [panZoom, setPanZoom] = useState<PanZoomState>({ panX: 0, panY: 0, scale: 1 })
   const isPanning = useRef(false)
   const lastPointer = useRef({ x: 0, y: 0 })
+  const tooltipRafRef = useRef<number | null>(null)
+  const queuedTooltipRef = useRef<TooltipState | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (tooltipRafRef.current !== null) {
+        window.cancelAnimationFrame(tooltipRafRef.current)
+        tooltipRafRef.current = null
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent): void {
+      if (event.key !== 'Escape') return
+      setPinnedTooltip(null)
+      setHoverTooltip(null)
+    }
+
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [])
 
   useEffect(() => {
     const element = containerRef.current
@@ -116,6 +142,7 @@ export function CausalGraph({
     width: size.width,
     height: size.height,
     expandedDepth,
+    clusterAssets,
   })
 
   // Fit to content when positions change
@@ -127,34 +154,85 @@ export function CausalGraph({
 
   const impactByNodeId = useMemo(() => {
     const map = new Map<string, number>()
-    if (!laidOutChain) return map
-
-    for (const node of laidOutChain.nodes) {
+    for (const node of chain.nodes) {
       map.set(
         node.id,
         getHorizonAdjustedImpact(node, temporalAnalysis, horizon, counterfactualEnabled),
       )
     }
     return map
-  }, [counterfactualEnabled, horizon, laidOutChain, temporalAnalysis])
+  }, [chain.nodes, counterfactualEnabled, horizon, temporalAnalysis])
 
   const nodes = laidOutChain?.nodes ?? []
   const edges = laidOutChain?.edges ?? []
 
-  function handleNodeHover(node: CausalChainNode, impact: number, x: number, y: number): void {
+  const resolveTooltipCoordinates = useCallback((x: number, y: number): { x: number; y: number } | null => {
     const container = containerRef.current
-    if (!container) return
-
+    if (!container) return null
     const rect = container.getBoundingClientRect()
-    setTooltip({
-      node,
-      impact,
+    return {
       x: x - rect.left + 14,
       y: y - rect.top + 14,
-    })
-  }
+    }
+  }, [])
 
-  const handleWheel = useCallback((event: React.WheelEvent<SVGSVGElement>) => {
+  const handleNodeHover = useCallback((node: CausalChainNode, impact: number, x: number, y: number): void => {
+    if (pinnedTooltip) return
+    const coordinates = resolveTooltipCoordinates(x, y)
+    if (!coordinates) return
+    queuedTooltipRef.current = {
+      node,
+      impact,
+      x: coordinates.x,
+      y: coordinates.y,
+    }
+
+    if (tooltipRafRef.current !== null) return
+    tooltipRafRef.current = window.requestAnimationFrame(() => {
+      tooltipRafRef.current = null
+      const next = queuedTooltipRef.current
+      if (!next) return
+
+      setHoverTooltip((prev) => {
+        if (
+          prev &&
+          prev.node.id === next.node.id &&
+          prev.impact === next.impact &&
+          Math.abs(prev.x - next.x) < 2 &&
+          Math.abs(prev.y - next.y) < 2
+        ) {
+          return prev
+        }
+        return next
+      })
+    })
+  }, [pinnedTooltip, resolveTooltipCoordinates])
+
+  const handleNodeHoverEnd = useCallback(() => {
+    if (pinnedTooltip) return
+    queuedTooltipRef.current = null
+    if (tooltipRafRef.current !== null) {
+      window.cancelAnimationFrame(tooltipRafRef.current)
+      tooltipRafRef.current = null
+    }
+    setHoverTooltip(null)
+  }, [pinnedTooltip])
+
+  const handleGraphNodeSelect = useCallback((node: CausalChainNode, x: number, y: number) => {
+    const coordinates = resolveTooltipCoordinates(x, y)
+    if (coordinates) {
+      setPinnedTooltip({
+        node,
+        impact: impactByNodeId.get(node.id) ?? 0,
+        x: coordinates.x,
+        y: coordinates.y,
+      })
+      setHoverTooltip(null)
+    }
+    onNodeSelect(node)
+  }, [impactByNodeId, onNodeSelect, resolveTooltipCoordinates])
+
+  const handleWheel = useCallback((event: ReactWheelEvent<SVGSVGElement>) => {
     event.preventDefault()
     const svgEl = event.currentTarget
     const rect = svgEl.getBoundingClientRect()
@@ -171,14 +249,15 @@ export function CausalGraph({
     })
   }, [])
 
-  const handlePointerDown = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
+  const handlePointerDown = useCallback((event: ReactPointerEvent<SVGSVGElement>) => {
     if ((event.target as Element).closest('.graph-node')) return
+    setPinnedTooltip(null)
     isPanning.current = true
     lastPointer.current = { x: event.clientX, y: event.clientY }
     event.currentTarget.setPointerCapture(event.pointerId)
   }, [])
 
-  const handlePointerMove = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
+  const handlePointerMove = useCallback((event: ReactPointerEvent<SVGSVGElement>) => {
     if (!isPanning.current) return
     const dx = event.clientX - lastPointer.current.x
     const dy = event.clientY - lastPointer.current.y
@@ -193,6 +272,14 @@ export function CausalGraph({
   const handleReset = useCallback(() => {
     setPanZoom(fitToContent(positions, size.width, size.height))
   }, [positions, size.width, size.height])
+
+  useEffect(() => {
+    if (!pinnedTooltip) return
+    const stillExists = chain.nodes.some((node) => node.id === pinnedTooltip.node.id)
+    if (!stillExists) setPinnedTooltip(null)
+  }, [chain.nodes, pinnedTooltip])
+
+  const activeTooltip = pinnedTooltip ?? hoverTooltip
 
   return (
     <div className="causal-graph" ref={containerRef}>
@@ -240,9 +327,9 @@ export function CausalGraph({
                 position={position}
                 displayImpact={impactByNodeId.get(node.id) ?? 0}
                 selected={node.id === selectedNodeId}
-                onSelect={onNodeSelect}
+                onSelect={handleGraphNodeSelect}
                 onHover={handleNodeHover}
-                onHoverEnd={() => setTooltip(null)}
+                onHoverEnd={handleNodeHoverEnd}
               />
             )
           })}
@@ -253,13 +340,18 @@ export function CausalGraph({
         Reset view
       </button>
 
-      {tooltip && (
+      {activeTooltip && (
         <GraphTooltip
-          node={tooltip.node}
-          impact={tooltip.impact}
+          node={activeTooltip.node}
+          impact={activeTooltip.impact}
           horizon={horizon}
-          x={tooltip.x}
-          y={tooltip.y}
+          chain={chain}
+          temporalAnalysis={temporalAnalysis}
+          impactByNodeId={impactByNodeId}
+          x={activeTooltip.x}
+          y={activeTooltip.y}
+          pinned={Boolean(pinnedTooltip)}
+          onUnpin={() => setPinnedTooltip(null)}
         />
       )}
     </div>

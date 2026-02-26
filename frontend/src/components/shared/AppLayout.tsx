@@ -1,5 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { Disclaimer } from './Disclaimer'
+import { NotificationBell } from '../notifications/NotificationBell'
+import { ProfileSwitcher } from './ProfileSwitcher'
 import '../../styles/layout.css'
 
 export function AppLayout() {
@@ -30,22 +32,10 @@ export function AppLayout() {
               Impact Analysis
             </NavLink>
           </li>
-          <li>
-            <NavLink
-              to="/ask"
-              className={({ isActive }) =>
-                `app-nav__link${isActive ? ' app-nav__link--active' : ''}`
-              }
-            >
-              Ask Prism
-            </NavLink>
-          </li>
         </ul>
         <div className="app-nav__right">
-          <span className="app-nav__status">
-            <span className="app-nav__status-dot" />
-            Markets open
-          </span>
+          <NotificationBell />
+          <ProfileSwitcher />
         </div>
       </nav>
 

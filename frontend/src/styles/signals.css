@@ -49,6 +49,7 @@
   background: var(--color-surface);
   border-radius: 12px;
   overflow: hidden;
+  box-shadow: var(--shadow-card);
 }
 
 .signal-item__header {

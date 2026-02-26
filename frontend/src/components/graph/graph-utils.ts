@@ -174,8 +174,8 @@ export function getHorizonAdjustedImpact(
   const oneMonth = temporalAnalysis.timeBuckets.oneMonth.expectedDollarImpact
   const bucket = temporalAnalysis.timeBuckets[horizon]
   const magnitudeScale = Math.abs(bucket.expectedDollarImpact) / Math.max(Math.abs(oneMonth), 1)
-  const sign = Math.sign(bucket.expectedDollarImpact || baseImpact)
-  let adjusted = Math.abs(baseImpact) * magnitudeScale * (sign || 1)
+  const sign = Math.sign(baseImpact) || 1
+  let adjusted = Math.abs(baseImpact) * magnitudeScale * sign
 
   if (counterfactualEnabled) {
     const difference = temporalAnalysis.counterfactual?.estimatedOutcomeDifferenceCad ?? 0

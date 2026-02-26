@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom'
 import { useAppContext } from '../../contexts/AppContext'
 import type { ConcentrationWarning as WarningType } from '@prism/shared'
 import { formatWarningMessage } from './exposure-category'
@@ -21,8 +20,7 @@ function severityIcon(severity: WarningType['severity']): string {
 }
 
 export function ConcentrationWarning({ warnings }: ConcentrationWarningProps) {
-  const { setActiveSidebarContext } = useAppContext()
-  const navigate = useNavigate()
+  const { setActiveSidebarContext, setAskPrismOpen } = useAppContext()
 
   if (warnings.length === 0) return null
 
@@ -33,7 +31,7 @@ export function ConcentrationWarning({ warnings }: ConcentrationWarningProps) {
       label: w.category,
       detail: message,
     })
-    navigate('/ask')
+    setAskPrismOpen(true)
   }
 
   return (

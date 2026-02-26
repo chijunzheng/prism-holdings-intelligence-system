@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import type { Signal } from '@prism/shared'
 import {
-  getMateriality,
   sortSignalsForCards,
 } from '../portfolio/signal-utils'
 import { SignalCard } from './SignalCard'
@@ -21,10 +20,7 @@ export function SignalList({
   error,
   onSelect,
 }: SignalListProps) {
-  const orderedSignals = useMemo(() => {
-    const material = signals.filter((s) => getMateriality(s) !== 'low')
-    return sortSignalsForCards(material)
-  }, [signals])
+  const orderedSignals = useMemo(() => sortSignalsForCards(signals), [signals])
 
   if (loading) {
     return (

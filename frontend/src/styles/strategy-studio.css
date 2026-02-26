@@ -1,0 +1,569 @@
+.strategy-studio {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1rem;
+  background:
+    radial-gradient(circle at 14% -12%, rgba(37, 99, 235, 0.12), transparent 48%),
+    radial-gradient(circle at 86% -28%, rgba(16, 185, 129, 0.1), transparent 42%),
+    var(--color-bg);
+}
+
+.strategy-studio__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  align-items: flex-start;
+}
+
+.strategy-studio__header h2 {
+  font-size: 1.12rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+
+.strategy-studio__header p {
+  margin-top: 0.32rem;
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  max-width: 58ch;
+}
+
+.strategy-studio__header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.strategy-studio__header-actions button,
+.strategy-studio__draft-controls button,
+.strategy-rail__add-btn,
+.strategy-canvas__remove-btn,
+.strategy-canvas__evaluate-btn,
+.strategy-command__composer button {
+  min-height: 44px;
+}
+
+.strategy-studio__header-actions button {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 650;
+  padding: 0.48rem 0.72rem;
+  transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+.strategy-studio__header-actions button:hover {
+  border-color: rgba(37, 99, 235, 0.45);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.08);
+}
+
+.strategy-studio__meta {
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+.strategy-studio__meta span {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.23rem 0.58rem;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.strategy-studio__warning {
+  border: 1px solid rgba(245, 158, 11, 0.6);
+  background: #fffbeb;
+  color: #92400e;
+  border-radius: 10px;
+  padding: 0.58rem 0.76rem;
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.strategy-studio__draft-controls button {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--color-text);
+  font-size: 0.72rem;
+  font-weight: 650;
+  cursor: pointer;
+  padding: 0.44rem 0.72rem;
+}
+
+.strategy-layout {
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr) 336px;
+  gap: 0.8rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.strategy-layout__left,
+.strategy-layout__center,
+.strategy-layout__right {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.strategy-right-stack {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(260px, 1fr) minmax(0, 1fr);
+  gap: 0.8rem;
+}
+
+.strategy-rail,
+.strategy-canvas,
+.strategy-eval,
+.strategy-command {
+  height: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(2px);
+  display: flex;
+  flex-direction: column;
+}
+
+.strategy-rail__header,
+.strategy-canvas__header,
+.strategy-eval__header,
+.strategy-command__header {
+  border-bottom: 1px solid var(--color-border);
+  padding: 0.78rem;
+}
+
+.strategy-rail__header h3,
+.strategy-canvas__header h3,
+.strategy-eval__header h3,
+.strategy-command__header h3 {
+  font-size: 0.79rem;
+  font-weight: 720;
+}
+
+.strategy-rail__header p,
+.strategy-eval__header p,
+.strategy-command__header p,
+.strategy-canvas__header p {
+  margin-top: 0.2rem;
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+  line-height: 1.45;
+}
+
+.strategy-rail__list {
+  list-style: none;
+  padding: 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  overflow-y: auto;
+}
+
+.strategy-rail__empty {
+  border: 1px dashed rgba(37, 99, 235, 0.4);
+  border-radius: 10px;
+  background: rgba(239, 246, 255, 0.7);
+  padding: 0.68rem;
+  font-size: 0.72rem;
+  color: var(--color-text-secondary);
+}
+
+.strategy-rail__card,
+.strategy-canvas__position-item {
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 0.62rem;
+  transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+  cursor: pointer;
+}
+
+.strategy-rail__card:hover {
+  border-color: rgba(37, 99, 235, 0.45);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+}
+
+.strategy-rail__row,
+.strategy-canvas__item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+
+.strategy-rail__ticker,
+.strategy-canvas__ticker {
+  font-size: 0.79rem;
+  font-weight: 760;
+  letter-spacing: 0.01em;
+}
+
+.strategy-rail__type {
+  text-transform: uppercase;
+  font-size: 0.56rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.strategy-rail__name,
+.strategy-canvas__name {
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.strategy-rail__rationale,
+.strategy-canvas__allocation-label {
+  margin-top: 0.3rem;
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+  line-height: 1.45;
+}
+
+.strategy-rail__meta {
+  margin-top: 0.32rem;
+  font-size: 0.64rem;
+  color: var(--color-text-muted);
+}
+
+.strategy-rail__add-btn,
+.strategy-canvas__remove-btn,
+.strategy-canvas__evaluate-btn {
+  margin-top: 0.45rem;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: 0.67rem;
+  font-weight: 720;
+  padding: 0.38rem 0.56rem;
+}
+
+.strategy-canvas {
+  overflow: hidden;
+}
+
+.strategy-canvas__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.7rem;
+}
+
+.strategy-canvas__evaluate-btn {
+  margin-top: 0;
+  border-color: rgba(37, 99, 235, 0.75);
+  background: linear-gradient(120deg, rgba(239, 246, 255, 0.95), rgba(236, 253, 245, 0.86));
+}
+
+.strategy-canvas__empty {
+  margin: 0.7rem;
+  border: 1px dashed rgba(148, 163, 184, 0.5);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0.78rem;
+  font-size: 0.76rem;
+  color: var(--color-text-secondary);
+}
+
+.strategy-canvas__graph-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 0.68rem;
+  padding: 0.68rem;
+  min-height: 0;
+}
+
+.strategy-canvas__graph {
+  min-height: 0;
+}
+
+.strategy-canvas__graph .causal-graph {
+  height: clamp(340px, 44vh, 510px);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 10% 12%, rgba(191, 219, 254, 0.34), transparent 40%),
+    radial-gradient(circle at 85% 0%, rgba(187, 247, 208, 0.28), transparent 34%),
+    #ffffff;
+}
+
+.strategy-canvas__graph .graph-node__label,
+.strategy-canvas__graph .graph-node__impact {
+  font-size: 0.6rem;
+}
+
+.strategy-canvas__node-insight {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.92);
+  padding: 0.65rem;
+  min-height: 0;
+}
+
+.strategy-canvas__node-insight h4 {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+
+.strategy-canvas__node-insight p {
+  margin-top: 0.35rem;
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+  line-height: 1.45;
+}
+
+.strategy-canvas__node-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.strategy-canvas__node-type {
+  text-transform: capitalize;
+}
+
+.strategy-canvas__positions {
+  list-style: none;
+  padding: 0 0.7rem 0.75rem;
+  margin-top: auto;
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow-y: auto;
+}
+
+.strategy-canvas__position-item {
+  cursor: default;
+}
+
+.strategy-canvas__remove-btn {
+  min-height: 40px;
+  margin-top: 0;
+}
+
+.strategy-canvas__allocation-input {
+  width: 100%;
+  margin-top: 0.3rem;
+}
+
+.strategy-eval__draft-reason {
+  margin: 0.65rem 0.74rem 0;
+  font-size: 0.69rem;
+  color: var(--color-text-secondary);
+}
+
+.strategy-eval__empty {
+  margin: 0.68rem 0.74rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.strategy-eval__metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+  padding: 0.72rem;
+}
+
+.strategy-eval__metric {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.73rem;
+}
+
+.strategy-eval__metric dt {
+  color: var(--color-text-secondary);
+}
+
+.strategy-eval__metric dd {
+  font-weight: 620;
+}
+
+.strategy-eval__constraints {
+  border-top: 1px solid var(--color-border);
+  margin-top: auto;
+  padding: 0.72rem;
+}
+
+.strategy-eval__constraints h4 {
+  font-size: 0.7rem;
+  font-weight: 730;
+}
+
+.strategy-eval__warnings {
+  margin: 0 0.74rem 0.74rem;
+  padding-left: 1rem;
+  font-size: 0.69rem;
+  color: #92400e;
+  line-height: 1.4;
+}
+
+.strategy-eval__constraints ul {
+  margin-top: 0.38rem;
+  padding-left: 1rem;
+  font-size: 0.69rem;
+  color: var(--color-text-secondary);
+  line-height: 1.45;
+}
+
+.strategy-command__messages {
+  padding: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.strategy-command__message {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 0.48rem 0.58rem;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.strategy-command__message--assistant {
+  border-color: rgba(37, 99, 235, 0.26);
+  background: rgba(239, 246, 255, 0.62);
+}
+
+.strategy-command__role {
+  display: block;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  margin-bottom: 0.2rem;
+}
+
+.strategy-command__message p {
+  font-size: 0.72rem;
+  color: var(--color-text);
+  line-height: 1.4;
+}
+
+.strategy-command__suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.36rem;
+  padding: 0 0.65rem 0.55rem;
+}
+
+.strategy-command__suggestions button {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--color-text-secondary);
+  font-size: 0.64rem;
+  font-weight: 650;
+  padding: 0.28rem 0.55rem;
+  cursor: pointer;
+  min-height: 40px;
+}
+
+.strategy-command__composer {
+  margin-top: auto;
+  border-top: 1px solid var(--color-border);
+  padding: 0.58rem 0.65rem;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.42rem;
+}
+
+.strategy-command__composer input {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--color-text);
+  font-size: 0.73rem;
+  padding: 0.46rem 0.58rem;
+  min-height: 42px;
+}
+
+.strategy-command__composer button {
+  border: 1px solid rgba(37, 99, 235, 0.72);
+  border-radius: 10px;
+  background: linear-gradient(120deg, rgba(239, 246, 255, 0.95), rgba(236, 253, 245, 0.88));
+  color: var(--color-text);
+  font-size: 0.69rem;
+  font-weight: 740;
+  padding: 0.36rem 0.62rem;
+  cursor: pointer;
+}
+
+.strategy-studio button:focus-visible,
+.strategy-studio input:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+@media (max-width: 1320px) {
+  .strategy-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    overflow-y: auto;
+    padding-right: 0.2rem;
+  }
+
+  .strategy-layout__left,
+  .strategy-layout__center,
+  .strategy-layout__right {
+    min-height: 260px;
+  }
+
+  .strategy-right-stack {
+    grid-template-rows: 300px minmax(260px, 1fr);
+  }
+
+  .strategy-canvas__graph-shell {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .strategy-studio {
+    padding: 0.65rem;
+  }
+
+  .strategy-studio__header {
+    flex-direction: column;
+  }
+
+  .strategy-studio__header-actions {
+    width: 100%;
+  }
+
+  .strategy-studio__header-actions button {
+    flex: 1;
+  }
+
+  .strategy-canvas__positions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .strategy-studio__header-actions button,
+  .strategy-rail__card {
+    transition: none;
+  }
+}

@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom'
 import { useAppContext } from '../../contexts/AppContext'
 import type { Overlap } from '@prism/shared'
 
@@ -7,8 +6,7 @@ interface OverlapListProps {
 }
 
 export function OverlapList({ overlaps }: OverlapListProps) {
-  const { setActiveSidebarContext } = useAppContext()
-  const navigate = useNavigate()
+  const { setActiveSidebarContext, setAskPrismOpen } = useAppContext()
 
   if (overlaps.length === 0) return null
 
@@ -19,7 +17,7 @@ export function OverlapList({ overlaps }: OverlapListProps) {
       label: o.assetName,
       detail: `via ${sources}`,
     })
-    navigate('/ask')
+    setAskPrismOpen(true)
   }
 
   return (
@@ -35,12 +33,14 @@ export function OverlapList({ overlaps }: OverlapListProps) {
                 {o.assetName}
                 {o.assetTicker ? ` (${o.assetTicker})` : ''}
               </span>
-              <span className="overlap-item__total">{o.totalPercentage}%</span>
+              <span className="overlap-item__right">
+                <span className="overlap-item__total">{o.totalPercentage}%</span>
+                <span className="sidebar-clickable__chevron">›</span>
+              </span>
             </div>
             <span className="overlap-item__sources">
               via {o.sources.map((s) => s.fundTicker).join(' + ')}
             </span>
-            <span className="sidebar-clickable__chevron">›</span>
           </li>
         ))}
       </ul>

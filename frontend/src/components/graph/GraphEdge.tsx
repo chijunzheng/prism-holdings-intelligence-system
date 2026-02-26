@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { CausalChainEdge } from '@prism/shared'
 import { getEdgeColor, getEdgeOpacity, getEdgeThickness } from './graph-utils'
 
@@ -12,7 +13,7 @@ function edgePath(source: { x: number; y: number }, target: { x: number; y: numb
   return `M ${source.x} ${source.y} C ${source.x + controlOffset} ${source.y}, ${target.x - controlOffset} ${target.y}, ${target.x} ${target.y}`
 }
 
-export function GraphEdge({ edge, source, target }: GraphEdgeProps) {
+function GraphEdgeComponent({ edge, source, target }: GraphEdgeProps) {
   const stroke = getEdgeColor(edge.direction)
 
   return (
@@ -29,3 +30,5 @@ export function GraphEdge({ edge, source, target }: GraphEdgeProps) {
     />
   )
 }
+
+export const GraphEdge = memo(GraphEdgeComponent)

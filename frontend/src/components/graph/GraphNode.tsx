@@ -1,4 +1,4 @@
-import type { MouseEvent } from 'react'
+import { memo, type MouseEvent } from 'react'
 import type { CausalChainNode } from '@prism/shared'
 import type { GraphNodePosition } from '../../types/graph'
 
@@ -7,7 +7,7 @@ interface GraphNodeProps {
   readonly position: GraphNodePosition
   readonly displayImpact: number
   readonly selected: boolean
-  readonly onSelect: (node: CausalChainNode) => void
+  readonly onSelect: (node: CausalChainNode, x: number, y: number) => void
   readonly onHover: (node: CausalChainNode, displayImpact: number, x: number, y: number) => void
   readonly onHoverEnd: () => void
 }
@@ -68,7 +68,7 @@ function handleNodeHover(
   onHover(node, displayImpact, event.clientX, event.clientY)
 }
 
-export function GraphNode({
+function GraphNodeComponent({
   node,
   position,
   displayImpact,
@@ -96,7 +96,7 @@ export function GraphNode({
       transform={`translate(${position.x} ${position.y})`}
       role="button"
       tabIndex={0}
-      onClick={() => onSelect(node)}
+      onClick={(event) => onSelect(node, event.clientX, event.clientY)}
       onMouseEnter={(event) => handleNodeHover(event, node, displayImpact, onHover)}
       onMouseMove={(event) => handleNodeHover(event, node, displayImpact, onHover)}
       onMouseLeave={onHoverEnd}
@@ -104,7 +104,8 @@ export function GraphNode({
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault()
-          onSelect(node)
+          const rect = event.currentTarget.getBoundingClientRect()
+          onSelect(node, rect.left + rect.width / 2, rect.top + rect.height / 2)
         }
       }}
     >
@@ -145,3 +146,5 @@ export function GraphNode({
     </g>
   )
 }
+
+export const GraphNode = memo(GraphNodeComponent)

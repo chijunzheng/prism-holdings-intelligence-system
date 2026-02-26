@@ -1,9 +1,13 @@
+import { useMemo } from 'react'
 import type { CausalChainNode, CausalChain, CausalChainEdge } from '@prism/shared'
-import type { GraphTimeHorizon } from '../../types/graph'
+import type { GraphTimeHorizon, TemporalAnalysis } from '../../types/graph'
+import { getHorizonAdjustedImpact } from '../graph/graph-utils'
+import { buildGraphTooltipModel } from '../graph/tooltip-utils'
 
 interface NodeDetailsProps {
   readonly node: CausalChainNode | null
   readonly chain: CausalChain | null
+  readonly temporalAnalysis: TemporalAnalysis | null
   readonly horizon: GraphTimeHorizon
 }
 
@@ -64,17 +68,24 @@ function getClusteredHoldings(
   const sourceIds = node.metadata.sourceNodeIds as string[] | undefined
   if (!sourceIds || sourceIds.length === 0) return null
 
-  // Source nodes were removed from the chain during clustering,
-  // so we can only show the IDs. But we can look for matching
-  // edges that reference these assets for additional context.
-  return sourceIds.map((id) => ({
-    id,
-    type: 'asset' as const,
-    label: id,
-    description: '',
-    confidence: node.confidence,
-    metadata: {},
-  }))
+  const nodeMap = new Map(chain.nodes.map((n) => [n.id, n]))
+  return sourceIds.map((id) => {
+    const original = nodeMap.get(id)
+    return original ?? {
+      id,
+      type: 'asset' as const,
+      label: id,
+      description: '',
+      confidence: node.confidence,
+      metadata: {},
+    }
+  })
+}
+
+function getLookThroughConstituents(node: CausalChainNode): ReadonlyArray<string> {
+  const raw = node.metadata?.lookThroughConstituents
+  if (!Array.isArray(raw)) return []
+  return raw.filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
 }
 
 function formatHorizon(horizon: GraphTimeHorizon): string {
@@ -83,7 +94,26 @@ function formatHorizon(horizon: GraphTimeHorizon): string {
   return '6 months'
 }
 
-export function NodeDetails({ node, chain, horizon }: NodeDetailsProps) {
+export function NodeDetails({ node, chain, temporalAnalysis, horizon }: NodeDetailsProps) {
+  const diagnostics = useMemo(() => {
+    if (!node || !chain || !temporalAnalysis) return null
+    const impactByNodeId = new Map<string, number>()
+    for (const chainNode of chain.nodes) {
+      impactByNodeId.set(
+        chainNode.id,
+        getHorizonAdjustedImpact(chainNode, temporalAnalysis, horizon, false),
+      )
+    }
+    return buildGraphTooltipModel({
+      node,
+      horizon,
+      impact: impactByNodeId.get(node.id) ?? 0,
+      chain,
+      temporalAnalysis,
+      impactByNodeId,
+    })
+  }, [chain, horizon, node, temporalAnalysis])
+
   if (!node) {
     return (
       <p className="node-details__placeholder">
@@ -94,6 +124,7 @@ export function NodeDetails({ node, chain, horizon }: NodeDetailsProps) {
 
   const connections = chain ? getConnectedEdges(node.id, chain) : []
   const clusteredHoldings = chain ? getClusteredHoldings(node, chain) : null
+  const lookThroughConstituents = getLookThroughConstituents(node)
   const isAsset = node.type === 'asset'
 
   return (
@@ -169,6 +200,78 @@ export function NodeDetails({ node, chain, horizon }: NodeDetailsProps) {
               <li key={h.id} className="node-details__cluster-item">{h.label}</li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {lookThroughConstituents.length > 0 && (
+        <div className="node-details__section">
+          <h4 className="node-details__section-title">Look-through drivers</h4>
+          <p className="node-details__cluster-note">
+            This holding node is tradeable. Underlying constituents are shown for context.
+          </p>
+          <ul className="node-details__cluster-list">
+            {lookThroughConstituents.map((item) => (
+              <li key={item} className="node-details__cluster-item">{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {diagnostics && (
+        <div className="node-details__section">
+          <h4 className="node-details__section-title">Transmission diagnostics</h4>
+          <dl>
+            <div className="node-details__row">
+              <dt>Portfolio ({diagnostics.horizonLabel})</dt>
+              <dd>{formatDollar(diagnostics.portfolioImpactCad)}</dd>
+            </div>
+            <div className="node-details__row">
+              <dt>Node-local ({diagnostics.horizonLabel})</dt>
+              <dd>{formatDollar(diagnostics.nodeImpactCad)}</dd>
+            </div>
+            <div className="node-details__row">
+              <dt>Confidence score</dt>
+              <dd>{diagnostics.confidencePct}%</dd>
+            </div>
+          </dl>
+
+          {diagnostics.confidenceDrivers.length > 0 && (
+            <ul className="node-details__cluster-list">
+              {diagnostics.confidenceDrivers.map((driver) => (
+                <li key={driver.label} className="node-details__cluster-item">
+                  <strong>{driver.label}:</strong> {driver.detail}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {diagnostics.topHoldings.length > 0 && (
+            <>
+              <h5 className="node-details__section-title">Top impacted holdings</h5>
+              <ul className="node-details__cluster-list">
+                {diagnostics.topHoldings.map((holding) => (
+                  <li key={holding.ticker} className="node-details__cluster-item">
+                    {holding.ticker}: {formatDollar(holding.impactCad)}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {diagnostics.pathAttributions.length > 0 && (
+            <>
+              <h5 className="node-details__section-title">Top paths</h5>
+              <ul className="node-details__cluster-list">
+                {diagnostics.pathAttributions.map((path) => (
+                  <li key={path.label} className="node-details__cluster-item">
+                    {path.label} ({path.contributionPct.toFixed(0)}%)
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          <p className="node-details__cluster-note">{diagnostics.actionHint}</p>
         </div>
       )}
 

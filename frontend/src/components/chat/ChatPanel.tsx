@@ -13,6 +13,7 @@ interface ChatPanelProps {
   readonly signal: Signal | null
   readonly temporalAnalysis: TemporalAnalysis | null
   readonly onClose?: () => void
+  readonly initialMessage?: string | null
 }
 
 export function ChatPanel({
@@ -22,8 +23,11 @@ export function ChatPanel({
   signal,
   temporalAnalysis,
   onClose,
+  initialMessage,
 }: ChatPanelProps) {
-  const { messages, isLoading, error, sendMessage } = useChat({
+  const lastSentInitialRef = useRef<string | null>(null)
+
+  const { messages, isLoading, error, sendMessage, isInitialized } = useChat({
     userId,
     node,
     chain,
@@ -32,6 +36,14 @@ export function ChatPanel({
   })
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Auto-send initial message (e.g. from action card click)
+  useEffect(() => {
+    if (initialMessage && isInitialized && !isLoading && initialMessage !== lastSentInitialRef.current) {
+      lastSentInitialRef.current = initialMessage
+      sendMessage(initialMessage)
+    }
+  }, [initialMessage, isInitialized, isLoading, sendMessage])
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {

@@ -129,16 +129,16 @@ export function ExposurePieChart({ exposures }: ExposurePieChartProps) {
             dominantBaseline="central"
             style={{ fontSize: '1.125rem', fontWeight: 700, fill: '#1a1a1a' }}
           >
-            {activeEntry ? `${activeEntry.entry.percentage}%` : 'X-Ray'}
+            {activeEntry ? `${activeEntry.entry.percentage}%` : `${slices.length}`}
           </text>
           <text
             x={CHART_SIZE / 2}
             y={CHART_SIZE / 2 + 14}
             textAnchor="middle"
             dominantBaseline="central"
-            style={{ fontSize: '0.75rem', fill: '#6b6b6b' }}
+            style={{ fontSize: '0.75rem', fill: '#484848' }}
           >
-            {activeCategory ?? 'Hover for details'}
+            {activeCategory ?? 'Sectors'}
           </text>
         </svg>
       </div>

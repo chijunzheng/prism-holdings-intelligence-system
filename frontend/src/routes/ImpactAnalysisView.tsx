@@ -1,211 +1,283 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import type { CausalChainNode } from '@prism/shared'
+import type { CausalChainNode, Signal } from '@prism/shared'
 import type { GraphTimeHorizon } from '../types/graph'
 import { useAppContext } from '../contexts/AppContext'
 import { useSignals } from '../hooks/useSignals'
 import { useCausalChain } from '../hooks/useCausalChain'
+import { usePortfolioNetImpact } from '../hooks/usePortfolioNetImpact'
 import { getMateriality, sortSignalsForCards } from '../components/portfolio/signal-utils'
-import { CausalGraph } from '../components/graph/CausalGraph'
-import { ChatPanel } from '../components/chat/ChatPanel'
-import { SignalList } from '../components/impact/SignalList'
-import { ControlsSidebar } from '../components/impact/ControlsSidebar'
-import { RightPanel } from '../components/impact/RightPanel'
-import { NodeDetails } from '../components/impact/NodeDetails'
-import { ActionsPanel } from '../components/impact/ActionsPanel'
+import { AskPrismDrawer } from '../components/portfolio/AskPrismDrawer'
+import { traceImpact } from '../utils/trace'
+import { ImpactOverviewView } from './impact/ImpactOverviewView'
+import { ImpactDrilldownView } from './impact/ImpactDrilldownView'
+import { StrategyStudioView } from './impact/StrategyStudioView'
+import type { AnalysisMode, ImpactMobilePanel, ImpactRightTab, ImpactSubview } from './impact/types'
 import '../styles/impact-analysis.css'
 import '../styles/graph.css'
 import '../styles/chat.css'
-
-type RightTab = 'details' | 'chat' | 'actions'
-type MobilePanel = 'signals' | 'graph' | 'panel'
+import '../styles/strategy-studio.css'
+import '../styles/ask-prism-drawer.css'
 
 export function ImpactAnalysisView() {
-  const { userId } = useAppContext()
+  const { userId, askPrismOpen, setAskPrismOpen } = useAppContext()
   const [searchParams, setSearchParams] = useSearchParams()
+  const [selectedSignalId, setSelectedSignalId] = useState<string | undefined>(
+    () => searchParams.get('signal') ?? undefined,
+  )
 
-  // ── Core State ──────────────────────────────
+  const [activeSubview, setActiveSubview] = useState<ImpactSubview>('overview')
   const [selectedNode, setSelectedNode] = useState<CausalChainNode | null>(null)
   const [horizon, setHorizon] = useState<GraphTimeHorizon>('oneMonth')
-  const [counterfactualEnabled, setCounterfactualEnabled] = useState(false)
-  const [expandedDepth, setExpandedDepth] = useState(true)
-  const [activeRightTab, setActiveRightTab] = useState<RightTab>('details')
+  const [activeRightTab, setActiveRightTab] = useState<ImpactRightTab>('quickActions')
   const [rightPanelOpen, setRightPanelOpen] = useState(false)
-  const [mobilePanel, setMobilePanel] = useState<MobilePanel>('signals')
+  const [pendingChatMessage, setPendingChatMessage] = useState<string | null>(null)
+  const [mobilePanel, setMobilePanel] = useState<ImpactMobilePanel>('signals')
+  const [analysisMode, setAnalysisMode] = useState<AnalysisMode>('portfolio')
+  const [strategyIntent, setStrategyIntent] = useState<string | null>(null)
+  const graphSignalId =
+    analysisMode === 'signal' || activeSubview === 'strategy' ? selectedSignalId : undefined
 
-  // ── Data ────────────────────────────────────
-  const { signals, loading: signalsLoading, error: signalsError } = useSignals(userId)
+  const { data, loading: graphLoading, error: graphError, refetch } = useCausalChain(userId, graphSignalId)
 
-  const materialSignals = useMemo(() => {
-    const material = signals.filter((s) => getMateriality(s) !== 'low')
-    return sortSignalsForCards(material)
-  }, [signals])
+  const {
+    data: netImpactData,
+    loading: netImpactLoading,
+    error: netImpactError,
+    refetch: refetchNetImpact,
+  } = usePortfolioNetImpact(userId, analysisMode === 'portfolio')
 
-  // Selected signal from URL query param
-  const selectedSignalId = searchParams.get('signal') ?? undefined
+  const {
+    signals,
+    loading: signalsLoading,
+    error: signalsError,
+  } = useSignals(userId)
 
-  // Auto-select first signal when signals load and none selected
+  const orderedSignals = useMemo(() => sortSignalsForCards(signals), [signals])
+
+  const materialSignals = useMemo(
+    () => orderedSignals.filter((signal) => getMateriality(signal) !== 'low'),
+    [orderedSignals],
+  )
+
   useEffect(() => {
-    if (!selectedSignalId && materialSignals.length > 0) {
-      setSearchParams({ signal: materialSignals[0].id }, { replace: true })
-    }
-  }, [materialSignals, selectedSignalId, setSearchParams])
+    if (selectedSignalId) return
+    if (orderedSignals.length === 0) return
+    setSelectedSignalId(orderedSignals[0].id)
+  }, [orderedSignals, selectedSignalId])
 
-  const { data, loading: graphLoading, error: graphError, refetch } = useCausalChain(
+  useEffect(() => {
+    const signalFromQuery = searchParams.get('signal') ?? undefined
+    if (!signalFromQuery || selectedSignalId === signalFromQuery) return
+    setSelectedSignalId(signalFromQuery)
+  }, [searchParams, selectedSignalId])
+
+  useEffect(() => {
+    const signalFromQuery = searchParams.get('signal') ?? undefined
+    if (selectedSignalId === signalFromQuery) return
+
+    const next = new URLSearchParams(searchParams)
+    if (selectedSignalId) next.set('signal', selectedSignalId)
+    else next.delete('signal')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, selectedSignalId, setSearchParams])
+
+  useEffect(() => {
+    traceImpact('impact:view:state', {
+      userId,
+      activeSubview,
+      analysisMode,
+      selectedSignalId: selectedSignalId ?? null,
+      signalsLoading,
+      graphLoading,
+      netImpactLoading,
+      signalsTotal: signals.length,
+      materialSignals: materialSignals.length,
+      graphReady: Boolean(data),
+      netReady: Boolean(netImpactData),
+      graphError,
+      netImpactError,
+      signalsError,
+    })
+  }, [
     userId,
+    activeSubview,
+    analysisMode,
     selectedSignalId,
-  )
+    signalsLoading,
+    graphLoading,
+    netImpactLoading,
+    signals.length,
+    materialSignals.length,
+    data,
+    netImpactData,
+    graphError,
+    netImpactError,
+    signalsError,
+  ])
 
-  // Reset counterfactual if not available
-  useEffect(() => {
-    if (!data?.temporalAnalysis.counterfactual && counterfactualEnabled) {
-      setCounterfactualEnabled(false)
-    }
-  }, [counterfactualEnabled, data])
+  const selectedSignal = useMemo<Signal | null>(() => {
+    if (analysisMode === 'signal' && data?.signal) return data.signal
+    if (!selectedSignalId) return null
+    return orderedSignals.find((signal) => signal.id === selectedSignalId) ?? null
+  }, [analysisMode, data?.signal, orderedSignals, selectedSignalId])
 
-  // ── Handlers ────────────────────────────────
-  const handleSignalSelect = useCallback(
-    (signalId: string) => {
-      setSearchParams({ signal: signalId }, { replace: true })
-      setSelectedNode(null)
-      setMobilePanel('graph')
-    },
-    [setSearchParams],
-  )
+  const focusTemporal = analysisMode === 'signal'
+    ? data?.temporalAnalysis ?? null
+    : netImpactData?.temporalAnalysis ?? null
 
-  const handleNodeSelect = useCallback(
-    (node: CausalChainNode) => {
-      setSelectedNode(node)
-      setActiveRightTab('details')
-      setRightPanelOpen(true)
-    },
-    [],
-  )
+  const openDrilldownSubview = useCallback(() => {
+    setActiveSubview('drilldown')
+  }, [])
+
+  const openStrategyStudio = useCallback((seedSummary?: string) => {
+    if (seedSummary) setStrategyIntent(seedSummary)
+    setActiveSubview('strategy')
+    setRightPanelOpen(false)
+  }, [])
+
+  const handleSignalSelect = useCallback((signalId: string) => {
+    setSelectedSignalId(signalId)
+    setAnalysisMode('signal')
+    setSelectedNode(null)
+    setMobilePanel('graph')
+    setActiveSubview('drilldown')
+    setActiveRightTab('details')
+  }, [])
+
+  const handleNodeSelect = useCallback((node: CausalChainNode) => {
+    setSelectedNode(node)
+    setActiveRightTab('details')
+    setRightPanelOpen(true)
+  }, [])
 
   const handleCloseRightPanel = useCallback(() => {
     setRightPanelOpen(false)
   }, [])
 
-  // ── Derived State ──────────────────────────
-  const isLoading = signalsLoading || graphLoading
-  const hasGraph = Boolean(data) && !graphLoading && !graphError
+  const handleDiscussAction = useCallback((summary: string) => {
+    setPendingChatMessage(`Tell me more about this recommendation: ${summary}`)
+    setActiveRightTab('chat')
+    setRightPanelOpen(true)
+    setActiveSubview('drilldown')
+    setMobilePanel('panel')
+  }, [])
+
+  const handleModeChange = useCallback((mode: AnalysisMode) => {
+    setAnalysisMode(mode)
+    setSelectedNode(null)
+    setPendingChatMessage(null)
+    setActiveRightTab(mode === 'portfolio' ? 'quickActions' : 'details')
+  }, [])
 
   return (
-    <>
-      {/* Mobile tab switcher */}
-      <div className="impact-mobile-tabs">
-        {(['signals', 'graph', 'panel'] as const).map((panel) => (
-          <button
-            key={panel}
-            type="button"
-            className={`impact-mobile-tabs__tab ${mobilePanel === panel ? 'is-active' : ''}`}
-            onClick={() => setMobilePanel(panel)}
-          >
-            {panel === 'signals' ? 'Signals' : panel === 'graph' ? 'Graph' : 'Panel'}
-          </button>
-        ))}
+    <div className="impact-workspace">
+      <div className="impact-subview-tabs" role="tablist" aria-label="Impact analysis sections">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeSubview === 'overview'}
+          className={`impact-subview-tabs__tab ${activeSubview === 'overview' ? 'is-active' : ''}`}
+          onClick={() => setActiveSubview('overview')}
+        >
+          Overview
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeSubview === 'drilldown'}
+          className={`impact-subview-tabs__tab ${activeSubview === 'drilldown' ? 'is-active' : ''}`}
+          onClick={() => setActiveSubview('drilldown')}
+        >
+          Drill-down
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeSubview === 'strategy'}
+          className={`impact-subview-tabs__tab ${activeSubview === 'strategy' ? 'is-active' : ''}`}
+          onClick={() => setActiveSubview('strategy')}
+        >
+          Strategy Studio
+        </button>
       </div>
 
-      <div className="impact-analysis">
-        {/* ── Left: Signal List + Controls ─────── */}
-        <div className={`impact-left ${mobilePanel === 'signals' ? 'is-active-mobile' : ''}`}>
-          <div className="impact-left__header">
-            <h1 className="impact-left__title">Impact Analysis</h1>
-            <p className="impact-left__subtitle">Select a signal to trace its impact</p>
-          </div>
-
-          <SignalList
-            signals={signals}
-            selectedSignalId={selectedSignalId}
-            loading={signalsLoading}
-            error={signalsError}
-            onSelect={handleSignalSelect}
+      <div className="impact-subview-content">
+        {activeSubview === 'overview' && (
+          <ImpactOverviewView
+            signals={orderedSignals}
+            materialSignalCount={materialSignals.length}
+            selectedSignal={selectedSignal}
+            netImpactData={netImpactData}
+            temporalAnalysis={focusTemporal}
+            onOpenDrilldown={openDrilldownSubview}
+            onOpenStrategyStudio={openStrategyStudio}
           />
+        )}
 
-          {hasGraph && (
-            <div className="impact-left__controls">
-              <ControlsSidebar
-                horizon={horizon}
-                onHorizonChange={setHorizon}
-                counterfactualEnabled={counterfactualEnabled}
-                counterfactualAvailable={Boolean(data?.temporalAnalysis.counterfactual)}
-                onCounterfactualToggle={setCounterfactualEnabled}
-                expandedDepth={expandedDepth}
-                onExpandToggle={() => setExpandedDepth((v) => !v)}
-              />
-            </div>
-          )}
-        </div>
+        {activeSubview === 'drilldown' && (
+          <ImpactDrilldownView
+            userId={userId}
+            analysisMode={analysisMode}
+            selectedSignalId={selectedSignalId}
+            selectedNode={selectedNode}
+            horizon={horizon}
+            activeRightTab={activeRightTab}
+            rightPanelOpen={rightPanelOpen}
+            pendingChatMessage={pendingChatMessage}
+            mobilePanel={mobilePanel}
+            signals={orderedSignals}
+            signalsLoading={signalsLoading}
+            signalsError={signalsError}
+            graphData={data}
+            graphLoading={graphLoading}
+            graphError={graphError}
+            netImpactData={netImpactData}
+            netImpactLoading={netImpactLoading}
+            netImpactError={netImpactError}
+            onModeChange={handleModeChange}
+            onSignalSelect={handleSignalSelect}
+            onNodeSelect={handleNodeSelect}
+            onHorizonChange={setHorizon}
+            onRightTabChange={setActiveRightTab}
+            onCloseRightPanel={handleCloseRightPanel}
+            onRetryGraph={() => {
+              void refetch()
+            }}
+            onRetryNetImpact={() => {
+              void refetchNetImpact()
+            }}
+            onDiscussAction={handleDiscussAction}
+            onOpenStrategyFromAction={openStrategyStudio}
+            onMobilePanelChange={setMobilePanel}
+          />
+        )}
 
-        {/* ── Center: Causal Graph ────────────── */}
-        <div className={`impact-center ${mobilePanel === 'graph' ? 'is-active-mobile' : ''}`}>
-          {data && !graphLoading && !graphError && (
-            <div className="impact-center__header">
-              <h2 className="impact-center__headline">{data.signal.headline}</h2>
-              <p className="impact-center__summary">{data.chain.summary}</p>
-            </div>
-          )}
-
-          {isLoading && (
-            <div className="impact-center__status">Loading causal graph...</div>
-          )}
-
-          {graphError && (
-            <div className="impact-center__error">
-              <p>{graphError}</p>
-              <button type="button" onClick={() => void refetch()}>Retry</button>
-            </div>
-          )}
-
-          {hasGraph && data && (
-            <div className="impact-center__graph">
-              <CausalGraph
-                chain={data.chain}
-                temporalAnalysis={data.temporalAnalysis}
-                horizon={horizon}
-                counterfactualEnabled={counterfactualEnabled}
-                expandedDepth={expandedDepth}
-                selectedNodeId={selectedNode?.id ?? null}
-                onNodeSelect={handleNodeSelect}
-              />
-            </div>
-          )}
-
-          {!isLoading && !graphError && !data && !signalsError && (
-            <div className="impact-center__status">
-              Select a signal to view its causal impact graph.
-            </div>
-          )}
-
-        </div>
-
-        {/* ── Right: Tabbed Panel ─────────────── */}
-        <RightPanel
-          activeTab={activeRightTab}
-          onTabChange={setActiveRightTab}
-          className={rightPanelOpen ? 'is-open' : ''}
-          detailsContent={<NodeDetails node={selectedNode} chain={data?.chain ?? null} horizon={horizon} />}
-          chatContent={
-            <ChatPanel
-              userId={userId}
-              node={selectedNode}
-              chain={data?.chain ?? null}
-              signal={data?.signal ?? null}
-              temporalAnalysis={data?.temporalAnalysis ?? null}
-              onClose={handleCloseRightPanel}
-            />
-          }
-          actionsContent={
-            <ActionsPanel temporalAnalysis={data?.temporalAnalysis ?? null} />
-          }
-        />
-
-        {/* Tablet overlay backdrop */}
-        <div
-          className={`impact-overlay ${rightPanelOpen ? 'is-visible' : ''}`}
-          onClick={handleCloseRightPanel}
-        />
+        {activeSubview === 'strategy' && (
+          <StrategyStudioView
+            signal={selectedSignal}
+            chain={data?.chain ?? null}
+            temporalAnalysis={focusTemporal}
+            draftSeed={strategyIntent}
+            onDraftSeedConsumed={() => setStrategyIntent(null)}
+            onOpenDrilldown={openDrilldownSubview}
+          />
+        )}
       </div>
-    </>
+
+      {!askPrismOpen && (
+        <button
+          type="button"
+          className="ask-prism-fab"
+          onClick={() => setAskPrismOpen(true)}
+        >
+          Ask Prism
+        </button>
+      )}
+
+      {askPrismOpen && (
+        <AskPrismDrawer onClose={() => setAskPrismOpen(false)} />
+      )}
+    </div>
   )
 }

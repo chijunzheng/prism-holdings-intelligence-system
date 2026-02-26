@@ -2,6 +2,7 @@ import type { HealthScore } from '@prism/shared'
 
 interface RiskRadarProps {
   readonly healthScore: HealthScore
+  readonly onClick?: () => void
 }
 
 const GRADE_COLORS: Record<string, string> = {
@@ -27,7 +28,7 @@ function getBarColor(score: number): string {
   return '#dc2626'
 }
 
-export function RiskRadar({ healthScore }: RiskRadarProps) {
+export function RiskRadar({ healthScore, onClick }: RiskRadarProps) {
   const gradeColor = GRADE_COLORS[healthScore.grade] ?? '#737373'
   const dimensions = [
     healthScore.subScores.diversification,
@@ -37,7 +38,18 @@ export function RiskRadar({ healthScore }: RiskRadarProps) {
   ]
 
   return (
-    <aside className="risk-radar">
+    <aside
+      className={`risk-radar ${onClick ? 'risk-radar--clickable' : ''}`}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault()
+          onClick()
+        }
+      }}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+    >
       <h3 className="risk-radar__title">Risk Radar</h3>
 
       <div className="risk-radar__grade-container">
@@ -73,6 +85,12 @@ export function RiskRadar({ healthScore }: RiskRadarProps) {
           </div>
         ))}
       </div>
+
+      {onClick && (
+        <div className="risk-radar__cta">
+          Discuss with Prism &rarr;
+        </div>
+      )}
     </aside>
   )
 }

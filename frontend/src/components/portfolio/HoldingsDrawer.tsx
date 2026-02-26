@@ -1,8 +1,8 @@
 import { useCallback, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import type { ExposureMap, Signal } from '@prism/shared'
 import { useAppContext } from '../../contexts/AppContext'
 import { HoldingExposureBar } from './HoldingExposureBar'
+import { TickerIcon } from '../common/TickerIcon'
 import type { FlattenedHolding } from './HoldingsList'
 import '../../styles/holdings-drawer.css'
 
@@ -18,8 +18,7 @@ function formatCurrency(value: number): string {
 }
 
 export function HoldingsDrawer({ holding, exposureMap, signals, onClose }: HoldingsDrawerProps) {
-  const navigate = useNavigate()
-  const { setActiveHoldingContext } = useAppContext()
+  const { setActiveHoldingContext, setAskPrismOpen } = useAppContext()
 
   // Set active holding context when drawer opens
   useEffect(() => {
@@ -41,8 +40,9 @@ export function HoldingsDrawer({ holding, exposureMap, signals, onClose }: Holdi
   }, [onClose])
 
   const handleAskPrism = useCallback(() => {
-    navigate('/ask')
-  }, [navigate])
+    onClose()
+    setAskPrismOpen(true)
+  }, [onClose, setAskPrismOpen])
 
   // Filter exposures that this holding contributes to
   const holdingExposures = exposureMap
@@ -88,14 +88,17 @@ export function HoldingsDrawer({ holding, exposureMap, signals, onClose }: Holdi
       <div className="holdings-drawer">
         {/* Header */}
         <div className="holdings-drawer__header">
-          <div>
-            <div className="holdings-drawer__ticker">{holding.ticker}</div>
-            <div className="holdings-drawer__name">{holding.name}</div>
-            <div className="holdings-drawer__meta">
-              <span className="holdings-drawer__account-badge">
-                {holding.accountType.replace('_', ' ')}
-              </span>
-              <span>{formatCurrency(holding.valueCad)} CAD</span>
+          <div className="holdings-drawer__header-info">
+            <TickerIcon ticker={holding.ticker} size={44} />
+            <div>
+              <div className="holdings-drawer__ticker">{holding.ticker}</div>
+              <div className="holdings-drawer__name">{holding.name}</div>
+              <div className="holdings-drawer__meta">
+                <span className="holdings-drawer__account-badge">
+                  {holding.accountType.replace('_', ' ')}
+                </span>
+                <span>{formatCurrency(holding.valueCad)} CAD</span>
+              </div>
             </div>
           </div>
           <button type="button" className="holdings-drawer__close" onClick={onClose}>

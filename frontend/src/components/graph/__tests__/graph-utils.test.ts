@@ -214,9 +214,9 @@ describe('graph-utils', () => {
     const sixMonth = getHorizonAdjustedImpact(asset, analysis, 'sixMonth', false)
     const sixMonthCounterfactual = getHorizonAdjustedImpact(asset, analysis, 'sixMonth', true)
 
-    expect(oneMonth).toBeCloseTo(-520, 1)
-    expect(sixMonth).toBeLessThan(oneMonth)
-    expect(sixMonthCounterfactual).toBeGreaterThan(sixMonth)
+    expect(oneMonth).toBeCloseTo(520, 1)
+    expect(sixMonth).toBeGreaterThan(oneMonth)
+    expect(sixMonthCounterfactual).toBeLessThan(sixMonth)
   })
 
   it('places nodes in deterministic left-to-right ranks', () => {

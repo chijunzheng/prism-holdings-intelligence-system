@@ -1,20 +1,19 @@
 import type { ReactNode } from 'react'
-
-type RightTab = 'details' | 'chat' | 'actions'
+import type { ImpactRightTab } from '../../routes/impact/types'
 
 interface RightPanelProps {
-  readonly activeTab: RightTab
-  readonly onTabChange: (tab: RightTab) => void
+  readonly activeTab: ImpactRightTab
+  readonly onTabChange: (tab: ImpactRightTab) => void
   readonly detailsContent: ReactNode
   readonly chatContent: ReactNode
-  readonly actionsContent: ReactNode
+  readonly quickActionsContent: ReactNode
   readonly className?: string
 }
 
-const TABS: ReadonlyArray<{ value: RightTab; label: string }> = [
+const TABS: ReadonlyArray<{ value: ImpactRightTab; label: string }> = [
   { value: 'details', label: 'Details' },
-  { value: 'chat', label: 'Chat' },
-  { value: 'actions', label: 'Actions' },
+  { value: 'chat', label: 'Prism' },
+  { value: 'quickActions', label: 'Quick Actions' },
 ]
 
 export function RightPanel({
@@ -22,13 +21,13 @@ export function RightPanel({
   onTabChange,
   detailsContent,
   chatContent,
-  actionsContent,
+  quickActionsContent,
   className = '',
 }: RightPanelProps) {
-  const contentMap: Record<RightTab, ReactNode> = {
+  const contentMap: Record<ImpactRightTab, ReactNode> = {
     details: detailsContent,
     chat: chatContent,
-    actions: actionsContent,
+    quickActions: quickActionsContent,
   }
 
   return (
@@ -45,9 +44,7 @@ export function RightPanel({
           </button>
         ))}
       </div>
-      <div className="impact-right__content">
-        {contentMap[activeTab]}
-      </div>
+      <div className="impact-right__content">{contentMap[activeTab]}</div>
     </aside>
   )
 }

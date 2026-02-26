@@ -47,6 +47,12 @@
   align-items: flex-start;
 }
 
+.holdings-drawer__header-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .holdings-drawer__ticker {
   font-size: 1.25rem;
   font-weight: 700;

@@ -1,5 +1,6 @@
 import express from 'express'
 import cors from 'cors'
+import { randomUUID } from 'crypto'
 import { existsSync, readFileSync } from 'fs'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
@@ -8,7 +9,9 @@ import { analyze } from '@prism/agents/src/exposure-analyzer/index'
 import {
   runExposureAnalysis,
   runSignalMonitor,
+  prewarmCausalChains,
   runGraphPipeline,
+  runPortfolioNetImpactPipeline,
   clearCaches,
   type PipelineContext,
 } from '@prism/agents/src/orchestrator/index'
@@ -20,8 +23,31 @@ import {
   detectWhatIf,
 } from '@prism/agents/src/chat-agent/index'
 import { buildChatContext } from '@prism/agents/src/chat-agent/context-builder'
+import {
+  createNotification,
+  getNotifications,
+  markAsRead,
+  markAllAsRead,
+  clearUserNotifications,
+  subscribeSse,
+} from './notification-service'
+import {
+  trackActiveUser,
+  startBackgroundChecker,
+  clearCheckerState,
+} from './background-signal-checker'
+import {
+  createStrategyDraft,
+  evaluateStrategy,
+  parseStrategyDraftRequest,
+  parseStrategyEvaluateRequest,
+} from './strategy-service'
 import type { ChatMessage as AgentChatMessage } from '@prism/agents/src/chat-agent/types'
-import { runPrismAdkPrompt } from '@prism/agents/src/adk/index'
+import {
+  runAdkGraphPipeline,
+  runAdkSignalsPipeline,
+  runPrismAdkPrompt,
+} from '@prism/agents/src/adk/index'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -70,11 +96,81 @@ if (!process.env.GEMINI_API_KEY && process.env.GOOGLE_API_KEY) {
   process.env.GEMINI_API_KEY = process.env.GOOGLE_API_KEY
 }
 
+function isTruthyEnv(value: string | undefined): boolean {
+  if (!value) return false
+  const normalized = value.trim().toLowerCase()
+  return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on'
+}
+
+const TRACE_IMPACT =
+  isTruthyEnv(process.env.DEBUG_IMPACT_TRACE) || isTruthyEnv(process.env.PRISM_TRACE)
+const ADK_EMPTY_SIGNAL_IS_VALID = isTruthyEnv(process.env.PRISM_ADK_EMPTY_SIGNAL_IS_VALID)
+
+const USE_ADK_ORCHESTRATION = !['0', 'false', 'no', 'off'].includes(
+  (process.env.PRISM_USE_ADK_ORCHESTRATION ?? 'true').trim().toLowerCase(),
+)
+
+function traceImpact(scope: string, payload: Record<string, unknown>): void {
+  if (!TRACE_IMPACT) return
+  // eslint-disable-next-line no-console
+  console.log(`[PrismTrace][${scope}]`, payload)
+}
+
+function warnImpact(scope: string, payload: Record<string, unknown>): void {
+  // eslint-disable-next-line no-console
+  console.warn(`[PrismWarn][${scope}]`, payload)
+}
+
+function readTruthyQuery(value: unknown): boolean {
+  if (typeof value === 'string') return isTruthyEnv(value)
+  if (Array.isArray(value) && value.length > 0) return isTruthyEnv(String(value[0] ?? ''))
+  return false
+}
+
+function summarizeSignalUrgency(
+  signals: ReadonlyArray<{ readonly urgency: string }>,
+): {
+  readonly totalSignals: number
+  readonly urgencyBreakdown: {
+    readonly low: number
+    readonly medium: number
+    readonly high: number
+    readonly critical: number
+  }
+} {
+  const urgencyBreakdown = {
+    low: 0,
+    medium: 0,
+    high: 0,
+    critical: 0,
+  }
+
+  for (const signal of signals) {
+    if (signal.urgency === 'low') urgencyBreakdown.low += 1
+    else if (signal.urgency === 'medium') urgencyBreakdown.medium += 1
+    else if (signal.urgency === 'high') urgencyBreakdown.high += 1
+    else if (signal.urgency === 'critical') urgencyBreakdown.critical += 1
+  }
+
+  return {
+    totalSignals: signals.length,
+    urgencyBreakdown,
+  }
+}
+
 const app = express()
 const port = process.env.PORT ?? 3001
 
 app.use(cors())
 app.use(express.json())
+
+// Track active users from any request with :userId param
+app.use('/api/:resource/:userId', (req, _res, next) => {
+  if (req.params.userId && req.params.userId.length > 1) {
+    trackActiveUser(req.params.userId)
+  }
+  next()
+})
 
 // Health check
 app.get('/api/health', (_req, res) => {
@@ -160,49 +256,342 @@ function buildPipelineCtx(userId: string): PipelineContext | null {
 
 // Live signal endpoint (orchestrated with caching)
 app.get('/api/signals/:userId', async (req, res) => {
+  const requestStartedAt = performance.now()
+  const requestId = randomUUID().slice(0, 8)
+  const forceRefresh =
+    readTruthyQuery(req.query.refresh) ||
+    readTruthyQuery(req.query.forceRefresh) ||
+    readTruthyQuery(req.query.invalidateCache)
+  res.setHeader('x-prism-trace-id', requestId)
+
+  if (forceRefresh) {
+    clearCaches()
+    traceImpact('signals:cache-cleared', {
+      requestId,
+      userId: req.params.userId,
+      reason: 'refresh-query',
+    })
+  }
+
+  traceImpact('signals:start', {
+    requestId,
+    userId: req.params.userId,
+    forceRefresh,
+    orchestration: USE_ADK_ORCHESTRATION ? 'adk-first' : 'manual',
+  })
+
+  if (USE_ADK_ORCHESTRATION) {
+    const adkResult = await runAdkSignalsPipeline(req.params.userId)
+    if (adkResult.success && adkResult.data) {
+      const signalSummary = summarizeSignalUrgency(adkResult.data)
+      if (adkResult.data.length === 0 && !ADK_EMPTY_SIGNAL_IS_VALID) {
+        traceImpact('signals:adk-empty-fallback', {
+          requestId,
+          userId: req.params.userId,
+          reason: 'adk-returned-empty-signal-list',
+          durationMs: Math.round(performance.now() - requestStartedAt),
+        })
+      } else {
+        traceImpact('signals:success', {
+          requestId,
+          userId: req.params.userId,
+          mode: 'adk',
+          signalCount: adkResult.data.length,
+          durationMs: Math.round(performance.now() - requestStartedAt),
+        })
+        res.json({
+          success: true,
+          data: adkResult.data,
+          durationMs: adkResult.durationMs,
+          mode: 'adk',
+          requestId,
+          debug: signalSummary,
+        })
+        return
+      }
+    } else {
+      traceImpact('signals:adk-error', {
+        requestId,
+        userId: req.params.userId,
+        mode: 'adk-error-fallback',
+        signalCount: 0,
+        error: adkResult.error ?? 'Unknown ADK signals error',
+        durationMs: Math.round(performance.now() - requestStartedAt),
+      })
+      warnImpact('signals:adk-error', {
+        requestId,
+        userId: req.params.userId,
+        error: adkResult.error ?? 'Unknown ADK signals error',
+      })
+    }
+  }
+
   const ctx = buildPipelineCtx(req.params.userId)
   if (!ctx) {
+    traceImpact('signals:not-found', {
+      requestId,
+      userId: req.params.userId,
+      durationMs: Math.round(performance.now() - requestStartedAt),
+    })
     res.status(404).json({ success: false, error: 'Portfolio or profile not found' })
     return
   }
 
   const exposureResult = await runExposureAnalysis(ctx)
   if (!exposureResult.success || !exposureResult.data) {
+    traceImpact('signals:exposure-error', {
+      requestId,
+      userId: req.params.userId,
+      durationMs: Math.round(performance.now() - requestStartedAt),
+      error: exposureResult.error ?? 'Exposure analysis failed',
+    })
     res.status(500).json({ success: false, error: exposureResult.error ?? 'Exposure analysis failed' })
     return
   }
 
   const signalResult = await runSignalMonitor(exposureResult.data)
   if (!signalResult.success) {
+    traceImpact('signals:monitor-error', {
+      requestId,
+      userId: req.params.userId,
+      exposureDurationMs: Math.round(exposureResult.durationMs),
+      durationMs: Math.round(performance.now() - requestStartedAt),
+      error: signalResult.error ?? 'Signal monitoring failed',
+    })
     res.status(500).json({ success: false, error: signalResult.error ?? 'Signal monitoring failed' })
     return
   }
 
-  res.json(signalResult)
+  // Best-effort background prewarm for fastest graph open from signal cards.
+  if (signalResult.data && exposureResult.data) {
+    void prewarmCausalChains(exposureResult.data, signalResult.data)
+  }
+
+  traceImpact('signals:success', {
+    requestId,
+    userId: req.params.userId,
+    mode: USE_ADK_ORCHESTRATION ? 'manual-fallback' : 'manual',
+    signalCount: signalResult.data?.length ?? 0,
+    exposureDurationMs: Math.round(exposureResult.durationMs),
+    monitorDurationMs: Math.round(signalResult.durationMs),
+    durationMs: Math.round(performance.now() - requestStartedAt),
+  })
+  const normalizedSignals = signalResult.data ?? []
+  const signalSummary = summarizeSignalUrgency(normalizedSignals)
+  if (normalizedSignals.length === 0) {
+    warnImpact('signals:empty', {
+      requestId,
+      userId: req.params.userId,
+      mode: USE_ADK_ORCHESTRATION ? 'manual-fallback' : 'manual',
+      durationMs: Math.round(performance.now() - requestStartedAt),
+    })
+  }
+  res.json({
+    success: true,
+    data: normalizedSignals,
+    durationMs: signalResult.durationMs,
+    mode: USE_ADK_ORCHESTRATION ? 'manual-fallback' : 'manual',
+    requestId,
+    debug: signalSummary,
+  })
 })
 
 // Causal graph data endpoint (full orchestrated pipeline)
 app.get('/api/graph/:userId/:signalId', async (req, res) => {
+  const requestStartedAt = performance.now()
+  traceImpact('graph:start', {
+    userId: req.params.userId,
+    signalId: decodeURIComponent(req.params.signalId),
+    orchestration: USE_ADK_ORCHESTRATION ? 'adk-first' : 'manual',
+  })
+
+  const signalId = decodeURIComponent(req.params.signalId)
+  if (USE_ADK_ORCHESTRATION) {
+    const adkResult = await runAdkGraphPipeline(req.params.userId, signalId)
+    if (adkResult.success && adkResult.data) {
+      traceImpact('graph:success', {
+        userId: req.params.userId,
+        signalId,
+        mode: 'adk',
+        nodeCount: adkResult.data.chain.nodes.length,
+        edgeCount: adkResult.data.chain.edges.length,
+        durationMs: Math.round(performance.now() - requestStartedAt),
+      })
+      res.json({
+        success: true,
+        data: adkResult.data,
+        durationMs: adkResult.durationMs,
+      })
+      return
+    }
+
+    traceImpact('graph:adk-error', {
+      userId: req.params.userId,
+      signalId,
+      error: adkResult.error ?? 'Unknown ADK graph error',
+      durationMs: Math.round(performance.now() - requestStartedAt),
+    })
+  }
+
+  const ctx = buildPipelineCtx(req.params.userId)
+  if (!ctx) {
+    traceImpact('graph:not-found', {
+      userId: req.params.userId,
+      signalId: decodeURIComponent(req.params.signalId),
+      durationMs: Math.round(performance.now() - requestStartedAt),
+    })
+    res.status(404).json({ success: false, error: 'Portfolio or profile not found' })
+    return
+  }
+
+  const result = await runGraphPipeline(ctx, signalId)
+
+  if (!result.success || !result.data) {
+    traceImpact('graph:error', {
+      userId: req.params.userId,
+      signalId,
+      error: result.error ?? 'Graph pipeline failed',
+      pipelineDurationMs: Math.round(result.durationMs),
+      durationMs: Math.round(performance.now() - requestStartedAt),
+    })
+    res.status(500).json({ success: false, error: result.error })
+    return
+  }
+
+  traceImpact('graph:success', {
+    userId: req.params.userId,
+    signalId,
+    nodeCount: result.data.chain.nodes.length,
+    edgeCount: result.data.chain.edges.length,
+    pipelineDurationMs: Math.round(result.durationMs),
+    durationMs: Math.round(performance.now() - requestStartedAt),
+  })
+  res.json({ success: true, data: result.data })
+})
+
+// Portfolio net impact endpoint (aggregates all signals above threshold)
+app.get('/api/impact/:userId/net', async (req, res) => {
+  const requestStartedAt = performance.now()
+  traceImpact('impact-net:start', {
+    userId: req.params.userId,
+  })
+
+  const ctx = buildPipelineCtx(req.params.userId)
+  if (!ctx) {
+    traceImpact('impact-net:not-found', {
+      userId: req.params.userId,
+      durationMs: Math.round(performance.now() - requestStartedAt),
+    })
+    res.status(404).json({ success: false, error: 'Portfolio or profile not found' })
+    return
+  }
+
+  const result = await runPortfolioNetImpactPipeline(ctx)
+  if (!result.success || !result.data) {
+    traceImpact('impact-net:error', {
+      userId: req.params.userId,
+      error: result.error ?? 'Portfolio net impact failed',
+      durationMs: Math.round(performance.now() - requestStartedAt),
+    })
+    res.status(500).json({ success: false, error: result.error ?? 'Portfolio net impact failed' })
+    return
+  }
+
+  traceImpact('impact-net:success', {
+    userId: req.params.userId,
+    includedSignalCount: result.data.includedSignalCount,
+    signalUniverseCount: result.data.signalUniverseCount,
+    durationMs: Math.round(performance.now() - requestStartedAt),
+  })
+  res.json({
+    success: true,
+    data: result.data,
+    durationMs: result.durationMs,
+  })
+})
+
+// Strategy draft endpoint (closed-loop mitigation planning)
+app.post('/api/strategy/:userId/draft', async (req, res) => {
+  const requestStartedAt = performance.now()
+  const parseResult = parseStrategyDraftRequest(req.body)
+  if (!parseResult.ok) {
+    res.status(400).json({ success: false, error: parseResult.error })
+    return
+  }
+
   const ctx = buildPipelineCtx(req.params.userId)
   if (!ctx) {
     res.status(404).json({ success: false, error: 'Portfolio or profile not found' })
     return
   }
 
-  const signalId = decodeURIComponent(req.params.signalId)
-  const result = await runGraphPipeline(ctx, signalId)
-
+  const result = await createStrategyDraft(ctx, parseResult.data)
   if (!result.success || !result.data) {
-    res.status(500).json({ success: false, error: result.error })
+    res.status(500).json({ success: false, error: result.error ?? 'Failed to build strategy draft' })
     return
   }
 
-  res.json({ success: true, data: result.data })
+  traceImpact('strategy:draft:success', {
+    userId: req.params.userId,
+    signalId: result.data.signalId,
+    candidateCount: result.data.candidates.length,
+    scenarioItems: result.data.scenario.items.length,
+    durationMs: Math.round(performance.now() - requestStartedAt),
+  })
+
+  res.json({
+    success: true,
+    data: result.data,
+    durationMs: result.durationMs,
+  })
+})
+
+// Strategy scenario evaluation endpoint
+app.post('/api/strategy/:userId/evaluate', async (req, res) => {
+  const requestStartedAt = performance.now()
+  const parseResult = parseStrategyEvaluateRequest(req.body)
+  if (!parseResult.ok) {
+    res.status(400).json({ success: false, error: parseResult.error })
+    return
+  }
+
+  const ctx = buildPipelineCtx(req.params.userId)
+  if (!ctx) {
+    res.status(404).json({ success: false, error: 'Portfolio or profile not found' })
+    return
+  }
+
+  const result = await evaluateStrategy(ctx, parseResult.data)
+  if (!result.success || !result.data) {
+    res.status(500).json({ success: false, error: result.error ?? 'Failed to evaluate strategy scenario' })
+    return
+  }
+
+  traceImpact('strategy:evaluate:success', {
+    userId: req.params.userId,
+    signalId: parseResult.data.signalId ?? null,
+    turnoverPct: result.data.turnoverPct,
+    score: result.data.score,
+    durationMs: Math.round(performance.now() - requestStartedAt),
+  })
+
+  res.json({
+    success: true,
+    data: result.data,
+    durationMs: result.durationMs,
+  })
 })
 
 // Clear caches (used on profile switch)
 app.post('/api/cache/clear', (_req, res) => {
   clearCaches()
+  res.json({ success: true })
+})
+
+// Clear notification checker state for a user (used on profile switch)
+app.post('/api/cache/clear/:userId', (req, res) => {
+  clearCheckerState(req.params.userId)
+  clearUserNotifications(req.params.userId)
   res.json({ success: true })
 })
 
@@ -381,6 +770,72 @@ app.post('/api/chat/detect-whatif', async (req, res) => {
   const result = await detectWhatIf(message)
   res.json({ success: true, data: result })
 })
+
+// ── Notification Endpoints ─────────────────────────────────
+
+app.get('/api/notifications/:userId', (req, res) => {
+  const unreadOnly = req.query.unread === 'true'
+  const notifications = getNotifications(req.params.userId, { unreadOnly })
+  res.json({ success: true, data: notifications })
+})
+
+app.post('/api/notifications/:userId/:id/read', (req, res) => {
+  const success = markAsRead(req.params.userId, req.params.id)
+  res.json({ success })
+})
+
+app.post('/api/notifications/:userId/read-all', (req, res) => {
+  markAllAsRead(req.params.userId)
+  res.json({ success: true })
+})
+
+app.get('/api/notifications/:userId/stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Connection', 'keep-alive')
+  res.flushHeaders()
+
+  // Send heartbeat to confirm connection
+  res.write('data: {"type":"connected"}\n\n')
+
+  const unsubscribe = subscribeSse(req.params.userId, res)
+
+  req.on('close', () => {
+    unsubscribe()
+  })
+})
+
+// ── Background Signal Checker ──────────────────────────────
+
+async function fetchSignalsForUser(userId: string): Promise<ReadonlyArray<import('@prism/shared').Signal>> {
+  if (USE_ADK_ORCHESTRATION) {
+    const adkResult = await runAdkSignalsPipeline(userId)
+    if (adkResult.success && adkResult.data) {
+      if (adkResult.data.length > 0 || ADK_EMPTY_SIGNAL_IS_VALID) {
+        return adkResult.data
+      }
+      traceImpact('background-signals:adk-empty-fallback', { userId })
+    } else {
+      traceImpact('background-signals:adk-error', {
+        userId,
+        error: adkResult.error ?? 'Unknown ADK signals error',
+      })
+    }
+  }
+
+  const ctx = buildPipelineCtx(userId)
+  if (!ctx) return []
+
+  const exposureResult = await runExposureAnalysis(ctx)
+  if (!exposureResult.success || !exposureResult.data) return []
+
+  const signalResult = await runSignalMonitor(exposureResult.data)
+  if (!signalResult.success || !signalResult.data) return []
+
+  return signalResult.data
+}
+
+startBackgroundChecker(fetchSignalsForUser)
 
 app.listen(port, () => {
   // eslint-disable-next-line no-console

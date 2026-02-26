@@ -4,7 +4,26 @@ import { randomUUID } from 'crypto'
 import { existsSync, readFileSync } from 'fs'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
+import type { CausalChain } from '@prism/shared'
+import {
+  CompareWorkspaceBranchesRequestSchema,
+  CreateWorkspaceBranchRequestSchema,
+  CreateWorkspaceCheckpointRequestSchema,
+  CreateWorkspaceSessionRequestSchema,
+  UpdateWorkspaceBranchRequestSchema,
+  UpdateWorkspaceSessionRequestSchema,
+  WorkspaceOperationAppendRequestSchema,
+} from '@prism/shared'
 import { getPortfolioByUserId, getFundComposition, getUserProfileById, getUserProfiles } from '@prism/data'
+import {
+  listPlanSessions,
+  getPlanSession,
+  createPlanSession,
+  updatePlanSession,
+  deletePlanSession,
+  CreatePlanSessionRequestSchema as CreatePlanReqSchema,
+  UpdatePlanSessionRequestSchema as UpdatePlanReqSchema,
+} from './plan-session-service'
 import { analyze } from '@prism/agents/src/exposure-analyzer/index'
 import {
   runExposureAnalysis,
@@ -21,6 +40,7 @@ import {
   generateGeneralInitialMessage,
   streamGeneralChatResponse,
   detectWhatIf,
+  streamAskPrismResponse,
 } from '@prism/agents/src/chat-agent/index'
 import { buildChatContext } from '@prism/agents/src/chat-agent/context-builder'
 import {
@@ -42,6 +62,18 @@ import {
   parseStrategyDraftRequest,
   parseStrategyEvaluateRequest,
 } from './strategy-service'
+import {
+  appendWorkspaceOperation,
+  compareWorkspaceBranches,
+  createWorkspaceBranch,
+  createWorkspaceCheckpoint,
+  createWorkspaceSession,
+  getWorkspaceSessionBundle,
+  listWorkspaceSessions,
+  restoreWorkspaceCheckpoint,
+  updateWorkspaceBranch,
+  updateWorkspaceSession,
+} from './workspace-session-service'
 import type { ChatMessage as AgentChatMessage } from '@prism/agents/src/chat-agent/types'
 import {
   runAdkGraphPipeline,
@@ -155,6 +187,45 @@ function summarizeSignalUrgency(
   return {
     totalSignals: signals.length,
     urgencyBreakdown,
+  }
+}
+
+function extractSubgraphByDepth(chain: CausalChain, seedNodeId: string, depth: number): CausalChain {
+  const cappedDepth = Math.max(0, Math.min(depth, 4))
+  const nodeById = new Map(chain.nodes.map((node) => [node.id, node]))
+  if (!nodeById.has(seedNodeId)) return chain
+
+  const adjacency = new Map<string, Set<string>>()
+  for (const node of chain.nodes) adjacency.set(node.id, new Set())
+  for (const edge of chain.edges) {
+    adjacency.get(edge.source)?.add(edge.target)
+    adjacency.get(edge.target)?.add(edge.source)
+  }
+
+  const visited = new Set<string>([seedNodeId])
+  const queue: Array<{ readonly id: string; readonly level: number }> = [{ id: seedNodeId, level: 0 }]
+  while (queue.length > 0) {
+    const next = queue.shift()
+    if (!next) break
+    if (next.level >= cappedDepth) continue
+    const neighbors = adjacency.get(next.id)
+    if (!neighbors) continue
+    for (const neighbor of neighbors) {
+      if (visited.has(neighbor)) continue
+      visited.add(neighbor)
+      queue.push({ id: neighbor, level: next.level + 1 })
+    }
+  }
+
+  const nodes = chain.nodes.filter((node) => visited.has(node.id))
+  const edges = chain.edges.filter((edge) => visited.has(edge.source) && visited.has(edge.target))
+
+  return {
+    ...chain,
+    id: `${chain.id}-expand-${seedNodeId}-${cappedDepth}`,
+    nodes,
+    edges,
+    summary: `Expanded subgraph around ${seedNodeId} (depth ${cappedDepth}).`,
   }
 }
 
@@ -469,6 +540,41 @@ app.get('/api/graph/:userId/:signalId', async (req, res) => {
   res.json({ success: true, data: result.data })
 })
 
+// Causal graph incremental expansion endpoint
+app.post('/api/graph/:userId/:signalId/expand', async (req, res) => {
+  const signalId = decodeURIComponent(req.params.signalId)
+  const nodeId = typeof req.body?.nodeId === 'string' ? req.body.nodeId : ''
+  const depthInput = Number(req.body?.depth ?? 1)
+  const depth = Number.isFinite(depthInput) ? depthInput : 1
+
+  if (!nodeId) {
+    res.status(400).json({ success: false, error: 'nodeId is required' })
+    return
+  }
+
+  const ctx = buildPipelineCtx(req.params.userId)
+  if (!ctx) {
+    res.status(404).json({ success: false, error: 'Portfolio or profile not found' })
+    return
+  }
+
+  const result = await runGraphPipeline(ctx, signalId)
+  if (!result.success || !result.data) {
+    res.status(500).json({ success: false, error: result.error ?? 'Graph pipeline failed' })
+    return
+  }
+
+  const expandedChain = extractSubgraphByDepth(result.data.chain, nodeId, depth)
+  res.json({
+    success: true,
+    data: {
+      signal: result.data.signal,
+      chain: expandedChain,
+      temporalAnalysis: result.data.temporalAnalysis,
+    },
+  })
+})
+
 // Portfolio net impact endpoint (aggregates all signals above threshold)
 app.get('/api/impact/:userId/net', async (req, res) => {
   const requestStartedAt = performance.now()
@@ -582,6 +688,224 @@ app.post('/api/strategy/:userId/evaluate', async (req, res) => {
   })
 })
 
+// ── Plan Session Endpoints ─────────────────────────────────────
+
+app.get('/api/plans/:userId', (_req, res) => {
+  const data = listPlanSessions(_req.params.userId)
+  res.json({ success: true, data })
+})
+
+app.get('/api/plans/:userId/:sessionId', (req, res) => {
+  try {
+    const data = getPlanSession(req.params.userId, req.params.sessionId)
+    res.json({ success: true, data })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Plan session not found'
+    res.status(404).json({ success: false, error: message })
+  }
+})
+
+app.post('/api/plans/:userId', (req, res) => {
+  const parsed = CreatePlanReqSchema.safeParse(req.body ?? {})
+  if (!parsed.success) {
+    res.status(400).json({ success: false, error: parsed.error.issues[0]?.message ?? 'Invalid request' })
+    return
+  }
+  const data = createPlanSession(req.params.userId, parsed.data)
+  res.json({ success: true, data })
+})
+
+app.patch('/api/plans/:userId/:sessionId', (req, res) => {
+  const parsed = UpdatePlanReqSchema.safeParse(req.body ?? {})
+  if (!parsed.success) {
+    res.status(400).json({ success: false, error: parsed.error.issues[0]?.message ?? 'Invalid request' })
+    return
+  }
+  try {
+    const data = updatePlanSession(req.params.userId, req.params.sessionId, parsed.data)
+    res.json({ success: true, data })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Plan session not found'
+    res.status(404).json({ success: false, error: message })
+  }
+})
+
+app.delete('/api/plans/:userId/:sessionId', (req, res) => {
+  try {
+    deletePlanSession(req.params.userId, req.params.sessionId)
+    res.json({ success: true })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Plan session not found'
+    res.status(404).json({ success: false, error: message })
+  }
+})
+
+// Workspace sessions list
+app.get('/api/workspace/:userId/sessions', async (req, res) => {
+  const data = await listWorkspaceSessions(req.params.userId)
+  res.json({ success: true, data })
+})
+
+// Workspace session create
+app.post('/api/workspace/:userId/sessions', async (req, res) => {
+  const parsed = CreateWorkspaceSessionRequestSchema.safeParse(req.body ?? {})
+  if (!parsed.success) {
+    res.status(400).json({ success: false, error: parsed.error.issues[0]?.message ?? 'Invalid request' })
+    return
+  }
+
+  const data = await createWorkspaceSession(req.params.userId, parsed.data)
+  res.json({ success: true, data })
+})
+
+// Workspace session details
+app.get('/api/workspace/:userId/sessions/:sessionId', async (req, res) => {
+  try {
+    const data = await getWorkspaceSessionBundle(req.params.userId, req.params.sessionId)
+    res.json({ success: true, data })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Workspace session not found'
+    res.status(404).json({ success: false, error: message })
+  }
+})
+
+// Workspace session update
+app.patch('/api/workspace/:userId/sessions/:sessionId', async (req, res) => {
+  const parsed = UpdateWorkspaceSessionRequestSchema.safeParse(req.body ?? {})
+  if (!parsed.success) {
+    res.status(400).json({ success: false, error: parsed.error.issues[0]?.message ?? 'Invalid request' })
+    return
+  }
+
+  try {
+    const data = await updateWorkspaceSession(req.params.userId, req.params.sessionId, parsed.data)
+    res.json({ success: true, data })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Workspace session not found'
+    res.status(404).json({ success: false, error: message })
+  }
+})
+
+// Workspace branch create
+app.post('/api/workspace/:userId/sessions/:sessionId/branches', async (req, res) => {
+  const parsed = CreateWorkspaceBranchRequestSchema.safeParse(req.body ?? {})
+  if (!parsed.success) {
+    res.status(400).json({ success: false, error: parsed.error.issues[0]?.message ?? 'Invalid request' })
+    return
+  }
+
+  try {
+    const data = await createWorkspaceBranch(req.params.userId, req.params.sessionId, parsed.data)
+    res.json({ success: true, data })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Workspace branch operation failed'
+    res.status(404).json({ success: false, error: message })
+  }
+})
+
+// Workspace branch update
+app.patch('/api/workspace/:userId/sessions/:sessionId/branches/:branchId', async (req, res) => {
+  const parsed = UpdateWorkspaceBranchRequestSchema.safeParse(req.body ?? {})
+  if (!parsed.success) {
+    res.status(400).json({ success: false, error: parsed.error.issues[0]?.message ?? 'Invalid request' })
+    return
+  }
+
+  try {
+    const data = await updateWorkspaceBranch(
+      req.params.userId,
+      req.params.sessionId,
+      req.params.branchId,
+      parsed.data,
+    )
+    res.json({ success: true, data })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Workspace branch operation failed'
+    res.status(404).json({ success: false, error: message })
+  }
+})
+
+// Workspace checkpoint create
+app.post('/api/workspace/:userId/sessions/:sessionId/checkpoints', async (req, res) => {
+  const parsed = CreateWorkspaceCheckpointRequestSchema.safeParse(req.body ?? {})
+  if (!parsed.success) {
+    res.status(400).json({ success: false, error: parsed.error.issues[0]?.message ?? 'Invalid request' })
+    return
+  }
+
+  try {
+    const data = await createWorkspaceCheckpoint(req.params.userId, req.params.sessionId, parsed.data)
+    res.json({ success: true, data })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Workspace checkpoint operation failed'
+    res.status(404).json({ success: false, error: message })
+  }
+})
+
+// Workspace checkpoint restore
+app.post('/api/workspace/:userId/sessions/:sessionId/restore/:checkpointId', async (req, res) => {
+  try {
+    const data = await restoreWorkspaceCheckpoint(
+      req.params.userId,
+      req.params.sessionId,
+      req.params.checkpointId,
+    )
+    res.json({ success: true, data })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Workspace checkpoint operation failed'
+    res.status(404).json({ success: false, error: message })
+  }
+})
+
+// Workspace branch compare
+app.post('/api/workspace/:userId/sessions/:sessionId/compare', async (req, res) => {
+  const parsed = CompareWorkspaceBranchesRequestSchema.safeParse(req.body ?? {})
+  if (!parsed.success) {
+    res.status(400).json({ success: false, error: parsed.error.issues[0]?.message ?? 'Invalid request' })
+    return
+  }
+
+  try {
+    const data = await compareWorkspaceBranches(
+      req.params.userId,
+      req.params.sessionId,
+      parsed.data.leftBranchId,
+      parsed.data.rightBranchId,
+    )
+    res.json({ success: true, data })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Workspace compare failed'
+    res.status(404).json({ success: false, error: message })
+  }
+})
+
+// Workspace operation append (optionally autosave snapshot)
+app.post('/api/workspace/:userId/sessions/:sessionId/operations', async (req, res) => {
+  const parsed = WorkspaceOperationAppendRequestSchema.safeParse(req.body ?? {})
+  if (!parsed.success) {
+    res.status(400).json({ success: false, error: parsed.error.issues[0]?.message ?? 'Invalid request' })
+    return
+  }
+
+  try {
+    const data = await appendWorkspaceOperation(
+      req.params.userId,
+      req.params.sessionId,
+      {
+        branchId: parsed.data.branchId,
+        type: parsed.data.type,
+        payload: parsed.data.payload ?? {},
+        actor: parsed.data.actor ?? 'human',
+      },
+      parsed.data.snapshot,
+    )
+    res.json({ success: true, data })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Workspace operation failed'
+    res.status(404).json({ success: false, error: message })
+  }
+})
+
 // Clear caches (used on profile switch)
 app.post('/api/cache/clear', (_req, res) => {
   clearCaches()
@@ -692,6 +1016,130 @@ app.post('/api/chat/:userId/message', async (req, res) => {
 
   res.write('data: [DONE]\n\n')
   res.end()
+})
+
+// ── Unified Ask Prism Chat ─────────────────────────────────────
+
+interface AskPrismChatRequestBody {
+  readonly page: 'portfolio' | 'signal' | 'plan'
+  readonly signalId?: string
+  readonly planSelections?: ReadonlyArray<import('@prism/shared').PlanSelection>
+  readonly message: string
+  readonly history?: ReadonlyArray<AgentChatMessage>
+}
+
+app.post('/api/chat/:userId/ask-prism', async (req, res) => {
+  const { userId } = req.params
+  const body = req.body as AskPrismChatRequestBody
+
+  const portfolio = getPortfolioByUserId(userId)
+  if (!portfolio) {
+    res.status(404).json({ success: false, error: 'Portfolio not found' })
+    return
+  }
+
+  const profile = getUserProfileById(userId)
+  if (!profile) {
+    res.status(404).json({ success: false, error: 'User profile not found' })
+    return
+  }
+
+  try {
+    // Build pipeline context for orchestrator
+    const pipelineContext: PipelineContext = {
+      portfolio,
+      profile,
+      getFundComposition,
+    }
+
+    // Layer 1: Always load exposure and signals
+    const exposureResult = await runExposureAnalysis(pipelineContext)
+    if (!exposureResult.success || !exposureResult.data) {
+      res.status(500).json({ success: false, error: 'Failed to load exposure data' })
+      return
+    }
+
+    const signalResult = await runSignalMonitor(exposureResult.data)
+    if (!signalResult.success || !signalResult.data) {
+      res.status(500).json({ success: false, error: 'Failed to load signals' })
+      return
+    }
+
+    // Extract all holdings from portfolio
+    const holdings: import('@prism/shared').Holding[] = []
+    for (const account of portfolio.accounts) {
+      for (const holding of account.holdings) {
+        holdings.push(holding)
+      }
+    }
+
+    // Build base context with Layer 1
+    const context: import('@prism/shared').AskPrismContext = {
+      profile,
+      holdings,
+      exposureMap: exposureResult.data,
+      activeSignals: signalResult.data,
+    }
+
+    // Layer 2: Add signal detail if on signal or plan page
+    if ((body.page === 'signal' || body.page === 'plan') && body.signalId) {
+      const graphResult = await runGraphPipeline(pipelineContext, body.signalId)
+      if (!graphResult.success || !graphResult.data) {
+        res.status(500).json({ success: false, error: 'Failed to load signal detail' })
+        return
+      }
+
+      const { signal, chain, temporalAnalysis } = graphResult.data
+
+      // Convert TemporalAnalysis to AskPrismTemporalAnalysis
+      const askPrismTemporal: import('@prism/shared').AskPrismTemporalAnalysis = {
+        classification: temporalAnalysis.classification,
+        confidence: temporalAnalysis.confidence,
+        timeBuckets: {
+          oneWeek: { expectedDollarImpact: temporalAnalysis.timeBuckets.oneWeek.expectedDollarImpact },
+          oneMonth: { expectedDollarImpact: temporalAnalysis.timeBuckets.oneMonth.expectedDollarImpact },
+          sixMonth: { expectedDollarImpact: temporalAnalysis.timeBuckets.sixMonth.expectedDollarImpact },
+        },
+        counterfactual: temporalAnalysis.counterfactual,
+      }
+
+      Object.assign(context, {
+        focusedSignal: signal,
+        causalChain: chain,
+        temporalAnalysis: askPrismTemporal,
+      })
+    }
+
+    // Layer 3: Add plan context if on plan page
+    if (body.page === 'plan') {
+      // Note: Strategy candidates and evaluation would be loaded from strategy service
+      // For now, just pass through planSelections if provided
+      if (body.planSelections) {
+        Object.assign(context, {
+          currentPlan: body.planSelections,
+        })
+      }
+    }
+
+    // Set up SSE for streaming
+    res.setHeader('Content-Type', 'text/event-stream')
+    res.setHeader('Cache-Control', 'no-cache')
+    res.setHeader('Connection', 'keep-alive')
+
+    const history: ReadonlyArray<AgentChatMessage> = body.history ?? []
+
+    for await (const chunk of streamAskPrismResponse(context, history, body.message)) {
+      res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`)
+    }
+
+    res.write('data: [DONE]\n\n')
+    res.end()
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to process request',
+    })
+  }
 })
 
 // ── General Chat Endpoints (Ask Prism) ─────────────────────────

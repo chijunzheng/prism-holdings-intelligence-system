@@ -29,7 +29,17 @@ export function AppLayout() {
                 `app-nav__link${isActive ? ' app-nav__link--active' : ''}`
               }
             >
-              Impact Analysis
+              Signals
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/playbook"
+              className={({ isActive }) =>
+                `app-nav__link${isActive ? ' app-nav__link--active' : ''}`
+              }
+            >
+              Playbook
             </NavLink>
           </li>
         </ul>

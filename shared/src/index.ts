@@ -8,6 +8,9 @@ export * from './types/fund'
 export * from './types/health-score'
 export * from './types/notification'
 export * from './types/strategy'
+export * from './types/workspace'
+export * from './types/plan-session'
+export * from './types/ask-prism'
 
 // Constants
 export * from './constants/temporal'

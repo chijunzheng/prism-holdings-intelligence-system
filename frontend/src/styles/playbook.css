@@ -1,0 +1,199 @@
+/* ── Playbook View ─────────────────────────── */
+.playbook {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.playbook__header {
+  margin-bottom: 2rem;
+}
+
+.playbook__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 0.25rem;
+}
+
+.playbook__subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.playbook__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.25rem;
+}
+
+.playbook__empty {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--color-text-secondary);
+  font-size: 0.9375rem;
+}
+
+.playbook__error {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--color-negative, #dc3545);
+  font-size: 0.9375rem;
+}
+
+/* ── Playbook Card ────────────────────────── */
+.playbook-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding: 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-card-bg, var(--color-bg));
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  width: 100%;
+}
+
+.playbook-card:hover {
+  border-color: var(--color-text-secondary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.playbook-card--skeleton {
+  pointer-events: none;
+  min-height: 160px;
+}
+
+.skeleton-line {
+  border-radius: 4px;
+  background: var(--color-border);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-line--title {
+  height: 1rem;
+  width: 60%;
+}
+
+.skeleton-line--subtitle {
+  height: 0.75rem;
+  width: 80%;
+}
+
+.skeleton-line--metrics {
+  height: 2rem;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+}
+
+.playbook-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.playbook-card__status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.playbook-card__status--draft {
+  background: rgba(234, 179, 8, 0.15);
+  color: #b45309;
+}
+
+.playbook-card__status--reviewed {
+  background: rgba(34, 197, 94, 0.15);
+  color: #15803d;
+}
+
+.playbook-card__status--archived {
+  background: rgba(148, 163, 184, 0.15);
+  color: #64748b;
+}
+
+.playbook-card__date {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.playbook-card__title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-text);
+}
+
+.playbook-card__signal {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.playbook-card__exposures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.playbook-card__tag {
+  font-size: 0.6875rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--color-text-secondary);
+}
+
+.playbook-card__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.playbook-card__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.playbook-card__metric-label {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}
+
+.playbook-card__metric-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+@media (max-width: 768px) {
+  .playbook {
+    padding: 1.5rem 1rem;
+  }
+
+  .playbook__grid {
+    grid-template-columns: 1fr;
+  }
+}

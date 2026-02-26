@@ -1,0 +1,53 @@
+/* ── Signals List View ──────────────────────── */
+.signals-list {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.signals-list__header {
+  margin-bottom: 2rem;
+}
+
+.signals-list__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 0.25rem;
+}
+
+.signals-list__subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.signals-list__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.25rem;
+}
+
+.signals-list__empty {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--color-text-secondary);
+  font-size: 0.9375rem;
+}
+
+.signals-list__error {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--color-negative, #dc3545);
+  font-size: 0.9375rem;
+}
+
+@media (max-width: 768px) {
+  .signals-list {
+    padding: 1.5rem 1rem;
+  }
+
+  .signals-list__grid {
+    grid-template-columns: 1fr;
+  }
+}

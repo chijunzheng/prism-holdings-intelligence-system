@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAppContext } from '../../contexts/AppContext'
 
 export function ProfileSwitcher() {
-  const { userId, profiles, profilesLoading, setUserId, loadProfiles } = useAppContext()
+  const { userId, profiles, profilesLoading, setUserId, loadProfiles, askPrismOpen } = useAppContext()
   const [isOpen, setIsOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -20,7 +20,7 @@ export function ProfileSwitcher() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  if (profilesLoading || profiles.length === 0) return null
+  if (profilesLoading || profiles.length === 0 || askPrismOpen) return null
 
   const currentProfile = profiles.find((p) => p.id === userId)
   const initials = currentProfile

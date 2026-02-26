@@ -17,7 +17,7 @@ interface HoldingContext {
 }
 
 export interface SidebarContext {
-  readonly type: 'concentration' | 'exposure' | 'overlap'
+  readonly type: 'concentration' | 'exposure' | 'overlap' | 'health'
   readonly label: string
   readonly detail: string
 }
@@ -28,10 +28,12 @@ interface AppState {
   readonly profilesLoading: boolean
   readonly activeHoldingContext: HoldingContext | null
   readonly activeSidebarContext: SidebarContext | null
+  readonly askPrismOpen: boolean
   readonly setUserId: (id: string) => void
   readonly loadProfiles: () => void
   readonly setActiveHoldingContext: (context: HoldingContext | null) => void
   readonly setActiveSidebarContext: (context: SidebarContext | null) => void
+  readonly setAskPrismOpen: (open: boolean) => void
 }
 
 const AppContext = createContext<AppState | null>(null)
@@ -50,6 +52,7 @@ export function AppProvider({ children }: AppProviderProps) {
   }, [])
   const [activeHoldingContext, setActiveHoldingContext] = useState<HoldingContext | null>(null)
   const [activeSidebarContext, setActiveSidebarContext] = useState<SidebarContext | null>(null)
+  const [askPrismOpen, setAskPrismOpen] = useState(false)
   const [profiles, setProfiles] = useState<ReadonlyArray<DemoProfile>>([])
   const [profilesLoading, setProfilesLoading] = useState(false)
 
@@ -71,7 +74,7 @@ export function AppProvider({ children }: AppProviderProps) {
   }, [profiles.length])
 
   return (
-    <AppContext.Provider value={{ userId, profiles, profilesLoading, activeHoldingContext, activeSidebarContext, setUserId, loadProfiles, setActiveHoldingContext, setActiveSidebarContext }}>
+    <AppContext.Provider value={{ userId, profiles, profilesLoading, activeHoldingContext, activeSidebarContext, askPrismOpen, setUserId, loadProfiles, setActiveHoldingContext, setActiveSidebarContext, setAskPrismOpen }}>
       {children}
     </AppContext.Provider>
   )

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { CausalChain, CausalChainNode, Signal } from '@prism/shared'
+import type { AskPrismPage, CausalChain, CausalChainNode, Signal } from '@prism/shared'
 import type { TemporalAnalysis } from '../types/graph'
 
 export interface ChatMessage {
@@ -16,6 +16,147 @@ interface UseChatOptions {
   readonly chain?: CausalChain | null
   readonly signal?: Signal | null
   readonly temporalAnalysis?: TemporalAnalysis | null
+}
+
+// ── Ask Prism unified chat hook ──────────────────
+
+interface AskPrismChatCache {
+  readonly userId: string
+  readonly messages: ReadonlyArray<ChatMessage>
+}
+
+let askPrismCache: AskPrismChatCache | null = null
+
+interface UseAskPrismChatOptions {
+  readonly userId: string
+  readonly page: AskPrismPage
+  readonly signalId?: string
+}
+
+interface UseAskPrismChatReturn {
+  readonly messages: ReadonlyArray<ChatMessage>
+  readonly isLoading: boolean
+  readonly error: string | null
+  readonly sendMessage: (content: string) => void
+  readonly addDivider: (label: string) => void
+}
+
+export function useAskPrismChat({ userId, page, signalId }: UseAskPrismChatOptions): UseAskPrismChatReturn {
+  const [messages, setMessages] = useState<ReadonlyArray<ChatMessage>>(
+    () => (askPrismCache?.userId === userId ? askPrismCache.messages : []),
+  )
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
+
+  // Persist to module cache
+  useEffect(() => {
+    if (messages.length > 0) {
+      askPrismCache = { userId, messages }
+    }
+  }, [messages, userId])
+
+  // Clear cache on user switch
+  useEffect(() => {
+    if (askPrismCache && askPrismCache.userId !== userId) {
+      askPrismCache = null
+      setMessages([])
+    }
+  }, [userId])
+
+  const sendMessage = useCallback(
+    (content: string) => {
+      if (isLoading) return
+
+      const userMsg: ChatMessage = { id: nextMessageId(), role: 'user', content }
+      const assistantId = nextMessageId()
+
+      setMessages((prev) => [
+        ...prev,
+        userMsg,
+        { id: assistantId, role: 'assistant', content: '', isStreaming: true },
+      ])
+      setIsLoading(true)
+      setError(null)
+
+      const controller = new AbortController()
+      abortRef.current = controller
+
+      const history = [...messages, userMsg].map((m) => ({
+        role: m.role,
+        content: m.content,
+      }))
+
+      fetch(`/api/chat/${userId}/ask-prism`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page, signalId, message: content, history }),
+        signal: controller.signal,
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            const payload = await res.json()
+            throw new Error((payload as { error?: string }).error ?? 'Chat request failed')
+          }
+
+          const reader = res.body?.getReader()
+          if (!reader) throw new Error('No response stream')
+
+          const decoder = new TextDecoder()
+          let accumulated = ''
+
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            const text = decoder.decode(value, { stream: true })
+            const lines = text.split('\n')
+
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue
+              const data = line.slice(6)
+              if (data === '[DONE]') continue
+
+              try {
+                const parsed = JSON.parse(data) as { text: string }
+                accumulated += parsed.text
+                const snapshot = accumulated
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantId ? { ...m, content: snapshot, isStreaming: true } : m,
+                  ),
+                )
+              } catch {
+                // Skip malformed SSE chunks
+              }
+            }
+          }
+
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId ? { ...m, isStreaming: false } : m,
+            ),
+          )
+          setIsLoading(false)
+        })
+        .catch((err: Error) => {
+          if (err.name === 'AbortError') return
+          setError(err.message)
+          setIsLoading(false)
+          setMessages((prev) => prev.filter((m) => m.id !== assistantId))
+        })
+    },
+    [isLoading, messages, page, signalId, userId],
+  )
+
+  const addDivider = useCallback((label: string) => {
+    setMessages((prev) => [
+      ...prev,
+      { id: nextMessageId(), role: 'divider' as const, content: label },
+    ])
+  }, [])
+
+  return { messages, isLoading, error, sendMessage, addDivider }
 }
 
 interface UseChatReturn {

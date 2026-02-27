@@ -39,9 +39,10 @@ function estimateImpact(
     : signal.urgency === 'high' ? 0.03
     : signal.urgency === 'medium' ? 0.02
     : 0.01
-  const direction = signal.sentiment === 'positive' ? 1
-    : signal.sentiment === 'negative' ? -1
-    : -0.5
+  const narrative = `${signal.headline} ${signal.description}`.toLowerCase()
+  const positiveHint = /(strong|beat|growth|upgrade|boost|surge|rally)/.test(narrative)
+  const negativeHint = /(tariff|downgrade|decline|drop|risk|tension|shock|selloff)/.test(narrative)
+  const direction = positiveHint && !negativeHint ? 1 : -1
   const dollarImpact = affectedValue * magnitude * direction * signal.relevanceScore
 
   return { dollarImpact, affectedPct }
@@ -119,9 +120,24 @@ export function SignalCard({
       </div>
 
       <div className="signal-card__footer">
-        <span className="signal-card__source">
-          {source?.publisher ?? source?.title ?? ''}
-        </span>
+        {source?.url ? (
+          <a
+            className="signal-card__source signal-card__source--link"
+            href={source.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {source.publisher ?? source.title ?? ''}
+            <svg className="signal-card__external-icon" width="10" height="10" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+              <path d="M3.5 1H11V8.5M11 1L1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </a>
+        ) : (
+          <span className="signal-card__source">
+            {source?.publisher ?? source?.title ?? ''}
+          </span>
+        )}
         <span className="signal-card__action">
           View analysis &rarr;
         </span>

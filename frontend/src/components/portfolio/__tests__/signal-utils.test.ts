@@ -19,6 +19,7 @@ function makeSignal(overrides: Partial<Signal>): Signal {
     affectedExposures: overrides.affectedExposures ?? ['Canadian Financials'],
     relevanceScore: overrides.relevanceScore ?? 0.5,
     urgency: overrides.urgency ?? 'medium',
+    sentiment: overrides.sentiment ?? 'mixed',
     temporalClassification: overrides.temporalClassification ?? 'ambiguous',
     sources: overrides.sources ?? [{ title: 'Source', url: 'https://example.com' }],
     detectedAt: overrides.detectedAt ?? '2026-02-24T12:00:00.000Z',
@@ -71,7 +72,7 @@ describe('signal-utils', () => {
   })
 
   it('builds graph route with encoded signal id', () => {
-    expect(buildSignalGraphRoute('sig-with spaces')).toBe('/signals?signal=sig-with%20spaces')
+    expect(buildSignalGraphRoute('sig-with spaces')).toBe('/signals/sig-with%20spaces')
   })
 
   it('persists viewed-state using storage key scoped by user', () => {

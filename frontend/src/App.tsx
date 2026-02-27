@@ -3,9 +3,10 @@ import { AppProvider } from './contexts/AppContext'
 import { ErrorBoundary } from './components/shared/ErrorBoundary'
 import { AppLayout } from './components/shared/AppLayout'
 import { PortfolioView } from './routes/PortfolioView'
-import { SignalDetailView } from './routes/signal/SignalDetailView'
+import { SignalsLayout } from './routes/signals/SignalsLayout'
+import { CombinedSignalsPane } from './routes/signals/CombinedSignalsPane'
+import { SignalDetailPane } from './routes/signals/SignalDetailPane'
 import { PlanView } from './routes/signal/PlanView'
-import { SignalsListView } from './routes/SignalsListView'
 import { PlaybookView } from './routes/PlaybookView'
 
 export function App() {
@@ -17,10 +18,12 @@ export function App() {
             <Route element={<AppLayout />}>
               <Route path="/" element={<Navigate to="/portfolio" replace />} />
               <Route path="/portfolio" element={<PortfolioView />} />
-              <Route path="/signals" element={<SignalsListView />} />
-              <Route path="/playbook" element={<PlaybookView />} />
-              <Route path="/signals/:signalId" element={<SignalDetailView />} />
+              <Route path="/signals" element={<SignalsLayout />}>
+                <Route index element={<CombinedSignalsPane />} />
+                <Route path=":signalId" element={<SignalDetailPane />} />
+              </Route>
               <Route path="/signals/:signalId/plan" element={<PlanView />} />
+              <Route path="/playbook" element={<PlaybookView />} />
             </Route>
           </Routes>
         </BrowserRouter>

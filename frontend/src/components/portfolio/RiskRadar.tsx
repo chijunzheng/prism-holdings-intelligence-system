@@ -38,18 +38,7 @@ export function RiskRadar({ healthScore, onClick }: RiskRadarProps) {
   ]
 
   return (
-    <aside
-      className={`risk-radar ${onClick ? 'risk-radar--clickable' : ''}`}
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (onClick && (e.key === 'Enter' || e.key === ' ')) {
-          e.preventDefault()
-          onClick()
-        }
-      }}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-    >
+    <aside className="risk-radar">
       <h3 className="risk-radar__title">Risk Radar</h3>
 
       <div className="risk-radar__grade-container">
@@ -87,7 +76,13 @@ export function RiskRadar({ healthScore, onClick }: RiskRadarProps) {
       </div>
 
       {onClick && (
-        <div className="risk-radar__cta">
+        <div
+          className="risk-radar__cta"
+          role="button"
+          tabIndex={0}
+          onClick={onClick}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } }}
+        >
           Discuss with Prism &rarr;
         </div>
       )}

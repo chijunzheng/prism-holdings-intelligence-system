@@ -5,7 +5,21 @@ interface HoldingsXRaySidebarProps {
   readonly exposureMap: ExposureMap
   readonly signals: ReadonlyArray<Signal>
   readonly totalPortfolioValue: number
-  readonly onDiscussWithPrism?: () => void
+  readonly onDiscussWithPrism?: (topic: 'exposure' | 'overlap') => void
+}
+
+function DiscussCta({ onClick }: { readonly onClick: () => void }) {
+  return (
+    <div
+      className="risk-radar__cta"
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } }}
+    >
+      Discuss with Prism &rarr;
+    </div>
+  )
 }
 
 // ── Most Exposed Holdings ────────────────────────────────────
@@ -131,6 +145,9 @@ export function HoldingsXRaySidebar({
               </li>
             ))}
           </ul>
+          {onDiscussWithPrism && (
+            <DiscussCta onClick={() => onDiscussWithPrism('exposure')} />
+          )}
         </div>
       )}
 
@@ -156,6 +173,9 @@ export function HoldingsXRaySidebar({
               </li>
             ))}
           </ul>
+          {onDiscussWithPrism && (
+            <DiscussCta onClick={() => onDiscussWithPrism('overlap')} />
+          )}
         </div>
       )}
 
@@ -166,19 +186,6 @@ export function HoldingsXRaySidebar({
             <span className="concentration-warning__icon">!</span>
             <span>{topWarning.message}</span>
           </div>
-        </div>
-      )}
-
-      {/* Discuss with Prism */}
-      {onDiscussWithPrism && (
-        <div
-          className="risk-radar__cta"
-          role="button"
-          tabIndex={0}
-          onClick={onDiscussWithPrism}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onDiscussWithPrism() } }}
-        >
-          Discuss with Prism &rarr;
         </div>
       )}
     </aside>

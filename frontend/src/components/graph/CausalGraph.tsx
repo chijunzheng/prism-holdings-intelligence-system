@@ -17,6 +17,7 @@ interface CausalGraphProps {
   readonly clusterAssets?: boolean
   readonly selectedNodeId: string | null
   readonly onNodeSelect: (node: CausalChainNode) => void
+  readonly mode?: 'canvas' | 'embedded'
 }
 
 interface TooltipState {
@@ -33,10 +34,13 @@ interface PanZoomState {
 }
 
 const DEFAULT_SIZE = { width: 1100, height: 560 }
+const EMBEDDED_SIZE = { width: 800, height: 400 }
 const MIN_WIDTH = 760
 const MAX_WIDTH = 2200
 const MIN_HEIGHT = 420
 const MAX_HEIGHT = 720
+const EMBEDDED_MIN_HEIGHT = 350
+const EMBEDDED_MAX_HEIGHT = 450
 const MIN_SCALE = 0.3
 const MAX_SCALE = 3.0
 
@@ -87,9 +91,10 @@ export function CausalGraph({
   clusterAssets = true,
   selectedNodeId,
   onNodeSelect,
+  mode = 'canvas',
 }: CausalGraphProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
-  const [size, setSize] = useState(DEFAULT_SIZE)
+  const [size, setSize] = useState(mode === 'embedded' ? EMBEDDED_SIZE : DEFAULT_SIZE)
   const [hoverTooltip, setHoverTooltip] = useState<TooltipState | null>(null)
   const [pinnedTooltip, setPinnedTooltip] = useState<TooltipState | null>(null)
   const [panZoom, setPanZoom] = useState<PanZoomState>({ panX: 0, panY: 0, scale: 1 })
@@ -126,8 +131,10 @@ export function CausalGraph({
       const entry = entries[0]
       if (!entry) return
 
+      const minHeight = mode === 'embedded' ? EMBEDDED_MIN_HEIGHT : MIN_HEIGHT
+      const maxHeight = mode === 'embedded' ? EMBEDDED_MAX_HEIGHT : MAX_HEIGHT
       const width = clamp(Math.floor(entry.contentRect.width), MIN_WIDTH, MAX_WIDTH)
-      const height = clamp(Math.floor(entry.contentRect.height), MIN_HEIGHT, MAX_HEIGHT)
+      const height = clamp(Math.floor(entry.contentRect.height), minHeight, maxHeight)
       setSize((prev) => {
         if (prev.width === width && prev.height === height) return prev
         return { width, height }
@@ -136,13 +143,14 @@ export function CausalGraph({
 
     observer.observe(element)
     return () => observer.disconnect()
-  }, [])
+  }, [mode])
 
   const { laidOutChain, positions } = useGraphLayout(chain, {
     width: size.width,
     height: size.height,
     expandedDepth,
     clusterAssets,
+    mode,
   })
 
   // Fit to content when positions change
@@ -281,8 +289,10 @@ export function CausalGraph({
 
   const activeTooltip = pinnedTooltip ?? hoverTooltip
 
+  const containerClassName = mode === 'embedded' ? 'causal-graph causal-graph--embedded' : 'causal-graph'
+
   return (
-    <div className="causal-graph" ref={containerRef}>
+    <div className={containerClassName} ref={containerRef}>
       <svg
         width="100%"
         height="100%"
@@ -336,9 +346,11 @@ export function CausalGraph({
         </g>
       </svg>
 
-      <button className="causal-graph__reset" onClick={handleReset} type="button">
-        Reset view
-      </button>
+      {mode === 'canvas' && (
+        <button className="causal-graph__reset" onClick={handleReset} type="button">
+          Reset view
+        </button>
+      )}
 
       {activeTooltip && (
         <GraphTooltip

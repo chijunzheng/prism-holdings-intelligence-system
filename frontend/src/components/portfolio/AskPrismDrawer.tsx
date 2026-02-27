@@ -1,19 +1,37 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { AskPrismPage } from '@prism/shared'
 import { useAppContext } from '../../contexts/AppContext'
 import type { SidebarContext } from '../../contexts/AppContext'
-import { useChat } from '../../hooks/useChat'
+import { useAskPrismChat } from '../../hooks/useChat'
+import { usePageContext } from '../../hooks/usePageContext'
 import { useExposureData } from '../../hooks/useExposureData'
 import { ChatMessage } from '../chat/ChatMessage'
 import { ChatInput } from '../chat/ChatInput'
 import '../../styles/ask-prism-drawer.css'
 import '../../styles/chat.css'
 
-const DEFAULT_PROMPTS = [
-  'What sectors am I most exposed to?',
-  'How diversified is my portfolio?',
-  'What risks should I know about?',
-  'How much overlap do my ETFs have?',
-] as const
+const PAGE_PROMPTS: Record<AskPrismPage, ReadonlyArray<string>> = {
+  portfolio: [
+    "What's my biggest risk?",
+    'Explain my overlaps',
+    'Compare my signals',
+    'How diversified is my portfolio?',
+  ],
+  signal: [
+    'What if this reverses?',
+    'How confident is this?',
+    'Show the other side',
+    'What should I watch for?',
+  ],
+  plan: [
+    'Why does this help?',
+    'What are the risks?',
+    'What am I missing?',
+    'Is there a better option?',
+  ],
+}
+
+const DEFAULT_PROMPTS = PAGE_PROMPTS.portfolio
 
 function getContextualPrompts(ticker: string): ReadonlyArray<string> {
   return [
@@ -89,11 +107,14 @@ interface AskPrismDrawerProps {
 
 export function AskPrismDrawer({ onClose }: AskPrismDrawerProps) {
   const { userId, activeHoldingContext, activeSidebarContext, setActiveSidebarContext } = useAppContext()
-  const { messages, isLoading, error, sendMessage, addDivider, isInitialized } = useChat({
+  const { page, signalId } = usePageContext()
+  const { messages, isLoading, error, sendMessage, addDivider } = useAskPrismChat({
     userId,
-    mode: 'general',
+    page,
+    signalId,
   })
   const { exposureMap } = useExposureData(userId)
+  const isInitialized = messages.length >= 1 && !isLoading
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const sendMessageRef = useRef(sendMessage)
@@ -160,8 +181,8 @@ export function AskPrismDrawer({ onClose }: AskPrismDrawerProps) {
   const suggestedPrompts = useMemo(() => {
     if (activeSidebarContext) return getSidebarContextPrompts(activeSidebarContext)
     if (activeHoldingContext) return getContextualPrompts(activeHoldingContext.ticker)
-    return DEFAULT_PROMPTS
-  }, [activeHoldingContext, activeSidebarContext])
+    return PAGE_PROMPTS[page] ?? DEFAULT_PROMPTS
+  }, [activeHoldingContext, activeSidebarContext, page])
 
   const followUpPrompts = useMemo(() => {
     if (!pendingSidebarContext) return []

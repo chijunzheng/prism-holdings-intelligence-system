@@ -11,6 +11,16 @@
   margin-bottom: 1.25rem;
 }
 
+.signal-cards-section__mode {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.625rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .signal-cards-section__overflow-link {
   border: 0;
   background: none;
@@ -161,6 +171,23 @@
 .signal-card__source {
   font-size: 0.75rem;
   color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.signal-card__source--link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.signal-card__source--link:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+}
+
+.signal-card__external-icon {
+  flex-shrink: 0;
+  opacity: 0.6;
 }
 
 .signal-card__action {

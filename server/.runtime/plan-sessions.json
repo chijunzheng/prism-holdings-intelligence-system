@@ -1,0 +1,311 @@
+{
+  "sessions": [
+    {
+      "id": "plan-1772140408228-3y4gri",
+      "userId": "sarah-01",
+      "signalId": "sig-bankofcanadahold-mm3y6rhf",
+      "signalHeadline": "Bank of Canada Holds Rates Amid Trade Uncertainty",
+      "title": "Bank of Canada Holds Rates Amid Trade Uncertainty",
+      "status": "draft",
+      "createdAt": "2026-02-26T21:13:28.228Z",
+      "updatedAt": "2026-02-26T21:13:28.228Z",
+      "draft": null,
+      "selectedCandidateIds": [],
+      "scenario": null,
+      "evaluation": null,
+      "affectedExposures": []
+    },
+    {
+      "id": "plan-1772140408232-tpday1",
+      "userId": "sarah-01",
+      "signalId": "sig-bankofcanadahold-mm3y6rhf",
+      "signalHeadline": "Bank of Canada Holds Rates Amid Trade Uncertainty",
+      "title": "Bank of Canada Holds Rates Amid Trade Uncertainty",
+      "status": "reviewed",
+      "createdAt": "2026-02-26T21:13:28.232Z",
+      "updatedAt": "2026-02-26T21:13:56.389Z",
+      "draft": null,
+      "selectedCandidateIds": [
+        "cand-stock-nem",
+        "cand-stock-abx",
+        "cand-stock-ry",
+        "cand-cash-buffer",
+        "cand-stock-cnq"
+      ],
+      "scenario": {
+        "items": [
+          {
+            "candidateId": "cand-stock-nem",
+            "ticker": "NEM",
+            "name": "Newmont Corp.",
+            "type": "stock",
+            "rationale": "Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+            "confidence": 0.85,
+            "expectedMitigationCad": 302,
+            "diversificationScore": 0.9,
+            "estimatedTurnoverCostCad": 8,
+            "estimatedTaxCostCad": 8,
+            "allocationPct": 0.59125
+          },
+          {
+            "candidateId": "cand-stock-abx",
+            "ticker": "ABX",
+            "name": "Barrick Gold Corp.",
+            "type": "stock",
+            "rationale": "Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+            "confidence": 0.85,
+            "expectedMitigationCad": 268,
+            "diversificationScore": 0.9,
+            "estimatedTurnoverCostCad": 8,
+            "estimatedTaxCostCad": 8,
+            "allocationPct": 0.59125
+          },
+          {
+            "candidateId": "cand-stock-ry",
+            "ticker": "RY",
+            "name": "Royal Bank of Canada",
+            "type": "stock",
+            "rationale": "Large-cap proxy from ZEB constituents; used for targeted mitigation with controlled sizing.",
+            "confidence": 0.85,
+            "expectedMitigationCad": 291,
+            "diversificationScore": 0.25,
+            "estimatedTurnoverCostCad": 8,
+            "estimatedTaxCostCad": 8,
+            "allocationPct": 0.59125
+          },
+          {
+            "candidateId": "cand-cash-buffer",
+            "ticker": "CASH",
+            "name": "Cash Buffer",
+            "type": "cash",
+            "rationale": "Preserves optionality when confidence is low or signal paths conflict.",
+            "confidence": 0.76,
+            "expectedMitigationCad": 120,
+            "diversificationScore": 0.92,
+            "estimatedTurnoverCostCad": 3,
+            "estimatedTaxCostCad": 2,
+            "allocationPct": 1
+          },
+          {
+            "candidateId": "cand-stock-cnq",
+            "ticker": "CNQ",
+            "name": "Canadian Natural Resources",
+            "type": "stock",
+            "rationale": "Large-cap proxy from XEG constituents; used for targeted mitigation with controlled sizing.",
+            "confidence": 0.85,
+            "expectedMitigationCad": 314,
+            "diversificationScore": 0.25,
+            "estimatedTurnoverCostCad": 8,
+            "estimatedTaxCostCad": 8,
+            "allocationPct": 0.59125
+          }
+        ]
+      },
+      "evaluation": {
+        "generatedAt": "2026-02-26T21:13:46.469Z",
+        "objective": "minimize_one_month_downside_with_six_month_guardrail",
+        "baselineOneMonthCad": 85,
+        "proposedOneMonthCad": -77.94375000000002,
+        "baselineSixMonthCad": 135,
+        "proposedSixMonthCad": 43.34414062499998,
+        "downsideReductionCad": 0,
+        "sixMonthGuardrailDeltaCad": -91.65585937500002,
+        "diversificationGain": 1.4015999999999997,
+        "turnoverPct": 3.365,
+        "turnoverCapPct": 5,
+        "taxPenaltyCad": 20.92,
+        "score": -14.440000000000007,
+        "objectiveSatisfied": false,
+        "warnings": [],
+        "humanDecisionRequired": true
+      },
+      "affectedExposures": []
+    },
+    {
+      "id": "plan-1772141360274-8eudao",
+      "userId": "sarah-01",
+      "signalId": "sig-bankofcanadahold-mm3yvwvw",
+      "signalHeadline": "Bank of Canada Holds Interest Rate Steady",
+      "title": "Bank of Canada Holds Interest Rate Steady",
+      "status": "draft",
+      "createdAt": "2026-02-26T21:29:20.274Z",
+      "updatedAt": "2026-02-26T21:29:20.274Z",
+      "draft": null,
+      "selectedCandidateIds": [],
+      "scenario": null,
+      "evaluation": null,
+      "affectedExposures": []
+    },
+    {
+      "id": "plan-1772141360276-cxrmxd",
+      "userId": "sarah-01",
+      "signalId": "sig-bankofcanadahold-mm3yvwvw",
+      "signalHeadline": "Bank of Canada Holds Interest Rate Steady",
+      "title": "Bank of Canada Holds Interest Rate Steady",
+      "status": "draft",
+      "createdAt": "2026-02-26T21:29:20.276Z",
+      "updatedAt": "2026-02-26T21:29:21.587Z",
+      "draft": null,
+      "selectedCandidateIds": [
+        "cand-stock-nem",
+        "cand-stock-cnq",
+        "cand-stock-abx"
+      ],
+      "scenario": {
+        "items": [
+          {
+            "candidateId": "cand-stock-nem",
+            "ticker": "NEM",
+            "name": "Newmont Corp.",
+            "type": "stock",
+            "rationale": "Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+            "confidence": 0.85,
+            "expectedMitigationCad": 302,
+            "diversificationScore": 0.9,
+            "estimatedTurnoverCostCad": 8,
+            "estimatedTaxCostCad": 8,
+            "allocationPct": 0.59125
+          },
+          {
+            "candidateId": "cand-stock-cnq",
+            "ticker": "CNQ",
+            "name": "Canadian Natural Resources",
+            "type": "stock",
+            "rationale": "Large-cap proxy from XEG constituents; used for targeted mitigation with controlled sizing.",
+            "confidence": 0.85,
+            "expectedMitigationCad": 314,
+            "diversificationScore": 0.25,
+            "estimatedTurnoverCostCad": 8,
+            "estimatedTaxCostCad": 8,
+            "allocationPct": 0.59125
+          },
+          {
+            "candidateId": "cand-stock-abx",
+            "ticker": "ABX",
+            "name": "Barrick Gold Corp.",
+            "type": "stock",
+            "rationale": "Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+            "confidence": 0.85,
+            "expectedMitigationCad": 268,
+            "diversificationScore": 0.9,
+            "estimatedTurnoverCostCad": 8,
+            "estimatedTaxCostCad": 8,
+            "allocationPct": 0.59125
+          }
+        ]
+      },
+      "evaluation": {
+        "generatedAt": "2026-02-26T21:29:20.578Z",
+        "objective": "minimize_one_month_downside_with_six_month_guardrail",
+        "baselineOneMonthCad": 124,
+        "proposedOneMonthCad": 19.466999999999985,
+        "baselineSixMonthCad": 112,
+        "proposedSixMonthCad": 53.20018749999999,
+        "downsideReductionCad": 0,
+        "sixMonthGuardrailDeltaCad": -58.79981250000001,
+        "diversificationGain": 1.2066666666666666,
+        "turnoverPct": 1.7737500000000002,
+        "turnoverCapPct": 5,
+        "taxPenaltyCad": 14.190000000000001,
+        "score": 1.429333333333329,
+        "objectiveSatisfied": false,
+        "warnings": [],
+        "humanDecisionRequired": true
+      },
+      "affectedExposures": []
+    },
+    {
+      "id": "plan-1772141523589-eqygiv",
+      "userId": "sarah-01",
+      "signalId": "sig-bankofcanadahold-mm3yvwvw",
+      "signalHeadline": "Bank of Canada Holds Interest Rate Steady",
+      "title": "Bank of Canada Holds Interest Rate Steady",
+      "status": "draft",
+      "createdAt": "2026-02-26T21:32:03.589Z",
+      "updatedAt": "2026-02-26T21:32:03.589Z",
+      "draft": null,
+      "selectedCandidateIds": [],
+      "scenario": null,
+      "evaluation": null,
+      "affectedExposures": []
+    },
+    {
+      "id": "plan-1772141523591-geyyau",
+      "userId": "sarah-01",
+      "signalId": "sig-bankofcanadahold-mm3yvwvw",
+      "signalHeadline": "Bank of Canada Holds Interest Rate Steady",
+      "title": "Bank of Canada Holds Interest Rate Steady",
+      "status": "draft",
+      "createdAt": "2026-02-26T21:32:03.591Z",
+      "updatedAt": "2026-02-26T21:32:04.900Z",
+      "draft": null,
+      "selectedCandidateIds": [
+        "cand-stock-nem",
+        "cand-stock-cnq",
+        "cand-stock-abx"
+      ],
+      "scenario": {
+        "items": [
+          {
+            "candidateId": "cand-stock-nem",
+            "ticker": "NEM",
+            "name": "Newmont Corp.",
+            "type": "stock",
+            "rationale": "Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+            "confidence": 0.85,
+            "expectedMitigationCad": 302,
+            "diversificationScore": 0.9,
+            "estimatedTurnoverCostCad": 8,
+            "estimatedTaxCostCad": 8,
+            "allocationPct": 0.59125
+          },
+          {
+            "candidateId": "cand-stock-cnq",
+            "ticker": "CNQ",
+            "name": "Canadian Natural Resources",
+            "type": "stock",
+            "rationale": "Large-cap proxy from XEG constituents; used for targeted mitigation with controlled sizing.",
+            "confidence": 0.85,
+            "expectedMitigationCad": 314,
+            "diversificationScore": 0.25,
+            "estimatedTurnoverCostCad": 8,
+            "estimatedTaxCostCad": 8,
+            "allocationPct": 0.59125
+          },
+          {
+            "candidateId": "cand-stock-abx",
+            "ticker": "ABX",
+            "name": "Barrick Gold Corp.",
+            "type": "stock",
+            "rationale": "Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+            "confidence": 0.85,
+            "expectedMitigationCad": 268,
+            "diversificationScore": 0.9,
+            "estimatedTurnoverCostCad": 8,
+            "estimatedTaxCostCad": 8,
+            "allocationPct": 0.59125
+          }
+        ]
+      },
+      "evaluation": {
+        "generatedAt": "2026-02-26T21:32:03.889Z",
+        "objective": "minimize_one_month_downside_with_six_month_guardrail",
+        "baselineOneMonthCad": 124,
+        "proposedOneMonthCad": 19.466999999999985,
+        "baselineSixMonthCad": 112,
+        "proposedSixMonthCad": 53.20018749999999,
+        "downsideReductionCad": 0,
+        "sixMonthGuardrailDeltaCad": -58.79981250000001,
+        "diversificationGain": 1.2066666666666666,
+        "turnoverPct": 1.7737500000000002,
+        "turnoverCapPct": 5,
+        "taxPenaltyCad": 14.190000000000001,
+        "score": 1.429333333333329,
+        "objectiveSatisfied": false,
+        "warnings": [],
+        "humanDecisionRequired": true
+      },
+      "affectedExposures": []
+    }
+  ]
+}

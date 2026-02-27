@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import type { CausalChainNode, Signal } from '@prism/shared'
 import type { GraphTimeHorizon } from '../types/graph'
 import { useAppContext } from '../contexts/AppContext'
@@ -9,6 +9,7 @@ import { usePortfolioNetImpact } from '../hooks/usePortfolioNetImpact'
 import { getMateriality, sortSignalsForCards } from '../components/portfolio/signal-utils'
 import { AskPrismDrawer } from '../components/portfolio/AskPrismDrawer'
 import { traceImpact } from '../utils/trace'
+import { UNIFIED_WORKSPACE_ENABLED } from '../utils/feature-flags'
 import { ImpactOverviewView } from './impact/ImpactOverviewView'
 import { ImpactDrilldownView } from './impact/ImpactDrilldownView'
 import { StrategyStudioView } from './impact/StrategyStudioView'
@@ -21,6 +22,7 @@ import '../styles/ask-prism-drawer.css'
 
 export function ImpactAnalysisView() {
   const { userId, askPrismOpen, setAskPrismOpen } = useAppContext()
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedSignalId, setSelectedSignalId] = useState<string | undefined>(
     () => searchParams.get('signal') ?? undefined,
@@ -200,6 +202,15 @@ export function ImpactAnalysisView() {
         >
           Strategy Studio
         </button>
+        {UNIFIED_WORKSPACE_ENABLED && (
+          <button
+            type="button"
+            className="impact-subview-tabs__cta"
+            onClick={() => navigate('/signals')}
+          >
+            Open Unified Workspace
+          </button>
+        )}
       </div>
 
       <div className="impact-subview-content">
@@ -271,6 +282,7 @@ export function ImpactAnalysisView() {
           className="ask-prism-fab"
           onClick={() => setAskPrismOpen(true)}
         >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
           Ask Prism
         </button>
       )}

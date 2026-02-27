@@ -266,4 +266,50 @@ export async function* streamGeneralChatResponse(
   }
 }
 
+/**
+ * Streams an Ask Prism chat response using the unified context with all available layers.
+ * Supports Portfolio, Signal Detail, and Plan pages with progressive disclosure.
+ */
+export async function* streamAskPrismResponse(
+  context: import('@prism/shared').AskPrismContext,
+  history: ReadonlyArray<ChatMessage>,
+  userMessage: string,
+): AsyncGenerator<string, void, undefined> {
+  if (!getGeminiApiKey()) {
+    yield 'Error: Gemini API key not configured.'
+    return
+  }
+
+  const { buildAskPrismPrompt } = await import('./ask-prism-prompt')
+  const contextPrompt = buildAskPrismPrompt(context)
+
+  const transcript = history
+    .map((message) => `${message.role === 'assistant' ? 'Assistant' : 'User'}: ${message.content}`)
+    .join('\n')
+
+  const prompt = [
+    contextPrompt,
+    '',
+    'CHAT HISTORY:',
+    transcript || '(none)',
+    '',
+    `LATEST USER MESSAGE: ${userMessage}`,
+  ].join('\n')
+
+  const result = await runPrismAdkPrompt({
+    userId: context.profile.id,
+    message: prompt,
+    sessionId: `ask-prism:${context.profile.id}`,
+  })
+
+  if (!result.success || !result.data) {
+    yield `Error: ${result.error ?? 'Failed to generate response'}`
+    return
+  }
+
+  for (const chunk of chunkText(result.data.response)) {
+    yield chunk
+  }
+}
+
 export type { ChatContext, ChatMessage, WhatIfDetection } from './types'

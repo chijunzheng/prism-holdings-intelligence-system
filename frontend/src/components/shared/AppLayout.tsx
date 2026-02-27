@@ -1,10 +1,14 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, matchPath, useLocation } from 'react-router-dom'
 import { Disclaimer } from './Disclaimer'
 import { NotificationBell } from '../notifications/NotificationBell'
 import { ProfileSwitcher } from './ProfileSwitcher'
 import '../../styles/layout.css'
 
 export function AppLayout() {
+  const { pathname } = useLocation()
+  const isPlanRoute = Boolean(matchPath('/signals/:signalId/plan', pathname))
+  const isSignalsRoute = pathname.startsWith('/signals') && !isPlanRoute
+
   return (
     <div className="app-layout">
       <nav className="app-nav">
@@ -25,8 +29,9 @@ export function AppLayout() {
           <li>
             <NavLink
               to="/signals"
-              className={({ isActive }) =>
-                `app-nav__link${isActive ? ' app-nav__link--active' : ''}`
+              end
+              className={() =>
+                `app-nav__link${isSignalsRoute ? ' app-nav__link--active' : ''}`
               }
             >
               Signals
@@ -36,7 +41,7 @@ export function AppLayout() {
             <NavLink
               to="/playbook"
               className={({ isActive }) =>
-                `app-nav__link${isActive ? ' app-nav__link--active' : ''}`
+                `app-nav__link${isActive || isPlanRoute ? ' app-nav__link--active' : ''}`
               }
             >
               Playbook

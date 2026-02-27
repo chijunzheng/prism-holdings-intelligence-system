@@ -10,6 +10,7 @@ const SIGNAL: Signal = {
   affectedExposures: ['Energy', 'Inflation', 'Consumer Discretionary'],
   relevanceScore: 0.81,
   urgency: 'high',
+  sentiment: 'negative',
   temporalClassification: 'transient',
   sources: [{ title: 'Market Wire', url: 'https://example.com/sig-oil' }],
   detectedAt: '2026-02-26T10:00:00.000Z',

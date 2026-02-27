@@ -13,6 +13,7 @@ interface ScenarioCanvasProps {
   readonly onRemove: (candidateId: string) => void
   readonly onAllocationChange: (candidateId: string, nextAllocation: number) => void
   readonly onEvaluate: () => void
+  readonly onReasoningNodeSelect?: (node: CausalChainNode | null) => void
 }
 
 function fallbackTemporal(items: ReadonlyArray<StrategyScenarioItem>): TemporalAnalysis {
@@ -60,6 +61,7 @@ export function ScenarioCanvas({
   onRemove,
   onAllocationChange,
   onEvaluate,
+  onReasoningNodeSelect,
 }: ScenarioCanvasProps) {
   const [selectedNode, setSelectedNode] = useState<CausalChainNode | null>(null)
 
@@ -117,7 +119,10 @@ export function ScenarioCanvas({
               expandedDepth={true}
               clusterAssets={false}
               selectedNodeId={selectedNode?.id ?? null}
-              onNodeSelect={setSelectedNode}
+              onNodeSelect={(node) => {
+                setSelectedNode(node)
+                onReasoningNodeSelect?.(node)
+              }}
             />
           </div>
           <aside className="strategy-canvas__node-insight">

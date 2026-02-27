@@ -1,0 +1,3106 @@
+{
+  "sessions": [
+    {
+      "id": "34c9ddbf-b11d-4b73-bf7d-df1d3e62dc81",
+      "userId": "sarah-01",
+      "scope": "signal",
+      "signalId": "sig-bankofcanadahold-mm3migai",
+      "title": "Bank of Canada holds rates, flags trade uncertainty Workspace",
+      "activeBranchId": "5be95101-b50d-42f6-ba0b-12440dd31c29",
+      "createdAt": "2026-02-26T15:37:43.007Z",
+      "updatedAt": "2026-02-26T15:41:28.687Z",
+      "status": "active"
+    }
+  ],
+  "branches": [
+    {
+      "id": "5be95101-b50d-42f6-ba0b-12440dd31c29",
+      "sessionId": "34c9ddbf-b11d-4b73-bf7d-df1d3e62dc81",
+      "name": "Main",
+      "parentCheckpointId": null,
+      "createdAt": "2026-02-26T15:37:43.007Z",
+      "updatedAt": "2026-02-26T15:37:43.007Z"
+    }
+  ],
+  "checkpoints": [
+    {
+      "id": "dae2226a-774a-4328-98ca-3f2508a3094a",
+      "sessionId": "34c9ddbf-b11d-4b73-bf7d-df1d3e62dc81",
+      "branchId": "5be95101-b50d-42f6-ba0b-12440dd31c29",
+      "label": "Initial",
+      "createdAt": "2026-02-26T15:37:43.007Z",
+      "snapshot": {
+        "graphLayers": [
+          {
+            "id": "impact-chain-bankofcanadahold-mm3migai",
+            "kind": "impact",
+            "chain": {
+              "id": "chain-bankofcanadahold-mm3migai",
+              "signalId": "sig-bankofcanadahold-mm3migai",
+              "generatedAt": "2023-10-27T10:00:00Z",
+              "nodes": [
+                {
+                  "id": "n1",
+                  "type": "event",
+                  "label": "BoC Holds Rates, Flags Trade Uncertainty",
+                  "description": "Bank of Canada holds policy rate at 2.25%, citing elevated uncertainty from CUSMA review and geopolitical risks.",
+                  "confidence": 0.95,
+                  "metadata": {
+                    "sourceUrls": [
+                      "https://www.ctvnews.ca/business/bank-of-canada-holds-key-rates-as-cusma-talks-loom-over-its-outlook-1.6575541"
+                    ]
+                  }
+                },
+                {
+                  "id": "n2",
+                  "type": "mechanism",
+                  "label": "Lower Interest Rate Environment",
+                  "description": "Holding rates steady implies a continued lower cost of borrowing and potentially slower economic growth expectations.",
+                  "confidence": 0.9,
+                  "metadata": {
+                    "reasoning": "The BoC's decision to not hike rates suggests a pause in monetary tightening, which can influence borrowing costs and economic activity."
+                  }
+                },
+                {
+                  "id": "n3",
+                  "type": "mechanism",
+                  "label": "Increased Trade Policy Uncertainty",
+                  "description": "Concerns over CUSMA review and geopolitical risks create a less predictable business environment.",
+                  "confidence": 0.9,
+                  "metadata": {
+                    "reasoning": "Uncertainty around trade agreements and geopolitical events directly impacts business investment and consumer confidence."
+                  }
+                },
+                {
+                  "id": "n4",
+                  "type": "sector",
+                  "label": "Canadian Financials",
+                  "description": "Banks benefit from a stable or rising interest rate environment, but can be negatively impacted by economic slowdowns or increased credit risk.",
+                  "confidence": 0.8,
+                  "metadata": {}
+                },
+                {
+                  "id": "n5",
+                  "type": "sector",
+                  "label": "Canadian Energy",
+                  "description": "Sensitive to global demand and commodity prices, which can be influenced by trade dynamics and economic outlook.",
+                  "confidence": 0.75,
+                  "metadata": {}
+                },
+                {
+                  "id": "n6",
+                  "type": "sector",
+                  "label": "Gold & Materials",
+                  "description": "Often seen as a safe-haven asset during times of uncertainty, but can also be influenced by economic growth prospects.",
+                  "confidence": 0.7,
+                  "metadata": {}
+                },
+                {
+                  "id": "n7",
+                  "type": "sector",
+                  "label": "Government Bonds",
+                  "description": "Yields are influenced by central bank policy and inflation expectations. Holding rates steady can support bond prices.",
+                  "confidence": 0.85,
+                  "metadata": {}
+                },
+                {
+                  "id": "n8",
+                  "type": "asset",
+                  "label": "ZEB (BMO Canadian Bank ETF)",
+                  "description": "Holds major Canadian banks. Holding rates steady is generally neutral to slightly positive for bank net interest margins in the short term, but uncertainty could weigh on lending and credit quality.",
+                  "confidence": 0.7,
+                  "dollarImpact": -100,
+                  "percentageImpact": -0.5,
+                  "metadata": {
+                    "ticker": "ZEB",
+                    "reasoning": "While holding rates can be supportive, the flagged trade uncertainty introduces downside risk to economic growth and thus bank profitability.",
+                    "lookThroughConstituents": [
+                      "RY",
+                      "TD",
+                      "BNS",
+                      "BMO"
+                    ]
+                  }
+                },
+                {
+                  "id": "n9",
+                  "type": "asset",
+                  "label": "XIC (iShares Core S&P/TSX Capped Composite Index ETF)",
+                  "description": "Broad Canadian equity exposure. Mixed impact due to sector composition.",
+                  "confidence": 0.75,
+                  "dollarImpact": -150,
+                  "percentageImpact": -0.75,
+                  "metadata": {
+                    "ticker": "XIC",
+                    "reasoning": "Contains financials and energy, both subject to competing effects from the BoC announcement.",
+                    "lookThroughConstituents": [
+                      "RY",
+                      "TD",
+                      "BNS",
+                      "BMO",
+                      "CNQ"
+                    ]
+                  }
+                },
+                {
+                  "id": "n10",
+                  "type": "asset",
+                  "label": "XEG (iShares S&P/TSX Energy Index ETF)",
+                  "description": "Canadian energy stocks. Trade uncertainty can impact global demand and commodity prices, potentially leading to volatility.",
+                  "confidence": 0.65,
+                  "dollarImpact": -75,
+                  "percentageImpact": -0.3,
+                  "metadata": {
+                    "ticker": "XEG",
+                    "reasoning": "Geopolitical risks and trade uncertainty can create volatility in oil prices and energy demand.",
+                    "lookThroughConstituents": [
+                      "CNQ"
+                    ]
+                  }
+                },
+                {
+                  "id": "n11",
+                  "type": "asset",
+                  "label": "XGD (iShares S&P/TSX Global Gold Index ETF)",
+                  "description": "Gold and precious metals. Increased uncertainty often drives demand for safe-haven assets like gold.",
+                  "confidence": 0.7,
+                  "dollarImpact": 50,
+                  "percentageImpact": 0.25,
+                  "metadata": {
+                    "ticker": "XGD",
+                    "reasoning": "Geopolitical and trade uncertainties typically increase investor demand for gold as a safe-haven asset.",
+                    "lookThroughConstituents": []
+                  }
+                },
+                {
+                  "id": "n12",
+                  "type": "asset",
+                  "label": "ZAG (iShares Core Canadian Universe Bond Index ETF)",
+                  "description": "Canadian government and corporate bonds. Holding rates steady is generally supportive of bond prices.",
+                  "confidence": 0.85,
+                  "dollarImpact": 75,
+                  "percentageImpact": 0.3,
+                  "metadata": {
+                    "ticker": "ZAG",
+                    "reasoning": "The BoC holding rates steady reduces the immediate pressure for bond yields to rise, thus supporting existing bond prices.",
+                    "lookThroughConstituents": []
+                  }
+                },
+                {
+                  "id": "n13",
+                  "type": "asset",
+                  "label": "VFV (Vanguard S&P 500 Index ETF)",
+                  "description": "US technology and communication services. Less directly impacted by BoC policy, but global economic uncertainty can affect tech valuations.",
+                  "confidence": 0.5,
+                  "dollarImpact": -50,
+                  "percentageImpact": -0.2,
+                  "metadata": {
+                    "ticker": "VFV",
+                    "reasoning": "While not directly tied to Canadian rates, global economic uncertainty can spill over and impact US equity markets, particularly growth-oriented sectors like tech.",
+                    "lookThroughConstituents": []
+                  }
+                }
+              ],
+              "edges": [
+                {
+                  "id": "e1",
+                  "source": "n1",
+                  "target": "n2",
+                  "magnitude": 0.9,
+                  "direction": "negative",
+                  "confidence": 0.9,
+                  "mechanism": "Holding rates steady signals a pause in tightening, implying a less aggressive stance on inflation and potentially a more cautious outlook on economic growth."
+                },
+                {
+                  "id": "e2",
+                  "source": "n1",
+                  "target": "n3",
+                  "magnitude": 0.9,
+                  "direction": "negative",
+                  "confidence": 0.9,
+                  "mechanism": "Explicitly citing CUSMA review and geopolitical risks as sources of uncertainty directly introduces ambiguity into future trade flows and economic stability."
+                },
+                {
+                  "id": "e3",
+                  "source": "n2",
+                  "target": "n4",
+                  "magnitude": 0.7,
+                  "direction": "ambiguous",
+                  "confidence": 0.75,
+                  "mechanism": "A stable rate environment can be neutral to slightly positive for bank net interest margins, but the accompanying economic caution can dampen lending and increase credit risk."
+                },
+                {
+                  "id": "e4",
+                  "source": "n3",
+                  "target": "n4",
+                  "magnitude": 0.7,
+                  "direction": "negative",
+                  "confidence": 0.8,
+                  "mechanism": "Increased trade policy uncertainty can lead to reduced business investment and consumer spending, negatively impacting loan demand and potentially increasing credit defaults for financial institutions."
+                },
+                {
+                  "id": "e5",
+                  "source": "n3",
+                  "target": "n5",
+                  "magnitude": 0.7,
+                  "direction": "negative",
+                  "confidence": 0.75,
+                  "mechanism": "Trade uncertainty can lead to fluctuations in global demand for commodities, including oil, and can disrupt supply chains, creating volatility for energy producers."
+                },
+                {
+                  "id": "e6",
+                  "source": "n3",
+                  "target": "n6",
+                  "magnitude": 0.7,
+                  "direction": "positive",
+                  "confidence": 0.7,
+                  "mechanism": "Heightened geopolitical and trade uncertainty often drives investors to seek 'safe-haven' assets like gold, increasing its demand and price."
+                },
+                {
+                  "id": "e7",
+                  "source": "n2",
+                  "target": "n7",
+                  "magnitude": 0.8,
+                  "direction": "positive",
+                  "confidence": 0.85,
+                  "mechanism": "Holding interest rates steady reduces the immediate upward pressure on bond yields, which generally supports the prices of existing bonds."
+                },
+                {
+                  "id": "e8",
+                  "source": "n4",
+                  "target": "n8",
+                  "magnitude": 0.7,
+                  "direction": "negative",
+                  "confidence": 0.7,
+                  "mechanism": "The combination of stable rates (neutral to slightly positive) and increased uncertainty (negative for lending and credit quality) leads to a net negative sentiment for Canadian banks."
+                },
+                {
+                  "id": "e9",
+                  "source": "n4",
+                  "target": "n9",
+                  "magnitude": 0.7,
+                  "direction": "negative",
+                  "confidence": 0.75,
+                  "mechanism": "The financial sector component of XIC is subject to the negative pressures from trade uncertainty, outweighing potential neutral effects from held rates."
+                },
+                {
+                  "id": "e10",
+                  "source": "n5",
+                  "target": "n9",
+                  "magnitude": 0.6,
+                  "direction": "negative",
+                  "confidence": 0.7,
+                  "mechanism": "The energy sector component of XIC is exposed to potential negative impacts from trade uncertainty on global demand and commodity prices."
+                },
+                {
+                  "id": "e11",
+                  "source": "n5",
+                  "target": "n10",
+                  "magnitude": 0.65,
+                  "direction": "negative",
+                  "confidence": 0.65,
+                  "mechanism": "Trade uncertainty can lead to volatility in global commodity markets, impacting the profitability and stock prices of energy companies."
+                },
+                {
+                  "id": "e12",
+                  "source": "n6",
+                  "target": "n9",
+                  "magnitude": 0.5,
+                  "direction": "positive",
+                  "confidence": 0.65,
+                  "mechanism": "The materials and gold sector component of XIC can benefit from increased demand for safe-haven assets due to trade uncertainty."
+                },
+                {
+                  "id": "e13",
+                  "source": "n6",
+                  "target": "n11",
+                  "magnitude": 0.7,
+                  "direction": "positive",
+                  "confidence": 0.7,
+                  "mechanism": "Heightened uncertainty typically increases investor demand for gold as a safe-haven asset, driving its price up."
+                },
+                {
+                  "id": "e14",
+                  "source": "n7",
+                  "target": "n12",
+                  "magnitude": 0.85,
+                  "direction": "positive",
+                  "confidence": 0.85,
+                  "mechanism": "The Bank of Canada holding rates steady provides a supportive environment for bond prices by preventing an immediate rise in yields."
+                },
+                {
+                  "id": "e15",
+                  "source": "n3",
+                  "target": "n13",
+                  "magnitude": 0.5,
+                  "direction": "negative",
+                  "confidence": 0.5,
+                  "mechanism": "Global economic uncertainty stemming from trade issues can indirectly affect US equity markets, including technology stocks, due to potential impacts on global growth and investment."
+                }
+              ],
+              "summary": "The Bank of Canada's decision to hold rates steady, coupled with explicit warnings about trade uncertainty, creates a mixed impact on the investor's portfolio. The stable rate environment is generally positive for government bonds (ZAG) and neutral to slightly positive for Canadian financials (ZEB, XIC), but the heightened trade and geopolitical risks introduce significant downside pressure. This uncertainty is expected to negatively impact Canadian energy (XEG, XIC) due to potential demand disruptions and volatility in commodity prices. Conversely, gold and materials (XGD, XIC) are likely to benefit from their safe-haven appeal amidst increased global risk. US technology and communication services (VFV) face indirect negative pressure from global economic uncertainty. Overall, the net effect is a slight negative bias due to the dominant impact of trade uncertainty on key Canadian sectors.",
+              "disclaimer": "This analysis is for informational purposes only and does not constitute financial advice. Causal relationships shown are AI-generated hypotheses, not guaranteed outcomes.",
+              "maxHops": 3,
+              "isSpeculative": false
+            },
+            "sourceSignalId": "sig-bankofcanadahold-mm3migai"
+          },
+          {
+            "id": "mitigation-mitigation-reasoning-sig-bankofcanadahold-mm3migai",
+            "kind": "mitigation",
+            "chain": {
+              "id": "mitigation-reasoning-sig-bankofcanadahold-mm3migai",
+              "signalId": "sig-bankofcanadahold-mm3migai",
+              "generatedAt": "2026-02-26T15:37:42.991Z",
+              "nodes": [
+                {
+                  "id": "source-signal",
+                  "type": "event",
+                  "label": "Bank of Canada holds rates, flags trade uncertainty",
+                  "description": "BoC holds policy rate at 2.25%, citing elevated uncertainty from CUSMA review and geopolitical risks.",
+                  "temporalClassification": "ambiguous",
+                  "confidence": 0.8,
+                  "dollarImpact": -50,
+                  "metadata": {
+                    "role": "source-signal"
+                  }
+                },
+                {
+                  "id": "impact-1",
+                  "type": "mechanism",
+                  "label": "XIC (iShares Core S&P/TSX Capped Composite Index ETF)",
+                  "description": "Broad Canadian equity exposure. Mixed impact due to sector composition.",
+                  "confidence": 0.75,
+                  "dollarImpact": -150,
+                  "metadata": {
+                    "role": "impact-channel"
+                  }
+                },
+                {
+                  "id": "impact-2",
+                  "type": "mechanism",
+                  "label": "ZEB (BMO Canadian Bank ETF)",
+                  "description": "Holds major Canadian banks. Holding rates steady is generally neutral to slightly positive for bank net interest margins in the short term, but uncertainty could weigh on lending and credit quality.",
+                  "confidence": 0.7,
+                  "dollarImpact": -100,
+                  "metadata": {
+                    "role": "impact-channel"
+                  }
+                },
+                {
+                  "id": "impact-3",
+                  "type": "mechanism",
+                  "label": "XEG (iShares S&P/TSX Energy Index ETF)",
+                  "description": "Canadian energy stocks. Trade uncertainty can impact global demand and commodity prices, potentially leading to volatility.",
+                  "confidence": 0.65,
+                  "dollarImpact": -75,
+                  "metadata": {
+                    "role": "impact-channel"
+                  }
+                },
+                {
+                  "id": "impact-4",
+                  "type": "mechanism",
+                  "label": "VFV (Vanguard S&P 500 Index ETF)",
+                  "description": "US technology and communication services. Less directly impacted by BoC policy, but global economic uncertainty can affect tech valuations.",
+                  "confidence": 0.5,
+                  "dollarImpact": -50,
+                  "metadata": {
+                    "role": "impact-channel"
+                  }
+                }
+              ],
+              "edges": [
+                {
+                  "id": "edge-source-impact-1",
+                  "source": "source-signal",
+                  "target": "impact-1",
+                  "magnitude": 0.64,
+                  "direction": "negative",
+                  "confidence": 0.775,
+                  "mechanism": "Signal pressure transmitted through XIC (iShares Core S&P/TSX Capped Composite Index ETF)."
+                },
+                {
+                  "id": "edge-source-impact-2",
+                  "source": "source-signal",
+                  "target": "impact-2",
+                  "magnitude": 0.59,
+                  "direction": "negative",
+                  "confidence": 0.75,
+                  "mechanism": "Signal pressure transmitted through ZEB (BMO Canadian Bank ETF)."
+                },
+                {
+                  "id": "edge-source-impact-3",
+                  "source": "source-signal",
+                  "target": "impact-3",
+                  "magnitude": 0.54,
+                  "direction": "negative",
+                  "confidence": 0.7250000000000001,
+                  "mechanism": "Signal pressure transmitted through XEG (iShares S&P/TSX Energy Index ETF)."
+                },
+                {
+                  "id": "edge-source-impact-4",
+                  "source": "source-signal",
+                  "target": "impact-4",
+                  "magnitude": 0.49,
+                  "direction": "negative",
+                  "confidence": 0.65,
+                  "mechanism": "Signal pressure transmitted through VFV (Vanguard S&P 500 Index ETF)."
+                }
+              ],
+              "summary": "Reasoning graph links active signal pressure to impact channels and mitigation candidates in the current scenario.",
+              "disclaimer": "This analysis is for informational purposes only and does not constitute financial advice. Past performance is not indicative of future results. Causal relationships shown are AI-generated hypotheses, not guaranteed outcomes. Always consult a qualified financial advisor before making investment decisions.",
+              "maxHops": 3,
+              "isSpeculative": false
+            },
+            "sourceSignalId": "sig-bankofcanadahold-mm3migai"
+          }
+        ],
+        "scenario": {
+          "items": []
+        },
+        "evaluation": null,
+        "selectedSignalId": "sig-bankofcanadahold-mm3migai",
+        "selectedNodeId": null
+      }
+    },
+    {
+      "id": "e997ff62-361f-476f-8cbb-234dd4b7f340",
+      "sessionId": "34c9ddbf-b11d-4b73-bf7d-df1d3e62dc81",
+      "branchId": "5be95101-b50d-42f6-ba0b-12440dd31c29",
+      "label": null,
+      "createdAt": "2026-02-26T15:38:01.564Z",
+      "snapshot": {
+        "graphLayers": [
+          {
+            "id": "impact-chain-bankofcanadahold-mm3migai",
+            "kind": "impact",
+            "chain": {
+              "id": "chain-bankofcanadahold-mm3migai",
+              "signalId": "sig-bankofcanadahold-mm3migai",
+              "generatedAt": "2023-10-27T10:00:00Z",
+              "nodes": [
+                {
+                  "id": "n1",
+                  "type": "event",
+                  "label": "BoC Holds Rates, Flags Trade Uncertainty",
+                  "description": "Bank of Canada holds policy rate at 2.25%, citing elevated uncertainty from CUSMA review and geopolitical risks.",
+                  "confidence": 0.95,
+                  "metadata": {
+                    "sourceUrls": [
+                      "https://www.ctvnews.ca/business/bank-of-canada-holds-key-rates-as-cusma-talks-loom-over-its-outlook-1.6575541"
+                    ]
+                  }
+                },
+                {
+                  "id": "n2",
+                  "type": "mechanism",
+                  "label": "Lower Interest Rate Environment",
+                  "description": "Holding rates steady implies a continued lower cost of borrowing and potentially slower economic growth expectations.",
+                  "confidence": 0.9,
+                  "metadata": {
+                    "reasoning": "The BoC's decision to not hike rates suggests a pause in monetary tightening, which can influence borrowing costs and economic activity."
+                  }
+                },
+                {
+                  "id": "n3",
+                  "type": "mechanism",
+                  "label": "Increased Trade Policy Uncertainty",
+                  "description": "Concerns over CUSMA review and geopolitical risks create a less predictable business environment.",
+                  "confidence": 0.9,
+                  "metadata": {
+                    "reasoning": "Uncertainty around trade agreements and geopolitical events directly impacts business investment and consumer confidence."
+                  }
+                },
+                {
+                  "id": "n4",
+                  "type": "sector",
+                  "label": "Canadian Financials",
+                  "description": "Banks benefit from a stable or rising interest rate environment, but can be negatively impacted by economic slowdowns or increased credit risk.",
+                  "confidence": 0.8,
+                  "metadata": {}
+                },
+                {
+                  "id": "n5",
+                  "type": "sector",
+                  "label": "Canadian Energy",
+                  "description": "Sensitive to global demand and commodity prices, which can be influenced by trade dynamics and economic outlook.",
+                  "confidence": 0.75,
+                  "metadata": {}
+                },
+                {
+                  "id": "n6",
+                  "type": "sector",
+                  "label": "Gold & Materials",
+                  "description": "Often seen as a safe-haven asset during times of uncertainty, but can also be influenced by economic growth prospects.",
+                  "confidence": 0.7,
+                  "metadata": {}
+                },
+                {
+                  "id": "n7",
+                  "type": "sector",
+                  "label": "Government Bonds",
+                  "description": "Yields are influenced by central bank policy and inflation expectations. Holding rates steady can support bond prices.",
+                  "confidence": 0.85,
+                  "metadata": {}
+                },
+                {
+                  "id": "n8",
+                  "type": "asset",
+                  "label": "ZEB (BMO Canadian Bank ETF)",
+                  "description": "Holds major Canadian banks. Holding rates steady is generally neutral to slightly positive for bank net interest margins in the short term, but uncertainty could weigh on lending and credit quality.",
+                  "confidence": 0.7,
+                  "dollarImpact": -100,
+                  "percentageImpact": -0.5,
+                  "metadata": {
+                    "ticker": "ZEB",
+                    "reasoning": "While holding rates can be supportive, the flagged trade uncertainty introduces downside risk to economic growth and thus bank profitability.",
+                    "lookThroughConstituents": [
+                      "RY",
+                      "TD",
+                      "BNS",
+                      "BMO"
+                    ]
+                  }
+                },
+                {
+                  "id": "n9",
+                  "type": "asset",
+                  "label": "XIC (iShares Core S&P/TSX Capped Composite Index ETF)",
+                  "description": "Broad Canadian equity exposure. Mixed impact due to sector composition.",
+                  "confidence": 0.75,
+                  "dollarImpact": -150,
+                  "percentageImpact": -0.75,
+                  "metadata": {
+                    "ticker": "XIC",
+                    "reasoning": "Contains financials and energy, both subject to competing effects from the BoC announcement.",
+                    "lookThroughConstituents": [
+                      "RY",
+                      "TD",
+                      "BNS",
+                      "BMO",
+                      "CNQ"
+                    ]
+                  }
+                },
+                {
+                  "id": "n10",
+                  "type": "asset",
+                  "label": "XEG (iShares S&P/TSX Energy Index ETF)",
+                  "description": "Canadian energy stocks. Trade uncertainty can impact global demand and commodity prices, potentially leading to volatility.",
+                  "confidence": 0.65,
+                  "dollarImpact": -75,
+                  "percentageImpact": -0.3,
+                  "metadata": {
+                    "ticker": "XEG",
+                    "reasoning": "Geopolitical risks and trade uncertainty can create volatility in oil prices and energy demand.",
+                    "lookThroughConstituents": [
+                      "CNQ"
+                    ]
+                  }
+                },
+                {
+                  "id": "n11",
+                  "type": "asset",
+                  "label": "XGD (iShares S&P/TSX Global Gold Index ETF)",
+                  "description": "Gold and precious metals. Increased uncertainty often drives demand for safe-haven assets like gold.",
+                  "confidence": 0.7,
+                  "dollarImpact": 50,
+                  "percentageImpact": 0.25,
+                  "metadata": {
+                    "ticker": "XGD",
+                    "reasoning": "Geopolitical and trade uncertainties typically increase investor demand for gold as a safe-haven asset.",
+                    "lookThroughConstituents": []
+                  }
+                },
+                {
+                  "id": "n12",
+                  "type": "asset",
+                  "label": "ZAG (iShares Core Canadian Universe Bond Index ETF)",
+                  "description": "Canadian government and corporate bonds. Holding rates steady is generally supportive of bond prices.",
+                  "confidence": 0.85,
+                  "dollarImpact": 75,
+                  "percentageImpact": 0.3,
+                  "metadata": {
+                    "ticker": "ZAG",
+                    "reasoning": "The BoC holding rates steady reduces the immediate pressure for bond yields to rise, thus supporting existing bond prices.",
+                    "lookThroughConstituents": []
+                  }
+                },
+                {
+                  "id": "n13",
+                  "type": "asset",
+                  "label": "VFV (Vanguard S&P 500 Index ETF)",
+                  "description": "US technology and communication services. Less directly impacted by BoC policy, but global economic uncertainty can affect tech valuations.",
+                  "confidence": 0.5,
+                  "dollarImpact": -50,
+                  "percentageImpact": -0.2,
+                  "metadata": {
+                    "ticker": "VFV",
+                    "reasoning": "While not directly tied to Canadian rates, global economic uncertainty can spill over and impact US equity markets, particularly growth-oriented sectors like tech.",
+                    "lookThroughConstituents": []
+                  }
+                }
+              ],
+              "edges": [
+                {
+                  "id": "e1",
+                  "source": "n1",
+                  "target": "n2",
+                  "magnitude": 0.9,
+                  "direction": "negative",
+                  "confidence": 0.9,
+                  "mechanism": "Holding rates steady signals a pause in tightening, implying a less aggressive stance on inflation and potentially a more cautious outlook on economic growth."
+                },
+                {
+                  "id": "e2",
+                  "source": "n1",
+                  "target": "n3",
+                  "magnitude": 0.9,
+                  "direction": "negative",
+                  "confidence": 0.9,
+                  "mechanism": "Explicitly citing CUSMA review and geopolitical risks as sources of uncertainty directly introduces ambiguity into future trade flows and economic stability."
+                },
+                {
+                  "id": "e3",
+                  "source": "n2",
+                  "target": "n4",
+                  "magnitude": 0.7,
+                  "direction": "ambiguous",
+                  "confidence": 0.75,
+                  "mechanism": "A stable rate environment can be neutral to slightly positive for bank net interest margins, but the accompanying economic caution can dampen lending and increase credit risk."
+                },
+                {
+                  "id": "e4",
+                  "source": "n3",
+                  "target": "n4",
+                  "magnitude": 0.7,
+                  "direction": "negative",
+                  "confidence": 0.8,
+                  "mechanism": "Increased trade policy uncertainty can lead to reduced business investment and consumer spending, negatively impacting loan demand and potentially increasing credit defaults for financial institutions."
+                },
+                {
+                  "id": "e5",
+                  "source": "n3",
+                  "target": "n5",
+                  "magnitude": 0.7,
+                  "direction": "negative",
+                  "confidence": 0.75,
+                  "mechanism": "Trade uncertainty can lead to fluctuations in global demand for commodities, including oil, and can disrupt supply chains, creating volatility for energy producers."
+                },
+                {
+                  "id": "e6",
+                  "source": "n3",
+                  "target": "n6",
+                  "magnitude": 0.7,
+                  "direction": "positive",
+                  "confidence": 0.7,
+                  "mechanism": "Heightened geopolitical and trade uncertainty often drives investors to seek 'safe-haven' assets like gold, increasing its demand and price."
+                },
+                {
+                  "id": "e7",
+                  "source": "n2",
+                  "target": "n7",
+                  "magnitude": 0.8,
+                  "direction": "positive",
+                  "confidence": 0.85,
+                  "mechanism": "Holding interest rates steady reduces the immediate upward pressure on bond yields, which generally supports the prices of existing bonds."
+                },
+                {
+                  "id": "e8",
+                  "source": "n4",
+                  "target": "n8",
+                  "magnitude": 0.7,
+                  "direction": "negative",
+                  "confidence": 0.7,
+                  "mechanism": "The combination of stable rates (neutral to slightly positive) and increased uncertainty (negative for lending and credit quality) leads to a net negative sentiment for Canadian banks."
+                },
+                {
+                  "id": "e9",
+                  "source": "n4",
+                  "target": "n9",
+                  "magnitude": 0.7,
+                  "direction": "negative",
+                  "confidence": 0.75,
+                  "mechanism": "The financial sector component of XIC is subject to the negative pressures from trade uncertainty, outweighing potential neutral effects from held rates."
+                },
+                {
+                  "id": "e10",
+                  "source": "n5",
+                  "target": "n9",
+                  "magnitude": 0.6,
+                  "direction": "negative",
+                  "confidence": 0.7,
+                  "mechanism": "The energy sector component of XIC is exposed to potential negative impacts from trade uncertainty on global demand and commodity prices."
+                },
+                {
+                  "id": "e11",
+                  "source": "n5",
+                  "target": "n10",
+                  "magnitude": 0.65,
+                  "direction": "negative",
+                  "confidence": 0.65,
+                  "mechanism": "Trade uncertainty can lead to volatility in global commodity markets, impacting the profitability and stock prices of energy companies."
+                },
+                {
+                  "id": "e12",
+                  "source": "n6",
+                  "target": "n9",
+                  "magnitude": 0.5,
+                  "direction": "positive",
+                  "confidence": 0.65,
+                  "mechanism": "The materials and gold sector component of XIC can benefit from increased demand for safe-haven assets due to trade uncertainty."
+                },
+                {
+                  "id": "e13",
+                  "source": "n6",
+                  "target": "n11",
+                  "magnitude": 0.7,
+                  "direction": "positive",
+                  "confidence": 0.7,
+                  "mechanism": "Heightened uncertainty typically increases investor demand for gold as a safe-haven asset, driving its price up."
+                },
+                {
+                  "id": "e14",
+                  "source": "n7",
+                  "target": "n12",
+                  "magnitude": 0.85,
+                  "direction": "positive",
+                  "confidence": 0.85,
+                  "mechanism": "The Bank of Canada holding rates steady provides a supportive environment for bond prices by preventing an immediate rise in yields."
+                },
+                {
+                  "id": "e15",
+                  "source": "n3",
+                  "target": "n13",
+                  "magnitude": 0.5,
+                  "direction": "negative",
+                  "confidence": 0.5,
+                  "mechanism": "Global economic uncertainty stemming from trade issues can indirectly affect US equity markets, including technology stocks, due to potential impacts on global growth and investment."
+                }
+              ],
+              "summary": "The Bank of Canada's decision to hold rates steady, coupled with explicit warnings about trade uncertainty, creates a mixed impact on the investor's portfolio. The stable rate environment is generally positive for government bonds (ZAG) and neutral to slightly positive for Canadian financials (ZEB, XIC), but the heightened trade and geopolitical risks introduce significant downside pressure. This uncertainty is expected to negatively impact Canadian energy (XEG, XIC) due to potential demand disruptions and volatility in commodity prices. Conversely, gold and materials (XGD, XIC) are likely to benefit from their safe-haven appeal amidst increased global risk. US technology and communication services (VFV) face indirect negative pressure from global economic uncertainty. Overall, the net effect is a slight negative bias due to the dominant impact of trade uncertainty on key Canadian sectors.",
+              "disclaimer": "This analysis is for informational purposes only and does not constitute financial advice. Causal relationships shown are AI-generated hypotheses, not guaranteed outcomes.",
+              "maxHops": 3,
+              "isSpeculative": false
+            },
+            "sourceSignalId": "sig-bankofcanadahold-mm3migai"
+          },
+          {
+            "id": "mitigation-mitigation-reasoning-sig-bankofcanadahold-mm3migai",
+            "kind": "mitigation",
+            "chain": {
+              "id": "mitigation-reasoning-sig-bankofcanadahold-mm3migai",
+              "signalId": "sig-bankofcanadahold-mm3migai",
+              "generatedAt": "2026-02-26T15:38:00.056Z",
+              "nodes": [
+                {
+                  "id": "source-signal",
+                  "type": "event",
+                  "label": "Bank of Canada holds rates, flags trade uncertainty",
+                  "description": "BoC holds policy rate at 2.25%, citing elevated uncertainty from CUSMA review and geopolitical risks.",
+                  "temporalClassification": "ambiguous",
+                  "confidence": 0.8,
+                  "dollarImpact": -50,
+                  "metadata": {
+                    "role": "source-signal"
+                  }
+                },
+                {
+                  "id": "impact-1",
+                  "type": "mechanism",
+                  "label": "XIC (iShares Core S&P/TSX Capped Composite Index ETF)",
+                  "description": "Broad Canadian equity exposure. Mixed impact due to sector composition.",
+                  "confidence": 0.75,
+                  "dollarImpact": -150,
+                  "metadata": {
+                    "role": "impact-channel"
+                  }
+                },
+                {
+                  "id": "impact-2",
+                  "type": "mechanism",
+                  "label": "ZEB (BMO Canadian Bank ETF)",
+                  "description": "Holds major Canadian banks. Holding rates steady is generally neutral to slightly positive for bank net interest margins in the short term, but uncertainty could weigh on lending and credit quality.",
+                  "confidence": 0.7,
+                  "dollarImpact": -100,
+                  "metadata": {
+                    "role": "impact-channel"
+                  }
+                },
+                {
+                  "id": "impact-3",
+                  "type": "mechanism",
+                  "label": "XEG (iShares S&P/TSX Energy Index ETF)",
+                  "description": "Canadian energy stocks. Trade uncertainty can impact global demand and commodity prices, potentially leading to volatility.",
+                  "confidence": 0.65,
+                  "dollarImpact": -75,
+                  "metadata": {
+                    "role": "impact-channel"
+                  }
+                },
+                {
+                  "id": "impact-4",
+                  "type": "mechanism",
+                  "label": "VFV (Vanguard S&P 500 Index ETF)",
+                  "description": "US technology and communication services. Less directly impacted by BoC policy, but global economic uncertainty can affect tech valuations.",
+                  "confidence": 0.5,
+                  "dollarImpact": -50,
+                  "metadata": {
+                    "role": "impact-channel"
+                  }
+                },
+                {
+                  "id": "thesis-cand-stock-nem",
+                  "type": "sector",
+                  "label": "Large-cap proxy from XGD constituents",
+                  "description": "Why NEM: Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+                  "confidence": 0.85,
+                  "dollarImpact": 178.5575,
+                  "metadata": {
+                    "role": "mitigation-thesis",
+                    "index": 0
+                  }
+                },
+                {
+                  "id": "thesis-cand-stock-cnq",
+                  "type": "sector",
+                  "label": "Large-cap proxy from XEG constituents",
+                  "description": "Why CNQ: Large-cap proxy from XEG constituents; used for targeted mitigation with controlled sizing.",
+                  "confidence": 0.85,
+                  "dollarImpact": 185.6525,
+                  "metadata": {
+                    "role": "mitigation-thesis",
+                    "index": 1
+                  }
+                },
+                {
+                  "id": "thesis-cand-stock-abx",
+                  "type": "sector",
+                  "label": "Large-cap proxy from XGD constituents",
+                  "description": "Why ABX: Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+                  "confidence": 0.85,
+                  "dollarImpact": 158.455,
+                  "metadata": {
+                    "role": "mitigation-thesis",
+                    "index": 2
+                  }
+                },
+                {
+                  "id": "candidate-cand-stock-nem",
+                  "type": "asset",
+                  "label": "NEM",
+                  "description": "Newmont Corp. · Allocation 0.6%",
+                  "confidence": 0.85,
+                  "dollarImpact": 178.5575,
+                  "percentageImpact": 0.59125,
+                  "metadata": {
+                    "role": "mitigation-candidate",
+                    "candidateName": "Newmont Corp.",
+                    "candidateType": "stock",
+                    "rationale": "Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+                    "index": 0
+                  }
+                },
+                {
+                  "id": "candidate-cand-stock-cnq",
+                  "type": "asset",
+                  "label": "CNQ",
+                  "description": "Canadian Natural Resources · Allocation 0.6%",
+                  "confidence": 0.85,
+                  "dollarImpact": 185.6525,
+                  "percentageImpact": 0.59125,
+                  "metadata": {
+                    "role": "mitigation-candidate",
+                    "candidateName": "Canadian Natural Resources",
+                    "candidateType": "stock",
+                    "rationale": "Large-cap proxy from XEG constituents; used for targeted mitigation with controlled sizing.",
+                    "index": 1
+                  }
+                },
+                {
+                  "id": "candidate-cand-stock-abx",
+                  "type": "asset",
+                  "label": "ABX",
+                  "description": "Barrick Gold Corp. · Allocation 0.6%",
+                  "confidence": 0.85,
+                  "dollarImpact": 158.455,
+                  "percentageImpact": 0.59125,
+                  "metadata": {
+                    "role": "mitigation-candidate",
+                    "candidateName": "Barrick Gold Corp.",
+                    "candidateType": "stock",
+                    "rationale": "Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+                    "index": 2
+                  }
+                }
+              ],
+              "edges": [
+                {
+                  "id": "edge-source-impact-1",
+                  "source": "source-signal",
+                  "target": "impact-1",
+                  "magnitude": 0.64,
+                  "direction": "negative",
+                  "confidence": 0.775,
+                  "mechanism": "Signal pressure transmitted through XIC (iShares Core S&P/TSX Capped Composite Index ETF)."
+                },
+                {
+                  "id": "edge-source-impact-2",
+                  "source": "source-signal",
+                  "target": "impact-2",
+                  "magnitude": 0.59,
+                  "direction": "negative",
+                  "confidence": 0.75,
+                  "mechanism": "Signal pressure transmitted through ZEB (BMO Canadian Bank ETF)."
+                },
+                {
+                  "id": "edge-source-impact-3",
+                  "source": "source-signal",
+                  "target": "impact-3",
+                  "magnitude": 0.54,
+                  "direction": "negative",
+                  "confidence": 0.7250000000000001,
+                  "mechanism": "Signal pressure transmitted through XEG (iShares S&P/TSX Energy Index ETF)."
+                },
+                {
+                  "id": "edge-source-impact-4",
+                  "source": "source-signal",
+                  "target": "impact-4",
+                  "magnitude": 0.49,
+                  "direction": "negative",
+                  "confidence": 0.65,
+                  "mechanism": "Signal pressure transmitted through VFV (Vanguard S&P 500 Index ETF)."
+                },
+                {
+                  "id": "edge-bridge-impact-2-cand-stock-nem-1",
+                  "source": "impact-2",
+                  "target": "thesis-cand-stock-nem",
+                  "magnitude": 0.33749999999999997,
+                  "direction": "positive",
+                  "confidence": 0.7862499999999999,
+                  "mechanism": "Mitigation path via NEM: Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing."
+                },
+                {
+                  "id": "edge-bridge-impact-1-cand-stock-nem-2",
+                  "source": "impact-1",
+                  "target": "thesis-cand-stock-nem",
+                  "magnitude": 0.3,
+                  "direction": "positive",
+                  "confidence": 0.8,
+                  "mechanism": "Mitigation path via NEM: Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing."
+                },
+                {
+                  "id": "edge-bridge-impact-2-cand-stock-cnq-1",
+                  "source": "impact-2",
+                  "target": "thesis-cand-stock-cnq",
+                  "magnitude": 0.37058823529411766,
+                  "direction": "positive",
+                  "confidence": 0.7961764705882352,
+                  "mechanism": "Mitigation path via CNQ: Large-cap proxy from XEG constituents; used for targeted mitigation with controlled sizing."
+                },
+                {
+                  "id": "edge-bridge-impact-3-cand-stock-cnq-2",
+                  "source": "impact-3",
+                  "target": "thesis-cand-stock-cnq",
+                  "magnitude": 0.37058823529411766,
+                  "direction": "positive",
+                  "confidence": 0.7711764705882352,
+                  "mechanism": "Mitigation path via CNQ: Large-cap proxy from XEG constituents; used for targeted mitigation with controlled sizing."
+                },
+                {
+                  "id": "edge-bridge-impact-3-cand-stock-abx-1",
+                  "source": "impact-3",
+                  "target": "thesis-cand-stock-abx",
+                  "magnitude": 0.408,
+                  "direction": "positive",
+                  "confidence": 0.7824,
+                  "mechanism": "Mitigation path via ABX: Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing."
+                },
+                {
+                  "id": "edge-thesis-cand-stock-nem",
+                  "source": "thesis-cand-stock-nem",
+                  "target": "candidate-cand-stock-nem",
+                  "magnitude": 0.8325,
+                  "direction": "positive",
+                  "confidence": 0.85,
+                  "mechanism": "Allocate 0.6% to execute mitigation thesis."
+                },
+                {
+                  "id": "edge-thesis-cand-stock-cnq",
+                  "source": "thesis-cand-stock-cnq",
+                  "target": "candidate-cand-stock-cnq",
+                  "magnitude": 0.8325,
+                  "direction": "positive",
+                  "confidence": 0.85,
+                  "mechanism": "Allocate 0.6% to execute mitigation thesis."
+                },
+                {
+                  "id": "edge-thesis-cand-stock-abx",
+                  "source": "thesis-cand-stock-abx",
+                  "target": "candidate-cand-stock-abx",
+                  "magnitude": 0.8325,
+                  "direction": "positive",
+                  "confidence": 0.85,
+                  "mechanism": "Allocate 0.6% to execute mitigation thesis."
+                }
+              ],
+              "summary": "Reasoning graph links active signal pressure to impact channels and mitigation candidates in the current scenario.",
+              "disclaimer": "This analysis is for informational purposes only and does not constitute financial advice. Past performance is not indicative of future results. Causal relationships shown are AI-generated hypotheses, not guaranteed outcomes. Always consult a qualified financial advisor before making investment decisions.",
+              "maxHops": 3,
+              "isSpeculative": false
+            },
+            "sourceSignalId": "sig-bankofcanadahold-mm3migai"
+          }
+        ],
+        "scenario": {
+          "items": [
+            {
+              "candidateId": "cand-stock-nem",
+              "ticker": "NEM",
+              "name": "Newmont Corp.",
+              "type": "stock",
+              "rationale": "Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+              "confidence": 0.85,
+              "expectedMitigationCad": 302,
+              "diversificationScore": 0.9,
+              "estimatedTurnoverCostCad": 8,
+              "estimatedTaxCostCad": 8,
+              "allocationPct": 0.59125
+            },
+            {
+              "candidateId": "cand-stock-cnq",
+              "ticker": "CNQ",
+              "name": "Canadian Natural Resources",
+              "type": "stock",
+              "rationale": "Large-cap proxy from XEG constituents; used for targeted mitigation with controlled sizing.",
+              "confidence": 0.85,
+              "expectedMitigationCad": 314,
+              "diversificationScore": 0.25,
+              "estimatedTurnoverCostCad": 8,
+              "estimatedTaxCostCad": 8,
+              "allocationPct": 0.59125
+            },
+            {
+              "candidateId": "cand-stock-abx",
+              "ticker": "ABX",
+              "name": "Barrick Gold Corp.",
+              "type": "stock",
+              "rationale": "Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+              "confidence": 0.85,
+              "expectedMitigationCad": 268,
+              "diversificationScore": 0.9,
+              "estimatedTurnoverCostCad": 8,
+              "estimatedTaxCostCad": 8,
+              "allocationPct": 0.59125
+            }
+          ]
+        },
+        "evaluation": null,
+        "selectedSignalId": "sig-bankofcanadahold-mm3migai",
+        "selectedNodeId": null
+      }
+    },
+    {
+      "id": "d35f3600-38a8-456d-9707-1f895c3ec82a",
+      "sessionId": "34c9ddbf-b11d-4b73-bf7d-df1d3e62dc81",
+      "branchId": "5be95101-b50d-42f6-ba0b-12440dd31c29",
+      "label": null,
+      "createdAt": "2026-02-26T15:41:08.772Z",
+      "snapshot": {
+        "graphLayers": [
+          {
+            "id": "impact-chain-bankofcanadahold-mm3migai",
+            "kind": "impact",
+            "chain": {
+              "id": "chain-bankofcanadahold-mm3migai",
+              "signalId": "sig-bankofcanadahold-mm3migai",
+              "generatedAt": "2023-10-27T10:00:00Z",
+              "nodes": [
+                {
+                  "id": "n1",
+                  "type": "event",
+                  "label": "BoC Holds Rates, Flags Trade Uncertainty",
+                  "description": "Bank of Canada holds policy rate at 2.25%, citing elevated uncertainty from CUSMA review and geopolitical risks.",
+                  "confidence": 0.95,
+                  "metadata": {
+                    "sourceUrls": [
+                      "https://www.ctvnews.ca/business/bank-of-canada-holds-key-rates-as-cusma-talks-loom-over-its-outlook-1.6575541"
+                    ]
+                  }
+                },
+                {
+                  "id": "n2",
+                  "type": "mechanism",
+                  "label": "Lower Interest Rate Environment",
+                  "description": "Holding rates steady implies a continued lower cost of borrowing and potentially slower economic growth expectations.",
+                  "confidence": 0.9,
+                  "metadata": {
+                    "reasoning": "The BoC's decision to not hike rates suggests a pause in monetary tightening, which can influence borrowing costs and economic activity."
+                  }
+                },
+                {
+                  "id": "n3",
+                  "type": "mechanism",
+                  "label": "Increased Trade Policy Uncertainty",
+                  "description": "Concerns over CUSMA review and geopolitical risks create a less predictable business environment.",
+                  "confidence": 0.9,
+                  "metadata": {
+                    "reasoning": "Uncertainty around trade agreements and geopolitical events directly impacts business investment and consumer confidence."
+                  }
+                },
+                {
+                  "id": "n4",
+                  "type": "sector",
+                  "label": "Canadian Financials",
+                  "description": "Banks benefit from a stable or rising interest rate environment, but can be negatively impacted by economic slowdowns or increased credit risk.",
+                  "confidence": 0.8,
+                  "metadata": {}
+                },
+                {
+                  "id": "n5",
+                  "type": "sector",
+                  "label": "Canadian Energy",
+                  "description": "Sensitive to global demand and commodity prices, which can be influenced by trade dynamics and economic outlook.",
+                  "confidence": 0.75,
+                  "metadata": {}
+                },
+                {
+                  "id": "n6",
+                  "type": "sector",
+                  "label": "Gold & Materials",
+                  "description": "Often seen as a safe-haven asset during times of uncertainty, but can also be influenced by economic growth prospects.",
+                  "confidence": 0.7,
+                  "metadata": {}
+                },
+                {
+                  "id": "n7",
+                  "type": "sector",
+                  "label": "Government Bonds",
+                  "description": "Yields are influenced by central bank policy and inflation expectations. Holding rates steady can support bond prices.",
+                  "confidence": 0.85,
+                  "metadata": {}
+                },
+                {
+                  "id": "n8",
+                  "type": "asset",
+                  "label": "ZEB (BMO Canadian Bank ETF)",
+                  "description": "Holds major Canadian banks. Holding rates steady is generally neutral to slightly positive for bank net interest margins in the short term, but uncertainty could weigh on lending and credit quality.",
+                  "confidence": 0.7,
+                  "dollarImpact": -100,
+                  "percentageImpact": -0.5,
+                  "metadata": {
+                    "ticker": "ZEB",
+                    "reasoning": "While holding rates can be supportive, the flagged trade uncertainty introduces downside risk to economic growth and thus bank profitability.",
+                    "lookThroughConstituents": [
+                      "RY",
+                      "TD",
+                      "BNS",
+                      "BMO"
+                    ]
+                  }
+                },
+                {
+                  "id": "n9",
+                  "type": "asset",
+                  "label": "XIC (iShares Core S&P/TSX Capped Composite Index ETF)",
+                  "description": "Broad Canadian equity exposure. Mixed impact due to sector composition.",
+                  "confidence": 0.75,
+                  "dollarImpact": -150,
+                  "percentageImpact": -0.75,
+                  "metadata": {
+                    "ticker": "XIC",
+                    "reasoning": "Contains financials and energy, both subject to competing effects from the BoC announcement.",
+                    "lookThroughConstituents": [
+                      "RY",
+                      "TD",
+                      "BNS",
+                      "BMO",
+                      "CNQ"
+                    ]
+                  }
+                },
+                {
+                  "id": "n10",
+                  "type": "asset",
+                  "label": "XEG (iShares S&P/TSX Energy Index ETF)",
+                  "description": "Canadian energy stocks. Trade uncertainty can impact global demand and commodity prices, potentially leading to volatility.",
+                  "confidence": 0.65,
+                  "dollarImpact": -75,
+                  "percentageImpact": -0.3,
+                  "metadata": {
+                    "ticker": "XEG",
+                    "reasoning": "Geopolitical risks and trade uncertainty can create volatility in oil prices and energy demand.",
+                    "lookThroughConstituents": [
+                      "CNQ"
+                    ]
+                  }
+                },
+                {
+                  "id": "n11",
+                  "type": "asset",
+                  "label": "XGD (iShares S&P/TSX Global Gold Index ETF)",
+                  "description": "Gold and precious metals. Increased uncertainty often drives demand for safe-haven assets like gold.",
+                  "confidence": 0.7,
+                  "dollarImpact": 50,
+                  "percentageImpact": 0.25,
+                  "metadata": {
+                    "ticker": "XGD",
+                    "reasoning": "Geopolitical and trade uncertainties typically increase investor demand for gold as a safe-haven asset.",
+                    "lookThroughConstituents": []
+                  }
+                },
+                {
+                  "id": "n12",
+                  "type": "asset",
+                  "label": "ZAG (iShares Core Canadian Universe Bond Index ETF)",
+                  "description": "Canadian government and corporate bonds. Holding rates steady is generally supportive of bond prices.",
+                  "confidence": 0.85,
+                  "dollarImpact": 75,
+                  "percentageImpact": 0.3,
+                  "metadata": {
+                    "ticker": "ZAG",
+                    "reasoning": "The BoC holding rates steady reduces the immediate pressure for bond yields to rise, thus supporting existing bond prices.",
+                    "lookThroughConstituents": []
+                  }
+                },
+                {
+                  "id": "n13",
+                  "type": "asset",
+                  "label": "VFV (Vanguard S&P 500 Index ETF)",
+                  "description": "US technology and communication services. Less directly impacted by BoC policy, but global economic uncertainty can affect tech valuations.",
+                  "confidence": 0.5,
+                  "dollarImpact": -50,
+                  "percentageImpact": -0.2,
+                  "metadata": {
+                    "ticker": "VFV",
+                    "reasoning": "While not directly tied to Canadian rates, global economic uncertainty can spill over and impact US equity markets, particularly growth-oriented sectors like tech.",
+                    "lookThroughConstituents": []
+                  }
+                }
+              ],
+              "edges": [
+                {
+                  "id": "e1",
+                  "source": "n1",
+                  "target": "n2",
+                  "magnitude": 0.9,
+                  "direction": "negative",
+                  "confidence": 0.9,
+                  "mechanism": "Holding rates steady signals a pause in tightening, implying a less aggressive stance on inflation and potentially a more cautious outlook on economic growth."
+                },
+                {
+                  "id": "e2",
+                  "source": "n1",
+                  "target": "n3",
+                  "magnitude": 0.9,
+                  "direction": "negative",
+                  "confidence": 0.9,
+                  "mechanism": "Explicitly citing CUSMA review and geopolitical risks as sources of uncertainty directly introduces ambiguity into future trade flows and economic stability."
+                },
+                {
+                  "id": "e3",
+                  "source": "n2",
+                  "target": "n4",
+                  "magnitude": 0.7,
+                  "direction": "ambiguous",
+                  "confidence": 0.75,
+                  "mechanism": "A stable rate environment can be neutral to slightly positive for bank net interest margins, but the accompanying economic caution can dampen lending and increase credit risk."
+                },
+                {
+                  "id": "e4",
+                  "source": "n3",
+                  "target": "n4",
+                  "magnitude": 0.7,
+                  "direction": "negative",
+                  "confidence": 0.8,
+                  "mechanism": "Increased trade policy uncertainty can lead to reduced business investment and consumer spending, negatively impacting loan demand and potentially increasing credit defaults for financial institutions."
+                },
+                {
+                  "id": "e5",
+                  "source": "n3",
+                  "target": "n5",
+                  "magnitude": 0.7,
+                  "direction": "negative",
+                  "confidence": 0.75,
+                  "mechanism": "Trade uncertainty can lead to fluctuations in global demand for commodities, including oil, and can disrupt supply chains, creating volatility for energy producers."
+                },
+                {
+                  "id": "e6",
+                  "source": "n3",
+                  "target": "n6",
+                  "magnitude": 0.7,
+                  "direction": "positive",
+                  "confidence": 0.7,
+                  "mechanism": "Heightened geopolitical and trade uncertainty often drives investors to seek 'safe-haven' assets like gold, increasing its demand and price."
+                },
+                {
+                  "id": "e7",
+                  "source": "n2",
+                  "target": "n7",
+                  "magnitude": 0.8,
+                  "direction": "positive",
+                  "confidence": 0.85,
+                  "mechanism": "Holding interest rates steady reduces the immediate upward pressure on bond yields, which generally supports the prices of existing bonds."
+                },
+                {
+                  "id": "e8",
+                  "source": "n4",
+                  "target": "n8",
+                  "magnitude": 0.7,
+                  "direction": "negative",
+                  "confidence": 0.7,
+                  "mechanism": "The combination of stable rates (neutral to slightly positive) and increased uncertainty (negative for lending and credit quality) leads to a net negative sentiment for Canadian banks."
+                },
+                {
+                  "id": "e9",
+                  "source": "n4",
+                  "target": "n9",
+                  "magnitude": 0.7,
+                  "direction": "negative",
+                  "confidence": 0.75,
+                  "mechanism": "The financial sector component of XIC is subject to the negative pressures from trade uncertainty, outweighing potential neutral effects from held rates."
+                },
+                {
+                  "id": "e10",
+                  "source": "n5",
+                  "target": "n9",
+                  "magnitude": 0.6,
+                  "direction": "negative",
+                  "confidence": 0.7,
+                  "mechanism": "The energy sector component of XIC is exposed to potential negative impacts from trade uncertainty on global demand and commodity prices."
+                },
+                {
+                  "id": "e11",
+                  "source": "n5",
+                  "target": "n10",
+                  "magnitude": 0.65,
+                  "direction": "negative",
+                  "confidence": 0.65,
+                  "mechanism": "Trade uncertainty can lead to volatility in global commodity markets, impacting the profitability and stock prices of energy companies."
+                },
+                {
+                  "id": "e12",
+                  "source": "n6",
+                  "target": "n9",
+                  "magnitude": 0.5,
+                  "direction": "positive",
+                  "confidence": 0.65,
+                  "mechanism": "The materials and gold sector component of XIC can benefit from increased demand for safe-haven assets due to trade uncertainty."
+                },
+                {
+                  "id": "e13",
+                  "source": "n6",
+                  "target": "n11",
+                  "magnitude": 0.7,
+                  "direction": "positive",
+                  "confidence": 0.7,
+                  "mechanism": "Heightened uncertainty typically increases investor demand for gold as a safe-haven asset, driving its price up."
+                },
+                {
+                  "id": "e14",
+                  "source": "n7",
+                  "target": "n12",
+                  "magnitude": 0.85,
+                  "direction": "positive",
+                  "confidence": 0.85,
+                  "mechanism": "The Bank of Canada holding rates steady provides a supportive environment for bond prices by preventing an immediate rise in yields."
+                },
+                {
+                  "id": "e15",
+                  "source": "n3",
+                  "target": "n13",
+                  "magnitude": 0.5,
+                  "direction": "negative",
+                  "confidence": 0.5,
+                  "mechanism": "Global economic uncertainty stemming from trade issues can indirectly affect US equity markets, including technology stocks, due to potential impacts on global growth and investment."
+                }
+              ],
+              "summary": "The Bank of Canada's decision to hold rates steady, coupled with explicit warnings about trade uncertainty, creates a mixed impact on the investor's portfolio. The stable rate environment is generally positive for government bonds (ZAG) and neutral to slightly positive for Canadian financials (ZEB, XIC), but the heightened trade and geopolitical risks introduce significant downside pressure. This uncertainty is expected to negatively impact Canadian energy (XEG, XIC) due to potential demand disruptions and volatility in commodity prices. Conversely, gold and materials (XGD, XIC) are likely to benefit from their safe-haven appeal amidst increased global risk. US technology and communication services (VFV) face indirect negative pressure from global economic uncertainty. Overall, the net effect is a slight negative bias due to the dominant impact of trade uncertainty on key Canadian sectors.",
+              "disclaimer": "This analysis is for informational purposes only and does not constitute financial advice. Causal relationships shown are AI-generated hypotheses, not guaranteed outcomes.",
+              "maxHops": 3,
+              "isSpeculative": false
+            },
+            "sourceSignalId": "sig-bankofcanadahold-mm3migai"
+          },
+          {
+            "id": "mitigation-mitigation-reasoning-sig-bankofcanadahold-mm3migai",
+            "kind": "mitigation",
+            "chain": {
+              "id": "mitigation-reasoning-sig-bankofcanadahold-mm3migai",
+              "signalId": "sig-bankofcanadahold-mm3migai",
+              "generatedAt": "2026-02-26T15:41:07.267Z",
+              "nodes": [
+                {
+                  "id": "source-signal",
+                  "type": "event",
+                  "label": "Bank of Canada holds rates, flags trade uncertainty",
+                  "description": "BoC holds policy rate at 2.25%, citing elevated uncertainty from CUSMA review and geopolitical risks.",
+                  "temporalClassification": "ambiguous",
+                  "confidence": 0.8,
+                  "dollarImpact": -50,
+                  "metadata": {
+                    "role": "source-signal"
+                  }
+                },
+                {
+                  "id": "impact-1",
+                  "type": "mechanism",
+                  "label": "XIC (iShares Core S&P/TSX Capped Composite Index ETF)",
+                  "description": "Broad Canadian equity exposure. Mixed impact due to sector composition.",
+                  "confidence": 0.75,
+                  "dollarImpact": -150,
+                  "metadata": {
+                    "role": "impact-channel"
+                  }
+                },
+                {
+                  "id": "impact-2",
+                  "type": "mechanism",
+                  "label": "ZEB (BMO Canadian Bank ETF)",
+                  "description": "Holds major Canadian banks. Holding rates steady is generally neutral to slightly positive for bank net interest margins in the short term, but uncertainty could weigh on lending and credit quality.",
+                  "confidence": 0.7,
+                  "dollarImpact": -100,
+                  "metadata": {
+                    "role": "impact-channel"
+                  }
+                },
+                {
+                  "id": "impact-3",
+                  "type": "mechanism",
+                  "label": "XEG (iShares S&P/TSX Energy Index ETF)",
+                  "description": "Canadian energy stocks. Trade uncertainty can impact global demand and commodity prices, potentially leading to volatility.",
+                  "confidence": 0.65,
+                  "dollarImpact": -75,
+                  "metadata": {
+                    "role": "impact-channel"
+                  }
+                },
+                {
+                  "id": "impact-4",
+                  "type": "mechanism",
+                  "label": "VFV (Vanguard S&P 500 Index ETF)",
+                  "description": "US technology and communication services. Less directly impacted by BoC policy, but global economic uncertainty can affect tech valuations.",
+                  "confidence": 0.5,
+                  "dollarImpact": -50,
+                  "metadata": {
+                    "role": "impact-channel"
+                  }
+                },
+                {
+                  "id": "thesis-cand-stock-nem",
+                  "type": "sector",
+                  "label": "Large-cap proxy from XGD constituents",
+                  "description": "Why NEM: Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+                  "confidence": 0.85,
+                  "dollarImpact": 178.5575,
+                  "metadata": {
+                    "role": "mitigation-thesis",
+                    "index": 0
+                  }
+                },
+                {
+                  "id": "thesis-cand-stock-cnq",
+                  "type": "sector",
+                  "label": "Large-cap proxy from XEG constituents",
+                  "description": "Why CNQ: Large-cap proxy from XEG constituents; used for targeted mitigation with controlled sizing.",
+                  "confidence": 0.85,
+                  "dollarImpact": 185.6525,
+                  "metadata": {
+                    "role": "mitigation-thesis",
+                    "index": 1
+                  }
+                },
+                {
+                  "id": "thesis-cand-stock-abx",
+                  "type": "sector",
+                  "label": "Large-cap proxy from XGD constituents",
+                  "description": "Why ABX: Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+                  "confidence": 0.85,
+                  "dollarImpact": 158.455,
+                  "metadata": {
+                    "role": "mitigation-thesis",
+                    "index": 2
+                  }
+                },
+                {
+                  "id": "candidate-cand-stock-nem",
+                  "type": "asset",
+                  "label": "NEM",
+                  "description": "Newmont Corp. · Allocation 0.6%",
+                  "confidence": 0.85,
+                  "dollarImpact": 178.5575,
+                  "percentageImpact": 0.59125,
+                  "metadata": {
+                    "role": "mitigation-candidate",
+                    "candidateName": "Newmont Corp.",
+                    "candidateType": "stock",
+                    "rationale": "Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+                    "index": 0
+                  }
+                },
+                {
+                  "id": "candidate-cand-stock-cnq",
+                  "type": "asset",
+                  "label": "CNQ",
+                  "description": "Canadian Natural Resources · Allocation 0.6%",
+                  "confidence": 0.85,
+                  "dollarImpact": 185.6525,
+                  "percentageImpact": 0.59125,
+                  "metadata": {
+                    "role": "mitigation-candidate",
+                    "candidateName": "Canadian Natural Resources",
+                    "candidateType": "stock",
+                    "rationale": "Large-cap proxy from XEG constituents; used for targeted mitigation with controlled sizing.",
+                    "index": 1
+                  }
+                },
+                {
+                  "id": "candidate-cand-stock-abx",
+                  "type": "asset",
+                  "label": "ABX",
+                  "description": "Barrick Gold Corp. · Allocation 0.6%",
+                  "confidence": 0.85,
+                  "dollarImpact": 158.455,
+                  "percentageImpact": 0.59125,
+                  "metadata": {
+                    "role": "mitigation-candidate",
+                    "candidateName": "Barrick Gold Corp.",
+                    "candidateType": "stock",
+                    "rationale": "Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+                    "index": 2
+                  }
+                }
+              ],
+              "edges": [
+                {
+                  "id": "edge-source-impact-1",
+                  "source": "source-signal",
+                  "target": "impact-1",
+                  "magnitude": 0.64,
+                  "direction": "negative",
+                  "confidence": 0.775,
+                  "mechanism": "Signal pressure transmitted through XIC (iShares Core S&P/TSX Capped Composite Index ETF)."
+                },
+                {
+                  "id": "edge-source-impact-2",
+                  "source": "source-signal",
+                  "target": "impact-2",
+                  "magnitude": 0.59,
+                  "direction": "negative",
+                  "confidence": 0.75,
+                  "mechanism": "Signal pressure transmitted through ZEB (BMO Canadian Bank ETF)."
+                },
+                {
+                  "id": "edge-source-impact-3",
+                  "source": "source-signal",
+                  "target": "impact-3",
+                  "magnitude": 0.54,
+                  "direction": "negative",
+                  "confidence": 0.7250000000000001,
+                  "mechanism": "Signal pressure transmitted through XEG (iShares S&P/TSX Energy Index ETF)."
+                },
+                {
+                  "id": "edge-source-impact-4",
+                  "source": "source-signal",
+                  "target": "impact-4",
+                  "magnitude": 0.49,
+                  "direction": "negative",
+                  "confidence": 0.65,
+                  "mechanism": "Signal pressure transmitted through VFV (Vanguard S&P 500 Index ETF)."
+                },
+                {
+                  "id": "edge-bridge-impact-2-cand-stock-nem-1",
+                  "source": "impact-2",
+                  "target": "thesis-cand-stock-nem",
+                  "magnitude": 0.33749999999999997,
+                  "direction": "positive",
+                  "confidence": 0.7862499999999999,
+                  "mechanism": "Mitigation path via NEM: Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing."
+                },
+                {
+                  "id": "edge-bridge-impact-1-cand-stock-nem-2",
+                  "source": "impact-1",
+                  "target": "thesis-cand-stock-nem",
+                  "magnitude": 0.3,
+                  "direction": "positive",
+                  "confidence": 0.8,
+                  "mechanism": "Mitigation path via NEM: Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing."
+                },
+                {
+                  "id": "edge-bridge-impact-2-cand-stock-cnq-1",
+                  "source": "impact-2",
+                  "target": "thesis-cand-stock-cnq",
+                  "magnitude": 0.37058823529411766,
+                  "direction": "positive",
+                  "confidence": 0.7961764705882352,
+                  "mechanism": "Mitigation path via CNQ: Large-cap proxy from XEG constituents; used for targeted mitigation with controlled sizing."
+                },
+                {
+                  "id": "edge-bridge-impact-3-cand-stock-cnq-2",
+                  "source": "impact-3",
+                  "target": "thesis-cand-stock-cnq",
+                  "magnitude": 0.37058823529411766,
+                  "direction": "positive",
+                  "confidence": 0.7711764705882352,
+                  "mechanism": "Mitigation path via CNQ: Large-cap proxy from XEG constituents; used for targeted mitigation with controlled sizing."
+                },
+                {
+                  "id": "edge-bridge-impact-3-cand-stock-abx-1",
+                  "source": "impact-3",
+                  "target": "thesis-cand-stock-abx",
+                  "magnitude": 0.408,
+                  "direction": "positive",
+                  "confidence": 0.7824,
+                  "mechanism": "Mitigation path via ABX: Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing."
+                },
+                {
+                  "id": "edge-thesis-cand-stock-nem",
+                  "source": "thesis-cand-stock-nem",
+                  "target": "candidate-cand-stock-nem",
+                  "magnitude": 0.8325,
+                  "direction": "positive",
+                  "confidence": 0.85,
+                  "mechanism": "Allocate 0.6% to execute mitigation thesis."
+                },
+                {
+                  "id": "edge-thesis-cand-stock-cnq",
+                  "source": "thesis-cand-stock-cnq",
+                  "target": "candidate-cand-stock-cnq",
+                  "magnitude": 0.8325,
+                  "direction": "positive",
+                  "confidence": 0.85,
+                  "mechanism": "Allocate 0.6% to execute mitigation thesis."
+                },
+                {
+                  "id": "edge-thesis-cand-stock-abx",
+                  "source": "thesis-cand-stock-abx",
+                  "target": "candidate-cand-stock-abx",
+                  "magnitude": 0.8325,
+                  "direction": "positive",
+                  "confidence": 0.85,
+                  "mechanism": "Allocate 0.6% to execute mitigation thesis."
+                }
+              ],
+              "summary": "Reasoning graph links active signal pressure to impact channels and mitigation candidates in the current scenario.",
+              "disclaimer": "This analysis is for informational purposes only and does not constitute financial advice. Past performance is not indicative of future results. Causal relationships shown are AI-generated hypotheses, not guaranteed outcomes. Always consult a qualified financial advisor before making investment decisions.",
+              "maxHops": 3,
+              "isSpeculative": false
+            },
+            "sourceSignalId": "sig-bankofcanadahold-mm3migai"
+          }
+        ],
+        "scenario": {
+          "items": [
+            {
+              "candidateId": "cand-stock-nem",
+              "ticker": "NEM",
+              "name": "Newmont Corp.",
+              "type": "stock",
+              "rationale": "Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+              "confidence": 0.85,
+              "expectedMitigationCad": 302,
+              "diversificationScore": 0.9,
+              "estimatedTurnoverCostCad": 8,
+              "estimatedTaxCostCad": 8,
+              "allocationPct": 0.59125
+            },
+            {
+              "candidateId": "cand-stock-cnq",
+              "ticker": "CNQ",
+              "name": "Canadian Natural Resources",
+              "type": "stock",
+              "rationale": "Large-cap proxy from XEG constituents; used for targeted mitigation with controlled sizing.",
+              "confidence": 0.85,
+              "expectedMitigationCad": 314,
+              "diversificationScore": 0.25,
+              "estimatedTurnoverCostCad": 8,
+              "estimatedTaxCostCad": 8,
+              "allocationPct": 0.59125
+            },
+            {
+              "candidateId": "cand-stock-abx",
+              "ticker": "ABX",
+              "name": "Barrick Gold Corp.",
+              "type": "stock",
+              "rationale": "Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+              "confidence": 0.85,
+              "expectedMitigationCad": 268,
+              "diversificationScore": 0.9,
+              "estimatedTurnoverCostCad": 8,
+              "estimatedTaxCostCad": 8,
+              "allocationPct": 0.59125
+            }
+          ]
+        },
+        "evaluation": {
+          "generatedAt": "2026-02-26T15:41:07.257Z",
+          "objective": "minimize_one_month_downside_with_six_month_guardrail",
+          "baselineOneMonthCad": -50,
+          "proposedOneMonthCad": 0,
+          "baselineSixMonthCad": -45,
+          "proposedSixMonthCad": 190.19925000000003,
+          "downsideReductionCad": 50,
+          "sixMonthGuardrailDeltaCad": 235.19925000000003,
+          "diversificationGain": 1.2066666666666666,
+          "turnoverPct": 1.7737500000000002,
+          "turnoverCapPct": 5,
+          "taxPenaltyCad": 14.190000000000001,
+          "score": 59.209220833333326,
+          "objectiveSatisfied": true,
+          "warnings": [],
+          "humanDecisionRequired": true
+        },
+        "selectedSignalId": "sig-bankofcanadahold-mm3migai",
+        "selectedNodeId": null
+      }
+    },
+    {
+      "id": "e47ae9d9-0cea-4f0a-a2e7-f45ff90436aa",
+      "sessionId": "34c9ddbf-b11d-4b73-bf7d-df1d3e62dc81",
+      "branchId": "5be95101-b50d-42f6-ba0b-12440dd31c29",
+      "label": "Checkpoint 10:41 a.m.",
+      "createdAt": "2026-02-26T15:41:25.654Z",
+      "snapshot": {
+        "graphLayers": [
+          {
+            "id": "impact-chain-bankofcanadahold-mm3migai",
+            "kind": "impact",
+            "chain": {
+              "id": "chain-bankofcanadahold-mm3migai",
+              "signalId": "sig-bankofcanadahold-mm3migai",
+              "generatedAt": "2023-10-27T10:00:00Z",
+              "nodes": [
+                {
+                  "id": "n1",
+                  "type": "event",
+                  "label": "BoC Holds Rates, Flags Trade Uncertainty",
+                  "description": "Bank of Canada holds policy rate at 2.25%, citing elevated uncertainty from CUSMA review and geopolitical risks.",
+                  "confidence": 0.95,
+                  "metadata": {
+                    "sourceUrls": [
+                      "https://www.ctvnews.ca/business/bank-of-canada-holds-key-rates-as-cusma-talks-loom-over-its-outlook-1.6575541"
+                    ]
+                  }
+                },
+                {
+                  "id": "n2",
+                  "type": "mechanism",
+                  "label": "Lower Interest Rate Environment",
+                  "description": "Holding rates steady implies a continued lower cost of borrowing and potentially slower economic growth expectations.",
+                  "confidence": 0.9,
+                  "metadata": {
+                    "reasoning": "The BoC's decision to not hike rates suggests a pause in monetary tightening, which can influence borrowing costs and economic activity."
+                  }
+                },
+                {
+                  "id": "n3",
+                  "type": "mechanism",
+                  "label": "Increased Trade Policy Uncertainty",
+                  "description": "Concerns over CUSMA review and geopolitical risks create a less predictable business environment.",
+                  "confidence": 0.9,
+                  "metadata": {
+                    "reasoning": "Uncertainty around trade agreements and geopolitical events directly impacts business investment and consumer confidence."
+                  }
+                },
+                {
+                  "id": "n4",
+                  "type": "sector",
+                  "label": "Canadian Financials",
+                  "description": "Banks benefit from a stable or rising interest rate environment, but can be negatively impacted by economic slowdowns or increased credit risk.",
+                  "confidence": 0.8,
+                  "metadata": {}
+                },
+                {
+                  "id": "n5",
+                  "type": "sector",
+                  "label": "Canadian Energy",
+                  "description": "Sensitive to global demand and commodity prices, which can be influenced by trade dynamics and economic outlook.",
+                  "confidence": 0.75,
+                  "metadata": {}
+                },
+                {
+                  "id": "n6",
+                  "type": "sector",
+                  "label": "Gold & Materials",
+                  "description": "Often seen as a safe-haven asset during times of uncertainty, but can also be influenced by economic growth prospects.",
+                  "confidence": 0.7,
+                  "metadata": {}
+                },
+                {
+                  "id": "n7",
+                  "type": "sector",
+                  "label": "Government Bonds",
+                  "description": "Yields are influenced by central bank policy and inflation expectations. Holding rates steady can support bond prices.",
+                  "confidence": 0.85,
+                  "metadata": {}
+                },
+                {
+                  "id": "n8",
+                  "type": "asset",
+                  "label": "ZEB (BMO Canadian Bank ETF)",
+                  "description": "Holds major Canadian banks. Holding rates steady is generally neutral to slightly positive for bank net interest margins in the short term, but uncertainty could weigh on lending and credit quality.",
+                  "confidence": 0.7,
+                  "dollarImpact": -100,
+                  "percentageImpact": -0.5,
+                  "metadata": {
+                    "ticker": "ZEB",
+                    "reasoning": "While holding rates can be supportive, the flagged trade uncertainty introduces downside risk to economic growth and thus bank profitability.",
+                    "lookThroughConstituents": [
+                      "RY",
+                      "TD",
+                      "BNS",
+                      "BMO"
+                    ]
+                  }
+                },
+                {
+                  "id": "n9",
+                  "type": "asset",
+                  "label": "XIC (iShares Core S&P/TSX Capped Composite Index ETF)",
+                  "description": "Broad Canadian equity exposure. Mixed impact due to sector composition.",
+                  "confidence": 0.75,
+                  "dollarImpact": -150,
+                  "percentageImpact": -0.75,
+                  "metadata": {
+                    "ticker": "XIC",
+                    "reasoning": "Contains financials and energy, both subject to competing effects from the BoC announcement.",
+                    "lookThroughConstituents": [
+                      "RY",
+                      "TD",
+                      "BNS",
+                      "BMO",
+                      "CNQ"
+                    ]
+                  }
+                },
+                {
+                  "id": "n10",
+                  "type": "asset",
+                  "label": "XEG (iShares S&P/TSX Energy Index ETF)",
+                  "description": "Canadian energy stocks. Trade uncertainty can impact global demand and commodity prices, potentially leading to volatility.",
+                  "confidence": 0.65,
+                  "dollarImpact": -75,
+                  "percentageImpact": -0.3,
+                  "metadata": {
+                    "ticker": "XEG",
+                    "reasoning": "Geopolitical risks and trade uncertainty can create volatility in oil prices and energy demand.",
+                    "lookThroughConstituents": [
+                      "CNQ"
+                    ]
+                  }
+                },
+                {
+                  "id": "n11",
+                  "type": "asset",
+                  "label": "XGD (iShares S&P/TSX Global Gold Index ETF)",
+                  "description": "Gold and precious metals. Increased uncertainty often drives demand for safe-haven assets like gold.",
+                  "confidence": 0.7,
+                  "dollarImpact": 50,
+                  "percentageImpact": 0.25,
+                  "metadata": {
+                    "ticker": "XGD",
+                    "reasoning": "Geopolitical and trade uncertainties typically increase investor demand for gold as a safe-haven asset.",
+                    "lookThroughConstituents": []
+                  }
+                },
+                {
+                  "id": "n12",
+                  "type": "asset",
+                  "label": "ZAG (iShares Core Canadian Universe Bond Index ETF)",
+                  "description": "Canadian government and corporate bonds. Holding rates steady is generally supportive of bond prices.",
+                  "confidence": 0.85,
+                  "dollarImpact": 75,
+                  "percentageImpact": 0.3,
+                  "metadata": {
+                    "ticker": "ZAG",
+                    "reasoning": "The BoC holding rates steady reduces the immediate pressure for bond yields to rise, thus supporting existing bond prices.",
+                    "lookThroughConstituents": []
+                  }
+                },
+                {
+                  "id": "n13",
+                  "type": "asset",
+                  "label": "VFV (Vanguard S&P 500 Index ETF)",
+                  "description": "US technology and communication services. Less directly impacted by BoC policy, but global economic uncertainty can affect tech valuations.",
+                  "confidence": 0.5,
+                  "dollarImpact": -50,
+                  "percentageImpact": -0.2,
+                  "metadata": {
+                    "ticker": "VFV",
+                    "reasoning": "While not directly tied to Canadian rates, global economic uncertainty can spill over and impact US equity markets, particularly growth-oriented sectors like tech.",
+                    "lookThroughConstituents": []
+                  }
+                }
+              ],
+              "edges": [
+                {
+                  "id": "e1",
+                  "source": "n1",
+                  "target": "n2",
+                  "magnitude": 0.9,
+                  "direction": "negative",
+                  "confidence": 0.9,
+                  "mechanism": "Holding rates steady signals a pause in tightening, implying a less aggressive stance on inflation and potentially a more cautious outlook on economic growth."
+                },
+                {
+                  "id": "e2",
+                  "source": "n1",
+                  "target": "n3",
+                  "magnitude": 0.9,
+                  "direction": "negative",
+                  "confidence": 0.9,
+                  "mechanism": "Explicitly citing CUSMA review and geopolitical risks as sources of uncertainty directly introduces ambiguity into future trade flows and economic stability."
+                },
+                {
+                  "id": "e3",
+                  "source": "n2",
+                  "target": "n4",
+                  "magnitude": 0.7,
+                  "direction": "ambiguous",
+                  "confidence": 0.75,
+                  "mechanism": "A stable rate environment can be neutral to slightly positive for bank net interest margins, but the accompanying economic caution can dampen lending and increase credit risk."
+                },
+                {
+                  "id": "e4",
+                  "source": "n3",
+                  "target": "n4",
+                  "magnitude": 0.7,
+                  "direction": "negative",
+                  "confidence": 0.8,
+                  "mechanism": "Increased trade policy uncertainty can lead to reduced business investment and consumer spending, negatively impacting loan demand and potentially increasing credit defaults for financial institutions."
+                },
+                {
+                  "id": "e5",
+                  "source": "n3",
+                  "target": "n5",
+                  "magnitude": 0.7,
+                  "direction": "negative",
+                  "confidence": 0.75,
+                  "mechanism": "Trade uncertainty can lead to fluctuations in global demand for commodities, including oil, and can disrupt supply chains, creating volatility for energy producers."
+                },
+                {
+                  "id": "e6",
+                  "source": "n3",
+                  "target": "n6",
+                  "magnitude": 0.7,
+                  "direction": "positive",
+                  "confidence": 0.7,
+                  "mechanism": "Heightened geopolitical and trade uncertainty often drives investors to seek 'safe-haven' assets like gold, increasing its demand and price."
+                },
+                {
+                  "id": "e7",
+                  "source": "n2",
+                  "target": "n7",
+                  "magnitude": 0.8,
+                  "direction": "positive",
+                  "confidence": 0.85,
+                  "mechanism": "Holding interest rates steady reduces the immediate upward pressure on bond yields, which generally supports the prices of existing bonds."
+                },
+                {
+                  "id": "e8",
+                  "source": "n4",
+                  "target": "n8",
+                  "magnitude": 0.7,
+                  "direction": "negative",
+                  "confidence": 0.7,
+                  "mechanism": "The combination of stable rates (neutral to slightly positive) and increased uncertainty (negative for lending and credit quality) leads to a net negative sentiment for Canadian banks."
+                },
+                {
+                  "id": "e9",
+                  "source": "n4",
+                  "target": "n9",
+                  "magnitude": 0.7,
+                  "direction": "negative",
+                  "confidence": 0.75,
+                  "mechanism": "The financial sector component of XIC is subject to the negative pressures from trade uncertainty, outweighing potential neutral effects from held rates."
+                },
+                {
+                  "id": "e10",
+                  "source": "n5",
+                  "target": "n9",
+                  "magnitude": 0.6,
+                  "direction": "negative",
+                  "confidence": 0.7,
+                  "mechanism": "The energy sector component of XIC is exposed to potential negative impacts from trade uncertainty on global demand and commodity prices."
+                },
+                {
+                  "id": "e11",
+                  "source": "n5",
+                  "target": "n10",
+                  "magnitude": 0.65,
+                  "direction": "negative",
+                  "confidence": 0.65,
+                  "mechanism": "Trade uncertainty can lead to volatility in global commodity markets, impacting the profitability and stock prices of energy companies."
+                },
+                {
+                  "id": "e12",
+                  "source": "n6",
+                  "target": "n9",
+                  "magnitude": 0.5,
+                  "direction": "positive",
+                  "confidence": 0.65,
+                  "mechanism": "The materials and gold sector component of XIC can benefit from increased demand for safe-haven assets due to trade uncertainty."
+                },
+                {
+                  "id": "e13",
+                  "source": "n6",
+                  "target": "n11",
+                  "magnitude": 0.7,
+                  "direction": "positive",
+                  "confidence": 0.7,
+                  "mechanism": "Heightened uncertainty typically increases investor demand for gold as a safe-haven asset, driving its price up."
+                },
+                {
+                  "id": "e14",
+                  "source": "n7",
+                  "target": "n12",
+                  "magnitude": 0.85,
+                  "direction": "positive",
+                  "confidence": 0.85,
+                  "mechanism": "The Bank of Canada holding rates steady provides a supportive environment for bond prices by preventing an immediate rise in yields."
+                },
+                {
+                  "id": "e15",
+                  "source": "n3",
+                  "target": "n13",
+                  "magnitude": 0.5,
+                  "direction": "negative",
+                  "confidence": 0.5,
+                  "mechanism": "Global economic uncertainty stemming from trade issues can indirectly affect US equity markets, including technology stocks, due to potential impacts on global growth and investment."
+                }
+              ],
+              "summary": "The Bank of Canada's decision to hold rates steady, coupled with explicit warnings about trade uncertainty, creates a mixed impact on the investor's portfolio. The stable rate environment is generally positive for government bonds (ZAG) and neutral to slightly positive for Canadian financials (ZEB, XIC), but the heightened trade and geopolitical risks introduce significant downside pressure. This uncertainty is expected to negatively impact Canadian energy (XEG, XIC) due to potential demand disruptions and volatility in commodity prices. Conversely, gold and materials (XGD, XIC) are likely to benefit from their safe-haven appeal amidst increased global risk. US technology and communication services (VFV) face indirect negative pressure from global economic uncertainty. Overall, the net effect is a slight negative bias due to the dominant impact of trade uncertainty on key Canadian sectors.",
+              "disclaimer": "This analysis is for informational purposes only and does not constitute financial advice. Causal relationships shown are AI-generated hypotheses, not guaranteed outcomes.",
+              "maxHops": 3,
+              "isSpeculative": false
+            },
+            "sourceSignalId": "sig-bankofcanadahold-mm3migai"
+          },
+          {
+            "id": "mitigation-mitigation-reasoning-sig-bankofcanadahold-mm3migai",
+            "kind": "mitigation",
+            "chain": {
+              "id": "mitigation-reasoning-sig-bankofcanadahold-mm3migai",
+              "signalId": "sig-bankofcanadahold-mm3migai",
+              "generatedAt": "2026-02-26T15:41:07.267Z",
+              "nodes": [
+                {
+                  "id": "source-signal",
+                  "type": "event",
+                  "label": "Bank of Canada holds rates, flags trade uncertainty",
+                  "description": "BoC holds policy rate at 2.25%, citing elevated uncertainty from CUSMA review and geopolitical risks.",
+                  "temporalClassification": "ambiguous",
+                  "confidence": 0.8,
+                  "dollarImpact": -50,
+                  "metadata": {
+                    "role": "source-signal"
+                  }
+                },
+                {
+                  "id": "impact-1",
+                  "type": "mechanism",
+                  "label": "XIC (iShares Core S&P/TSX Capped Composite Index ETF)",
+                  "description": "Broad Canadian equity exposure. Mixed impact due to sector composition.",
+                  "confidence": 0.75,
+                  "dollarImpact": -150,
+                  "metadata": {
+                    "role": "impact-channel"
+                  }
+                },
+                {
+                  "id": "impact-2",
+                  "type": "mechanism",
+                  "label": "ZEB (BMO Canadian Bank ETF)",
+                  "description": "Holds major Canadian banks. Holding rates steady is generally neutral to slightly positive for bank net interest margins in the short term, but uncertainty could weigh on lending and credit quality.",
+                  "confidence": 0.7,
+                  "dollarImpact": -100,
+                  "metadata": {
+                    "role": "impact-channel"
+                  }
+                },
+                {
+                  "id": "impact-3",
+                  "type": "mechanism",
+                  "label": "XEG (iShares S&P/TSX Energy Index ETF)",
+                  "description": "Canadian energy stocks. Trade uncertainty can impact global demand and commodity prices, potentially leading to volatility.",
+                  "confidence": 0.65,
+                  "dollarImpact": -75,
+                  "metadata": {
+                    "role": "impact-channel"
+                  }
+                },
+                {
+                  "id": "impact-4",
+                  "type": "mechanism",
+                  "label": "VFV (Vanguard S&P 500 Index ETF)",
+                  "description": "US technology and communication services. Less directly impacted by BoC policy, but global economic uncertainty can affect tech valuations.",
+                  "confidence": 0.5,
+                  "dollarImpact": -50,
+                  "metadata": {
+                    "role": "impact-channel"
+                  }
+                },
+                {
+                  "id": "thesis-cand-stock-nem",
+                  "type": "sector",
+                  "label": "Large-cap proxy from XGD constituents",
+                  "description": "Why NEM: Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+                  "confidence": 0.85,
+                  "dollarImpact": 178.5575,
+                  "metadata": {
+                    "role": "mitigation-thesis",
+                    "index": 0
+                  }
+                },
+                {
+                  "id": "thesis-cand-stock-cnq",
+                  "type": "sector",
+                  "label": "Large-cap proxy from XEG constituents",
+                  "description": "Why CNQ: Large-cap proxy from XEG constituents; used for targeted mitigation with controlled sizing.",
+                  "confidence": 0.85,
+                  "dollarImpact": 185.6525,
+                  "metadata": {
+                    "role": "mitigation-thesis",
+                    "index": 1
+                  }
+                },
+                {
+                  "id": "thesis-cand-stock-abx",
+                  "type": "sector",
+                  "label": "Large-cap proxy from XGD constituents",
+                  "description": "Why ABX: Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+                  "confidence": 0.85,
+                  "dollarImpact": 158.455,
+                  "metadata": {
+                    "role": "mitigation-thesis",
+                    "index": 2
+                  }
+                },
+                {
+                  "id": "candidate-cand-stock-nem",
+                  "type": "asset",
+                  "label": "NEM",
+                  "description": "Newmont Corp. · Allocation 0.6%",
+                  "confidence": 0.85,
+                  "dollarImpact": 178.5575,
+                  "percentageImpact": 0.59125,
+                  "metadata": {
+                    "role": "mitigation-candidate",
+                    "candidateName": "Newmont Corp.",
+                    "candidateType": "stock",
+                    "rationale": "Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+                    "index": 0
+                  }
+                },
+                {
+                  "id": "candidate-cand-stock-cnq",
+                  "type": "asset",
+                  "label": "CNQ",
+                  "description": "Canadian Natural Resources · Allocation 0.6%",
+                  "confidence": 0.85,
+                  "dollarImpact": 185.6525,
+                  "percentageImpact": 0.59125,
+                  "metadata": {
+                    "role": "mitigation-candidate",
+                    "candidateName": "Canadian Natural Resources",
+                    "candidateType": "stock",
+                    "rationale": "Large-cap proxy from XEG constituents; used for targeted mitigation with controlled sizing.",
+                    "index": 1
+                  }
+                },
+                {
+                  "id": "candidate-cand-stock-abx",
+                  "type": "asset",
+                  "label": "ABX",
+                  "description": "Barrick Gold Corp. · Allocation 0.6%",
+                  "confidence": 0.85,
+                  "dollarImpact": 158.455,
+                  "percentageImpact": 0.59125,
+                  "metadata": {
+                    "role": "mitigation-candidate",
+                    "candidateName": "Barrick Gold Corp.",
+                    "candidateType": "stock",
+                    "rationale": "Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+                    "index": 2
+                  }
+                }
+              ],
+              "edges": [
+                {
+                  "id": "edge-source-impact-1",
+                  "source": "source-signal",
+                  "target": "impact-1",
+                  "magnitude": 0.64,
+                  "direction": "negative",
+                  "confidence": 0.775,
+                  "mechanism": "Signal pressure transmitted through XIC (iShares Core S&P/TSX Capped Composite Index ETF)."
+                },
+                {
+                  "id": "edge-source-impact-2",
+                  "source": "source-signal",
+                  "target": "impact-2",
+                  "magnitude": 0.59,
+                  "direction": "negative",
+                  "confidence": 0.75,
+                  "mechanism": "Signal pressure transmitted through ZEB (BMO Canadian Bank ETF)."
+                },
+                {
+                  "id": "edge-source-impact-3",
+                  "source": "source-signal",
+                  "target": "impact-3",
+                  "magnitude": 0.54,
+                  "direction": "negative",
+                  "confidence": 0.7250000000000001,
+                  "mechanism": "Signal pressure transmitted through XEG (iShares S&P/TSX Energy Index ETF)."
+                },
+                {
+                  "id": "edge-source-impact-4",
+                  "source": "source-signal",
+                  "target": "impact-4",
+                  "magnitude": 0.49,
+                  "direction": "negative",
+                  "confidence": 0.65,
+                  "mechanism": "Signal pressure transmitted through VFV (Vanguard S&P 500 Index ETF)."
+                },
+                {
+                  "id": "edge-bridge-impact-2-cand-stock-nem-1",
+                  "source": "impact-2",
+                  "target": "thesis-cand-stock-nem",
+                  "magnitude": 0.33749999999999997,
+                  "direction": "positive",
+                  "confidence": 0.7862499999999999,
+                  "mechanism": "Mitigation path via NEM: Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing."
+                },
+                {
+                  "id": "edge-bridge-impact-1-cand-stock-nem-2",
+                  "source": "impact-1",
+                  "target": "thesis-cand-stock-nem",
+                  "magnitude": 0.3,
+                  "direction": "positive",
+                  "confidence": 0.8,
+                  "mechanism": "Mitigation path via NEM: Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing."
+                },
+                {
+                  "id": "edge-bridge-impact-2-cand-stock-cnq-1",
+                  "source": "impact-2",
+                  "target": "thesis-cand-stock-cnq",
+                  "magnitude": 0.37058823529411766,
+                  "direction": "positive",
+                  "confidence": 0.7961764705882352,
+                  "mechanism": "Mitigation path via CNQ: Large-cap proxy from XEG constituents; used for targeted mitigation with controlled sizing."
+                },
+                {
+                  "id": "edge-bridge-impact-3-cand-stock-cnq-2",
+                  "source": "impact-3",
+                  "target": "thesis-cand-stock-cnq",
+                  "magnitude": 0.37058823529411766,
+                  "direction": "positive",
+                  "confidence": 0.7711764705882352,
+                  "mechanism": "Mitigation path via CNQ: Large-cap proxy from XEG constituents; used for targeted mitigation with controlled sizing."
+                },
+                {
+                  "id": "edge-bridge-impact-3-cand-stock-abx-1",
+                  "source": "impact-3",
+                  "target": "thesis-cand-stock-abx",
+                  "magnitude": 0.408,
+                  "direction": "positive",
+                  "confidence": 0.7824,
+                  "mechanism": "Mitigation path via ABX: Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing."
+                },
+                {
+                  "id": "edge-thesis-cand-stock-nem",
+                  "source": "thesis-cand-stock-nem",
+                  "target": "candidate-cand-stock-nem",
+                  "magnitude": 0.8325,
+                  "direction": "positive",
+                  "confidence": 0.85,
+                  "mechanism": "Allocate 0.6% to execute mitigation thesis."
+                },
+                {
+                  "id": "edge-thesis-cand-stock-cnq",
+                  "source": "thesis-cand-stock-cnq",
+                  "target": "candidate-cand-stock-cnq",
+                  "magnitude": 0.8325,
+                  "direction": "positive",
+                  "confidence": 0.85,
+                  "mechanism": "Allocate 0.6% to execute mitigation thesis."
+                },
+                {
+                  "id": "edge-thesis-cand-stock-abx",
+                  "source": "thesis-cand-stock-abx",
+                  "target": "candidate-cand-stock-abx",
+                  "magnitude": 0.8325,
+                  "direction": "positive",
+                  "confidence": 0.85,
+                  "mechanism": "Allocate 0.6% to execute mitigation thesis."
+                }
+              ],
+              "summary": "Reasoning graph links active signal pressure to impact channels and mitigation candidates in the current scenario.",
+              "disclaimer": "This analysis is for informational purposes only and does not constitute financial advice. Past performance is not indicative of future results. Causal relationships shown are AI-generated hypotheses, not guaranteed outcomes. Always consult a qualified financial advisor before making investment decisions.",
+              "maxHops": 3,
+              "isSpeculative": false
+            },
+            "sourceSignalId": "sig-bankofcanadahold-mm3migai"
+          }
+        ],
+        "scenario": {
+          "items": [
+            {
+              "candidateId": "cand-stock-nem",
+              "ticker": "NEM",
+              "name": "Newmont Corp.",
+              "type": "stock",
+              "rationale": "Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+              "confidence": 0.85,
+              "expectedMitigationCad": 302,
+              "diversificationScore": 0.9,
+              "estimatedTurnoverCostCad": 8,
+              "estimatedTaxCostCad": 8,
+              "allocationPct": 0.59125
+            },
+            {
+              "candidateId": "cand-stock-cnq",
+              "ticker": "CNQ",
+              "name": "Canadian Natural Resources",
+              "type": "stock",
+              "rationale": "Large-cap proxy from XEG constituents; used for targeted mitigation with controlled sizing.",
+              "confidence": 0.85,
+              "expectedMitigationCad": 314,
+              "diversificationScore": 0.25,
+              "estimatedTurnoverCostCad": 8,
+              "estimatedTaxCostCad": 8,
+              "allocationPct": 0.59125
+            },
+            {
+              "candidateId": "cand-stock-abx",
+              "ticker": "ABX",
+              "name": "Barrick Gold Corp.",
+              "type": "stock",
+              "rationale": "Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+              "confidence": 0.85,
+              "expectedMitigationCad": 268,
+              "diversificationScore": 0.9,
+              "estimatedTurnoverCostCad": 8,
+              "estimatedTaxCostCad": 8,
+              "allocationPct": 0.59125
+            }
+          ]
+        },
+        "evaluation": {
+          "generatedAt": "2026-02-26T15:41:07.257Z",
+          "objective": "minimize_one_month_downside_with_six_month_guardrail",
+          "baselineOneMonthCad": -50,
+          "proposedOneMonthCad": 0,
+          "baselineSixMonthCad": -45,
+          "proposedSixMonthCad": 190.19925000000003,
+          "downsideReductionCad": 50,
+          "sixMonthGuardrailDeltaCad": 235.19925000000003,
+          "diversificationGain": 1.2066666666666666,
+          "turnoverPct": 1.7737500000000002,
+          "turnoverCapPct": 5,
+          "taxPenaltyCad": 14.190000000000001,
+          "score": 59.209220833333326,
+          "objectiveSatisfied": true,
+          "warnings": [],
+          "humanDecisionRequired": true
+        },
+        "selectedSignalId": "sig-bankofcanadahold-mm3migai",
+        "selectedNodeId": null
+      }
+    },
+    {
+      "id": "c59e5353-0a45-422d-b8f9-376697224b15",
+      "sessionId": "34c9ddbf-b11d-4b73-bf7d-df1d3e62dc81",
+      "branchId": "5be95101-b50d-42f6-ba0b-12440dd31c29",
+      "label": null,
+      "createdAt": "2026-02-26T15:41:28.687Z",
+      "snapshot": {
+        "graphLayers": [
+          {
+            "id": "impact-chain-bankofcanadahold-mm3migai",
+            "kind": "impact",
+            "chain": {
+              "id": "chain-bankofcanadahold-mm3migai",
+              "signalId": "sig-bankofcanadahold-mm3migai",
+              "generatedAt": "2023-10-27T10:00:00Z",
+              "nodes": [
+                {
+                  "id": "n1",
+                  "type": "event",
+                  "label": "BoC Holds Rates, Flags Trade Uncertainty",
+                  "description": "Bank of Canada holds policy rate at 2.25%, citing elevated uncertainty from CUSMA review and geopolitical risks.",
+                  "confidence": 0.95,
+                  "metadata": {
+                    "sourceUrls": [
+                      "https://www.ctvnews.ca/business/bank-of-canada-holds-key-rates-as-cusma-talks-loom-over-its-outlook-1.6575541"
+                    ]
+                  }
+                },
+                {
+                  "id": "n2",
+                  "type": "mechanism",
+                  "label": "Lower Interest Rate Environment",
+                  "description": "Holding rates steady implies a continued lower cost of borrowing and potentially slower economic growth expectations.",
+                  "confidence": 0.9,
+                  "metadata": {
+                    "reasoning": "The BoC's decision to not hike rates suggests a pause in monetary tightening, which can influence borrowing costs and economic activity."
+                  }
+                },
+                {
+                  "id": "n3",
+                  "type": "mechanism",
+                  "label": "Increased Trade Policy Uncertainty",
+                  "description": "Concerns over CUSMA review and geopolitical risks create a less predictable business environment.",
+                  "confidence": 0.9,
+                  "metadata": {
+                    "reasoning": "Uncertainty around trade agreements and geopolitical events directly impacts business investment and consumer confidence."
+                  }
+                },
+                {
+                  "id": "n4",
+                  "type": "sector",
+                  "label": "Canadian Financials",
+                  "description": "Banks benefit from a stable or rising interest rate environment, but can be negatively impacted by economic slowdowns or increased credit risk.",
+                  "confidence": 0.8,
+                  "metadata": {}
+                },
+                {
+                  "id": "n5",
+                  "type": "sector",
+                  "label": "Canadian Energy",
+                  "description": "Sensitive to global demand and commodity prices, which can be influenced by trade dynamics and economic outlook.",
+                  "confidence": 0.75,
+                  "metadata": {}
+                },
+                {
+                  "id": "n6",
+                  "type": "sector",
+                  "label": "Gold & Materials",
+                  "description": "Often seen as a safe-haven asset during times of uncertainty, but can also be influenced by economic growth prospects.",
+                  "confidence": 0.7,
+                  "metadata": {}
+                },
+                {
+                  "id": "n7",
+                  "type": "sector",
+                  "label": "Government Bonds",
+                  "description": "Yields are influenced by central bank policy and inflation expectations. Holding rates steady can support bond prices.",
+                  "confidence": 0.85,
+                  "metadata": {}
+                },
+                {
+                  "id": "n8",
+                  "type": "asset",
+                  "label": "ZEB (BMO Canadian Bank ETF)",
+                  "description": "Holds major Canadian banks. Holding rates steady is generally neutral to slightly positive for bank net interest margins in the short term, but uncertainty could weigh on lending and credit quality.",
+                  "confidence": 0.7,
+                  "dollarImpact": -100,
+                  "percentageImpact": -0.5,
+                  "metadata": {
+                    "ticker": "ZEB",
+                    "reasoning": "While holding rates can be supportive, the flagged trade uncertainty introduces downside risk to economic growth and thus bank profitability.",
+                    "lookThroughConstituents": [
+                      "RY",
+                      "TD",
+                      "BNS",
+                      "BMO"
+                    ]
+                  }
+                },
+                {
+                  "id": "n9",
+                  "type": "asset",
+                  "label": "XIC (iShares Core S&P/TSX Capped Composite Index ETF)",
+                  "description": "Broad Canadian equity exposure. Mixed impact due to sector composition.",
+                  "confidence": 0.75,
+                  "dollarImpact": -150,
+                  "percentageImpact": -0.75,
+                  "metadata": {
+                    "ticker": "XIC",
+                    "reasoning": "Contains financials and energy, both subject to competing effects from the BoC announcement.",
+                    "lookThroughConstituents": [
+                      "RY",
+                      "TD",
+                      "BNS",
+                      "BMO",
+                      "CNQ"
+                    ]
+                  }
+                },
+                {
+                  "id": "n10",
+                  "type": "asset",
+                  "label": "XEG (iShares S&P/TSX Energy Index ETF)",
+                  "description": "Canadian energy stocks. Trade uncertainty can impact global demand and commodity prices, potentially leading to volatility.",
+                  "confidence": 0.65,
+                  "dollarImpact": -75,
+                  "percentageImpact": -0.3,
+                  "metadata": {
+                    "ticker": "XEG",
+                    "reasoning": "Geopolitical risks and trade uncertainty can create volatility in oil prices and energy demand.",
+                    "lookThroughConstituents": [
+                      "CNQ"
+                    ]
+                  }
+                },
+                {
+                  "id": "n11",
+                  "type": "asset",
+                  "label": "XGD (iShares S&P/TSX Global Gold Index ETF)",
+                  "description": "Gold and precious metals. Increased uncertainty often drives demand for safe-haven assets like gold.",
+                  "confidence": 0.7,
+                  "dollarImpact": 50,
+                  "percentageImpact": 0.25,
+                  "metadata": {
+                    "ticker": "XGD",
+                    "reasoning": "Geopolitical and trade uncertainties typically increase investor demand for gold as a safe-haven asset.",
+                    "lookThroughConstituents": []
+                  }
+                },
+                {
+                  "id": "n12",
+                  "type": "asset",
+                  "label": "ZAG (iShares Core Canadian Universe Bond Index ETF)",
+                  "description": "Canadian government and corporate bonds. Holding rates steady is generally supportive of bond prices.",
+                  "confidence": 0.85,
+                  "dollarImpact": 75,
+                  "percentageImpact": 0.3,
+                  "metadata": {
+                    "ticker": "ZAG",
+                    "reasoning": "The BoC holding rates steady reduces the immediate pressure for bond yields to rise, thus supporting existing bond prices.",
+                    "lookThroughConstituents": []
+                  }
+                },
+                {
+                  "id": "n13",
+                  "type": "asset",
+                  "label": "VFV (Vanguard S&P 500 Index ETF)",
+                  "description": "US technology and communication services. Less directly impacted by BoC policy, but global economic uncertainty can affect tech valuations.",
+                  "confidence": 0.5,
+                  "dollarImpact": -50,
+                  "percentageImpact": -0.2,
+                  "metadata": {
+                    "ticker": "VFV",
+                    "reasoning": "While not directly tied to Canadian rates, global economic uncertainty can spill over and impact US equity markets, particularly growth-oriented sectors like tech.",
+                    "lookThroughConstituents": []
+                  }
+                }
+              ],
+              "edges": [
+                {
+                  "id": "e1",
+                  "source": "n1",
+                  "target": "n2",
+                  "magnitude": 0.9,
+                  "direction": "negative",
+                  "confidence": 0.9,
+                  "mechanism": "Holding rates steady signals a pause in tightening, implying a less aggressive stance on inflation and potentially a more cautious outlook on economic growth."
+                },
+                {
+                  "id": "e2",
+                  "source": "n1",
+                  "target": "n3",
+                  "magnitude": 0.9,
+                  "direction": "negative",
+                  "confidence": 0.9,
+                  "mechanism": "Explicitly citing CUSMA review and geopolitical risks as sources of uncertainty directly introduces ambiguity into future trade flows and economic stability."
+                },
+                {
+                  "id": "e3",
+                  "source": "n2",
+                  "target": "n4",
+                  "magnitude": 0.7,
+                  "direction": "ambiguous",
+                  "confidence": 0.75,
+                  "mechanism": "A stable rate environment can be neutral to slightly positive for bank net interest margins, but the accompanying economic caution can dampen lending and increase credit risk."
+                },
+                {
+                  "id": "e4",
+                  "source": "n3",
+                  "target": "n4",
+                  "magnitude": 0.7,
+                  "direction": "negative",
+                  "confidence": 0.8,
+                  "mechanism": "Increased trade policy uncertainty can lead to reduced business investment and consumer spending, negatively impacting loan demand and potentially increasing credit defaults for financial institutions."
+                },
+                {
+                  "id": "e5",
+                  "source": "n3",
+                  "target": "n5",
+                  "magnitude": 0.7,
+                  "direction": "negative",
+                  "confidence": 0.75,
+                  "mechanism": "Trade uncertainty can lead to fluctuations in global demand for commodities, including oil, and can disrupt supply chains, creating volatility for energy producers."
+                },
+                {
+                  "id": "e6",
+                  "source": "n3",
+                  "target": "n6",
+                  "magnitude": 0.7,
+                  "direction": "positive",
+                  "confidence": 0.7,
+                  "mechanism": "Heightened geopolitical and trade uncertainty often drives investors to seek 'safe-haven' assets like gold, increasing its demand and price."
+                },
+                {
+                  "id": "e7",
+                  "source": "n2",
+                  "target": "n7",
+                  "magnitude": 0.8,
+                  "direction": "positive",
+                  "confidence": 0.85,
+                  "mechanism": "Holding interest rates steady reduces the immediate upward pressure on bond yields, which generally supports the prices of existing bonds."
+                },
+                {
+                  "id": "e8",
+                  "source": "n4",
+                  "target": "n8",
+                  "magnitude": 0.7,
+                  "direction": "negative",
+                  "confidence": 0.7,
+                  "mechanism": "The combination of stable rates (neutral to slightly positive) and increased uncertainty (negative for lending and credit quality) leads to a net negative sentiment for Canadian banks."
+                },
+                {
+                  "id": "e9",
+                  "source": "n4",
+                  "target": "n9",
+                  "magnitude": 0.7,
+                  "direction": "negative",
+                  "confidence": 0.75,
+                  "mechanism": "The financial sector component of XIC is subject to the negative pressures from trade uncertainty, outweighing potential neutral effects from held rates."
+                },
+                {
+                  "id": "e10",
+                  "source": "n5",
+                  "target": "n9",
+                  "magnitude": 0.6,
+                  "direction": "negative",
+                  "confidence": 0.7,
+                  "mechanism": "The energy sector component of XIC is exposed to potential negative impacts from trade uncertainty on global demand and commodity prices."
+                },
+                {
+                  "id": "e11",
+                  "source": "n5",
+                  "target": "n10",
+                  "magnitude": 0.65,
+                  "direction": "negative",
+                  "confidence": 0.65,
+                  "mechanism": "Trade uncertainty can lead to volatility in global commodity markets, impacting the profitability and stock prices of energy companies."
+                },
+                {
+                  "id": "e12",
+                  "source": "n6",
+                  "target": "n9",
+                  "magnitude": 0.5,
+                  "direction": "positive",
+                  "confidence": 0.65,
+                  "mechanism": "The materials and gold sector component of XIC can benefit from increased demand for safe-haven assets due to trade uncertainty."
+                },
+                {
+                  "id": "e13",
+                  "source": "n6",
+                  "target": "n11",
+                  "magnitude": 0.7,
+                  "direction": "positive",
+                  "confidence": 0.7,
+                  "mechanism": "Heightened uncertainty typically increases investor demand for gold as a safe-haven asset, driving its price up."
+                },
+                {
+                  "id": "e14",
+                  "source": "n7",
+                  "target": "n12",
+                  "magnitude": 0.85,
+                  "direction": "positive",
+                  "confidence": 0.85,
+                  "mechanism": "The Bank of Canada holding rates steady provides a supportive environment for bond prices by preventing an immediate rise in yields."
+                },
+                {
+                  "id": "e15",
+                  "source": "n3",
+                  "target": "n13",
+                  "magnitude": 0.5,
+                  "direction": "negative",
+                  "confidence": 0.5,
+                  "mechanism": "Global economic uncertainty stemming from trade issues can indirectly affect US equity markets, including technology stocks, due to potential impacts on global growth and investment."
+                }
+              ],
+              "summary": "The Bank of Canada's decision to hold rates steady, coupled with explicit warnings about trade uncertainty, creates a mixed impact on the investor's portfolio. The stable rate environment is generally positive for government bonds (ZAG) and neutral to slightly positive for Canadian financials (ZEB, XIC), but the heightened trade and geopolitical risks introduce significant downside pressure. This uncertainty is expected to negatively impact Canadian energy (XEG, XIC) due to potential demand disruptions and volatility in commodity prices. Conversely, gold and materials (XGD, XIC) are likely to benefit from their safe-haven appeal amidst increased global risk. US technology and communication services (VFV) face indirect negative pressure from global economic uncertainty. Overall, the net effect is a slight negative bias due to the dominant impact of trade uncertainty on key Canadian sectors.",
+              "disclaimer": "This analysis is for informational purposes only and does not constitute financial advice. Causal relationships shown are AI-generated hypotheses, not guaranteed outcomes.",
+              "maxHops": 3,
+              "isSpeculative": false
+            },
+            "sourceSignalId": "sig-bankofcanadahold-mm3migai"
+          },
+          {
+            "id": "mitigation-mitigation-reasoning-sig-bankofcanadahold-mm3migai",
+            "kind": "mitigation",
+            "chain": {
+              "id": "mitigation-reasoning-sig-bankofcanadahold-mm3migai",
+              "signalId": "sig-bankofcanadahold-mm3migai",
+              "generatedAt": "2026-02-26T15:41:27.182Z",
+              "nodes": [
+                {
+                  "id": "source-signal",
+                  "type": "event",
+                  "label": "Bank of Canada holds rates, flags trade uncertainty",
+                  "description": "BoC holds policy rate at 2.25%, citing elevated uncertainty from CUSMA review and geopolitical risks.",
+                  "temporalClassification": "ambiguous",
+                  "confidence": 0.8,
+                  "dollarImpact": -50,
+                  "metadata": {
+                    "role": "source-signal"
+                  }
+                },
+                {
+                  "id": "impact-1",
+                  "type": "mechanism",
+                  "label": "XIC (iShares Core S&P/TSX Capped Composite Index ETF)",
+                  "description": "Broad Canadian equity exposure. Mixed impact due to sector composition.",
+                  "confidence": 0.75,
+                  "dollarImpact": -150,
+                  "metadata": {
+                    "role": "impact-channel"
+                  }
+                },
+                {
+                  "id": "impact-2",
+                  "type": "mechanism",
+                  "label": "ZEB (BMO Canadian Bank ETF)",
+                  "description": "Holds major Canadian banks. Holding rates steady is generally neutral to slightly positive for bank net interest margins in the short term, but uncertainty could weigh on lending and credit quality.",
+                  "confidence": 0.7,
+                  "dollarImpact": -100,
+                  "metadata": {
+                    "role": "impact-channel"
+                  }
+                },
+                {
+                  "id": "impact-3",
+                  "type": "mechanism",
+                  "label": "XEG (iShares S&P/TSX Energy Index ETF)",
+                  "description": "Canadian energy stocks. Trade uncertainty can impact global demand and commodity prices, potentially leading to volatility.",
+                  "confidence": 0.65,
+                  "dollarImpact": -75,
+                  "metadata": {
+                    "role": "impact-channel"
+                  }
+                },
+                {
+                  "id": "impact-4",
+                  "type": "mechanism",
+                  "label": "VFV (Vanguard S&P 500 Index ETF)",
+                  "description": "US technology and communication services. Less directly impacted by BoC policy, but global economic uncertainty can affect tech valuations.",
+                  "confidence": 0.5,
+                  "dollarImpact": -50,
+                  "metadata": {
+                    "role": "impact-channel"
+                  }
+                },
+                {
+                  "id": "thesis-cand-stock-nem",
+                  "type": "sector",
+                  "label": "Large-cap proxy from XGD constituents",
+                  "description": "Why NEM: Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+                  "confidence": 0.85,
+                  "dollarImpact": 178.5575,
+                  "metadata": {
+                    "role": "mitigation-thesis",
+                    "index": 0
+                  }
+                },
+                {
+                  "id": "thesis-cand-stock-cnq",
+                  "type": "sector",
+                  "label": "Large-cap proxy from XEG constituents",
+                  "description": "Why CNQ: Large-cap proxy from XEG constituents; used for targeted mitigation with controlled sizing.",
+                  "confidence": 0.85,
+                  "dollarImpact": 185.6525,
+                  "metadata": {
+                    "role": "mitigation-thesis",
+                    "index": 1
+                  }
+                },
+                {
+                  "id": "thesis-cand-stock-abx",
+                  "type": "sector",
+                  "label": "Large-cap proxy from XGD constituents",
+                  "description": "Why ABX: Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+                  "confidence": 0.85,
+                  "dollarImpact": 158.455,
+                  "metadata": {
+                    "role": "mitigation-thesis",
+                    "index": 2
+                  }
+                },
+                {
+                  "id": "candidate-cand-stock-nem",
+                  "type": "asset",
+                  "label": "NEM",
+                  "description": "Newmont Corp. · Allocation 0.6%",
+                  "confidence": 0.85,
+                  "dollarImpact": 178.5575,
+                  "percentageImpact": 0.59125,
+                  "metadata": {
+                    "role": "mitigation-candidate",
+                    "candidateName": "Newmont Corp.",
+                    "candidateType": "stock",
+                    "rationale": "Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+                    "index": 0
+                  }
+                },
+                {
+                  "id": "candidate-cand-stock-cnq",
+                  "type": "asset",
+                  "label": "CNQ",
+                  "description": "Canadian Natural Resources · Allocation 0.6%",
+                  "confidence": 0.85,
+                  "dollarImpact": 185.6525,
+                  "percentageImpact": 0.59125,
+                  "metadata": {
+                    "role": "mitigation-candidate",
+                    "candidateName": "Canadian Natural Resources",
+                    "candidateType": "stock",
+                    "rationale": "Large-cap proxy from XEG constituents; used for targeted mitigation with controlled sizing.",
+                    "index": 1
+                  }
+                },
+                {
+                  "id": "candidate-cand-stock-abx",
+                  "type": "asset",
+                  "label": "ABX",
+                  "description": "Barrick Gold Corp. · Allocation 0.6%",
+                  "confidence": 0.85,
+                  "dollarImpact": 158.455,
+                  "percentageImpact": 0.59125,
+                  "metadata": {
+                    "role": "mitigation-candidate",
+                    "candidateName": "Barrick Gold Corp.",
+                    "candidateType": "stock",
+                    "rationale": "Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+                    "index": 2
+                  }
+                }
+              ],
+              "edges": [
+                {
+                  "id": "edge-source-impact-1",
+                  "source": "source-signal",
+                  "target": "impact-1",
+                  "magnitude": 0.64,
+                  "direction": "negative",
+                  "confidence": 0.775,
+                  "mechanism": "Signal pressure transmitted through XIC (iShares Core S&P/TSX Capped Composite Index ETF)."
+                },
+                {
+                  "id": "edge-source-impact-2",
+                  "source": "source-signal",
+                  "target": "impact-2",
+                  "magnitude": 0.59,
+                  "direction": "negative",
+                  "confidence": 0.75,
+                  "mechanism": "Signal pressure transmitted through ZEB (BMO Canadian Bank ETF)."
+                },
+                {
+                  "id": "edge-source-impact-3",
+                  "source": "source-signal",
+                  "target": "impact-3",
+                  "magnitude": 0.54,
+                  "direction": "negative",
+                  "confidence": 0.7250000000000001,
+                  "mechanism": "Signal pressure transmitted through XEG (iShares S&P/TSX Energy Index ETF)."
+                },
+                {
+                  "id": "edge-source-impact-4",
+                  "source": "source-signal",
+                  "target": "impact-4",
+                  "magnitude": 0.49,
+                  "direction": "negative",
+                  "confidence": 0.65,
+                  "mechanism": "Signal pressure transmitted through VFV (Vanguard S&P 500 Index ETF)."
+                },
+                {
+                  "id": "edge-bridge-impact-2-cand-stock-nem-1",
+                  "source": "impact-2",
+                  "target": "thesis-cand-stock-nem",
+                  "magnitude": 0.33749999999999997,
+                  "direction": "positive",
+                  "confidence": 0.7862499999999999,
+                  "mechanism": "Mitigation path via NEM: Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing."
+                },
+                {
+                  "id": "edge-bridge-impact-1-cand-stock-nem-2",
+                  "source": "impact-1",
+                  "target": "thesis-cand-stock-nem",
+                  "magnitude": 0.3,
+                  "direction": "positive",
+                  "confidence": 0.8,
+                  "mechanism": "Mitigation path via NEM: Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing."
+                },
+                {
+                  "id": "edge-bridge-impact-2-cand-stock-cnq-1",
+                  "source": "impact-2",
+                  "target": "thesis-cand-stock-cnq",
+                  "magnitude": 0.37058823529411766,
+                  "direction": "positive",
+                  "confidence": 0.7961764705882352,
+                  "mechanism": "Mitigation path via CNQ: Large-cap proxy from XEG constituents; used for targeted mitigation with controlled sizing."
+                },
+                {
+                  "id": "edge-bridge-impact-3-cand-stock-cnq-2",
+                  "source": "impact-3",
+                  "target": "thesis-cand-stock-cnq",
+                  "magnitude": 0.37058823529411766,
+                  "direction": "positive",
+                  "confidence": 0.7711764705882352,
+                  "mechanism": "Mitigation path via CNQ: Large-cap proxy from XEG constituents; used for targeted mitigation with controlled sizing."
+                },
+                {
+                  "id": "edge-bridge-impact-3-cand-stock-abx-1",
+                  "source": "impact-3",
+                  "target": "thesis-cand-stock-abx",
+                  "magnitude": 0.408,
+                  "direction": "positive",
+                  "confidence": 0.7824,
+                  "mechanism": "Mitigation path via ABX: Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing."
+                },
+                {
+                  "id": "edge-thesis-cand-stock-nem",
+                  "source": "thesis-cand-stock-nem",
+                  "target": "candidate-cand-stock-nem",
+                  "magnitude": 0.8325,
+                  "direction": "positive",
+                  "confidence": 0.85,
+                  "mechanism": "Allocate 0.6% to execute mitigation thesis."
+                },
+                {
+                  "id": "edge-thesis-cand-stock-cnq",
+                  "source": "thesis-cand-stock-cnq",
+                  "target": "candidate-cand-stock-cnq",
+                  "magnitude": 0.8325,
+                  "direction": "positive",
+                  "confidence": 0.85,
+                  "mechanism": "Allocate 0.6% to execute mitigation thesis."
+                },
+                {
+                  "id": "edge-thesis-cand-stock-abx",
+                  "source": "thesis-cand-stock-abx",
+                  "target": "candidate-cand-stock-abx",
+                  "magnitude": 0.8325,
+                  "direction": "positive",
+                  "confidence": 0.85,
+                  "mechanism": "Allocate 0.6% to execute mitigation thesis."
+                }
+              ],
+              "summary": "Reasoning graph links active signal pressure to impact channels and mitigation candidates in the current scenario.",
+              "disclaimer": "This analysis is for informational purposes only and does not constitute financial advice. Past performance is not indicative of future results. Causal relationships shown are AI-generated hypotheses, not guaranteed outcomes. Always consult a qualified financial advisor before making investment decisions.",
+              "maxHops": 3,
+              "isSpeculative": false
+            },
+            "sourceSignalId": "sig-bankofcanadahold-mm3migai"
+          }
+        ],
+        "scenario": {
+          "items": [
+            {
+              "candidateId": "cand-stock-nem",
+              "ticker": "NEM",
+              "name": "Newmont Corp.",
+              "type": "stock",
+              "rationale": "Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+              "confidence": 0.85,
+              "expectedMitigationCad": 302,
+              "diversificationScore": 0.9,
+              "estimatedTurnoverCostCad": 8,
+              "estimatedTaxCostCad": 8,
+              "allocationPct": 0.59125
+            },
+            {
+              "candidateId": "cand-stock-cnq",
+              "ticker": "CNQ",
+              "name": "Canadian Natural Resources",
+              "type": "stock",
+              "rationale": "Large-cap proxy from XEG constituents; used for targeted mitigation with controlled sizing.",
+              "confidence": 0.85,
+              "expectedMitigationCad": 314,
+              "diversificationScore": 0.25,
+              "estimatedTurnoverCostCad": 8,
+              "estimatedTaxCostCad": 8,
+              "allocationPct": 0.59125
+            },
+            {
+              "candidateId": "cand-stock-abx",
+              "ticker": "ABX",
+              "name": "Barrick Gold Corp.",
+              "type": "stock",
+              "rationale": "Large-cap proxy from XGD constituents; used for targeted mitigation with controlled sizing.",
+              "confidence": 0.85,
+              "expectedMitigationCad": 268,
+              "diversificationScore": 0.9,
+              "estimatedTurnoverCostCad": 8,
+              "estimatedTaxCostCad": 8,
+              "allocationPct": 0.59125
+            }
+          ]
+        },
+        "evaluation": {
+          "generatedAt": "2026-02-26T15:41:27.172Z",
+          "objective": "minimize_one_month_downside_with_six_month_guardrail",
+          "baselineOneMonthCad": -50,
+          "proposedOneMonthCad": 0,
+          "baselineSixMonthCad": -45,
+          "proposedSixMonthCad": 190.19925000000003,
+          "downsideReductionCad": 50,
+          "sixMonthGuardrailDeltaCad": 235.19925000000003,
+          "diversificationGain": 1.2066666666666666,
+          "turnoverPct": 1.7737500000000002,
+          "turnoverCapPct": 5,
+          "taxPenaltyCad": 14.190000000000001,
+          "score": 59.209220833333326,
+          "objectiveSatisfied": true,
+          "warnings": [],
+          "humanDecisionRequired": true
+        },
+        "selectedSignalId": "sig-bankofcanadahold-mm3migai",
+        "selectedNodeId": null
+      }
+    }
+  ],
+  "operations": [
+    {
+      "id": "4f44d871-4f60-433d-b791-c2c16f09a297",
+      "sessionId": "34c9ddbf-b11d-4b73-bf7d-df1d3e62dc81",
+      "branchId": "5be95101-b50d-42f6-ba0b-12440dd31c29",
+      "type": "chat_proposal",
+      "payload": {
+        "seedSummary": "Build mitigation plan for this signal"
+      },
+      "actor": "human",
+      "at": "2026-02-26T15:38:01.564Z"
+    },
+    {
+      "id": "a7765204-ace7-4d38-a0b5-8e1f392c04a2",
+      "sessionId": "34c9ddbf-b11d-4b73-bf7d-df1d3e62dc81",
+      "branchId": "5be95101-b50d-42f6-ba0b-12440dd31c29",
+      "type": "evaluate",
+      "payload": {
+        "score": 59.209220833333326,
+        "turnoverPct": 1.7737500000000002,
+        "downsideReductionCad": 50
+      },
+      "actor": "human",
+      "at": "2026-02-26T15:41:08.772Z"
+    },
+    {
+      "id": "99900244-5718-459c-af99-3a9109309682",
+      "sessionId": "34c9ddbf-b11d-4b73-bf7d-df1d3e62dc81",
+      "branchId": "5be95101-b50d-42f6-ba0b-12440dd31c29",
+      "type": "evaluate",
+      "payload": {
+        "score": 59.209220833333326,
+        "turnoverPct": 1.7737500000000002,
+        "downsideReductionCad": 50
+      },
+      "actor": "human",
+      "at": "2026-02-26T15:41:28.687Z"
+    }
+  ]
+}

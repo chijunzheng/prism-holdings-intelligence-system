@@ -64,7 +64,7 @@ ${exposureSummary}
 Estimate the directional impact and dollar range for this portfolio.`
 
   const model = new ChatGoogleGenerativeAI({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-2.5-flash',
     temperature: 0.3,
   })
 

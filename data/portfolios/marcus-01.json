@@ -1,0 +1,55 @@
+{
+  "userId": "marcus-01",
+  "accounts": [
+    {
+      "id": "marcus-tfsa",
+      "type": "TFSA",
+      "holdings": [
+        {
+          "ticker": "NVDA",
+          "name": "NVIDIA Corporation",
+          "type": "STOCK",
+          "valueCad": 15000,
+          "units": 75.0,
+          "accountType": "TFSA",
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        },
+        {
+          "ticker": "SHOP",
+          "name": "Shopify Inc.",
+          "type": "STOCK",
+          "valueCad": 8000,
+          "units": 52.0,
+          "accountType": "TFSA",
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "marcus-nonreg",
+      "type": "NON_REGISTERED",
+      "holdings": [
+        {
+          "ticker": "TSLA",
+          "name": "Tesla Inc.",
+          "type": "STOCK",
+          "valueCad": 5000,
+          "units": 12.0,
+          "accountType": "NON_REGISTERED",
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        },
+        {
+          "ticker": "BTCX.B",
+          "name": "CI Galaxy Bitcoin ETF",
+          "type": "ETF",
+          "valueCad": 2000,
+          "units": 85.0,
+          "accountType": "NON_REGISTERED",
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        }
+      ]
+    }
+  ],
+  "totalValueCad": 30000,
+  "lastUpdated": "2026-02-28T00:00:00Z"
+}

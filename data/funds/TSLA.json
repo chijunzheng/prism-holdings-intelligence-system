@@ -1,0 +1,14 @@
+{
+  "ticker": "TSLA",
+  "name": "Tesla Inc.",
+  "provider": "Direct Stock",
+  "assetClass": "equity",
+  "market": "US",
+  "holdings": [
+    { "name": "Tesla Inc.", "ticker": "TSLA", "weight": 100.0, "sector": "Consumer Discretionary", "country": "US" }
+  ],
+  "coveragePercent": 100.0,
+  "dataSource": "Single stock — 100% self-exposure",
+  "dataAsOf": "2026-02-28",
+  "refreshFrequency": "daily"
+}

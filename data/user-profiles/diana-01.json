@@ -1,0 +1,15 @@
+{
+  "id": "diana-01",
+  "name": "Diana",
+  "age": 58,
+  "riskTolerance": "low",
+  "financialLiteracy": "low",
+  "goals": ["Capital preservation", "Retirement income in 7 years"],
+  "investmentHorizonYears": 7,
+  "context": "Advisor said 'safe dividends.' Actually: 58% Canadian financials, 7 years from retirement. RY appears in direct holding + ZEB + ZDV + XIC — real RY exposure is $8,960 (12.4% of portfolio). A single BOC rate decision hits every holding. ENB is a pure rate play disguised as a 'safe dividend.'",
+  "shortContext": "Advisor's worst nightmare — 58% financials",
+  "preferences": {
+    "maxDailyAlerts": 1,
+    "detailLevel": "simple"
+  }
+}

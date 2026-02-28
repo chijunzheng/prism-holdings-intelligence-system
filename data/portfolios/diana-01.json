@@ -1,0 +1,79 @@
+{
+  "userId": "diana-01",
+  "accounts": [
+    {
+      "id": "diana-rrsp",
+      "type": "RRSP",
+      "holdings": [
+        {
+          "ticker": "ZAG",
+          "name": "BMO Aggregate Bond Index ETF",
+          "type": "BOND_ETF",
+          "valueCad": 25000,
+          "units": 1650.0,
+          "accountType": "RRSP",
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        },
+        {
+          "ticker": "ZEB",
+          "name": "BMO Equal Weight Banks Index ETF",
+          "type": "ETF",
+          "valueCad": 15000,
+          "units": 342.9,
+          "accountType": "RRSP",
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "diana-tfsa",
+      "type": "TFSA",
+      "holdings": [
+        {
+          "ticker": "ZDV",
+          "name": "BMO Canadian Dividend ETF",
+          "type": "ETF",
+          "valueCad": 12000,
+          "units": 685.7,
+          "accountType": "TFSA",
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        },
+        {
+          "ticker": "RY",
+          "name": "Royal Bank of Canada",
+          "type": "STOCK",
+          "valueCad": 5000,
+          "units": 28.0,
+          "accountType": "TFSA",
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "diana-lira",
+      "type": "LIRA",
+      "holdings": [
+        {
+          "ticker": "XIC",
+          "name": "iShares Core S&P/TSX Capped Composite Index ETF",
+          "type": "ETF",
+          "valueCad": 10000,
+          "units": 267.4,
+          "accountType": "LIRA",
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        },
+        {
+          "ticker": "ENB",
+          "name": "Enbridge Inc.",
+          "type": "STOCK",
+          "valueCad": 5000,
+          "units": 82.0,
+          "accountType": "LIRA",
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        }
+      ]
+    }
+  ],
+  "totalValueCad": 72000,
+  "lastUpdated": "2026-02-28T00:00:00Z"
+}

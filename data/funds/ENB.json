@@ -1,0 +1,14 @@
+{
+  "ticker": "ENB",
+  "name": "Enbridge Inc.",
+  "provider": "Direct Stock",
+  "assetClass": "equity",
+  "market": "CA",
+  "holdings": [
+    { "name": "Enbridge Inc.", "ticker": "ENB", "weight": 100.0, "sector": "Energy", "country": "CA" }
+  ],
+  "coveragePercent": 100.0,
+  "dataSource": "Single stock — 100% self-exposure",
+  "dataAsOf": "2026-02-28",
+  "refreshFrequency": "daily"
+}

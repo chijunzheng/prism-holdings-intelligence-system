@@ -1,0 +1,15 @@
+{
+  "id": "sarah-01",
+  "name": "Sarah",
+  "age": 42,
+  "riskTolerance": "moderate",
+  "financialLiteracy": "moderate",
+  "goals": ["Balanced growth", "House down payment in 2 years", "Retirement in 20 years"],
+  "investmentHorizonYears": 20,
+  "context": "Followed MoneySense couch potato advice perfectly — VFV, XIC, ZAG, ZEB. But her FHSA (house savings, 2-year horizon) is 100% in equities. Two XIC positions across TFSA + FHSA create hidden concentration she doesn't see.",
+  "shortContext": "Couch potato with FHSA time bomb",
+  "preferences": {
+    "maxDailyAlerts": 2,
+    "detailLevel": "moderate"
+  }
+}

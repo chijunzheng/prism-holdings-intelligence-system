@@ -11,6 +11,7 @@ export * from './types/strategy'
 export * from './types/workspace'
 export * from './types/plan-session'
 export * from './types/ask-prism'
+export * from './types/multi-agent'
 
 // Constants
 export * from './constants/temporal'

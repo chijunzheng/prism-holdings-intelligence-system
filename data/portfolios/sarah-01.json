@@ -1,0 +1,103 @@
+{
+  "userId": "sarah-01",
+  "accounts": [
+    {
+      "id": "sarah-tfsa",
+      "type": "TFSA",
+      "holdings": [
+        {
+          "ticker": "VFV",
+          "name": "Vanguard S&P 500 Index ETF",
+          "type": "ETF",
+          "valueCad": 14000,
+          "units": 116.7,
+          "accountType": "TFSA",
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        },
+        {
+          "ticker": "XIC",
+          "name": "iShares Core S&P/TSX Capped Composite Index ETF",
+          "type": "ETF",
+          "valueCad": 10000,
+          "units": 267.4,
+          "accountType": "TFSA",
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "sarah-rrsp",
+      "type": "RRSP",
+      "holdings": [
+        {
+          "ticker": "ZAG",
+          "name": "BMO Aggregate Bond Index ETF",
+          "type": "BOND_ETF",
+          "valueCad": 8000,
+          "units": 528.0,
+          "accountType": "RRSP",
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        },
+        {
+          "ticker": "ZEB",
+          "name": "BMO Equal Weight Banks Index ETF",
+          "type": "ETF",
+          "valueCad": 5000,
+          "units": 114.3,
+          "accountType": "RRSP",
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "sarah-fhsa",
+      "type": "FHSA",
+      "holdings": [
+        {
+          "ticker": "XIC",
+          "name": "iShares Core S&P/TSX Capped Composite Index ETF",
+          "type": "ETF",
+          "valueCad": 6000,
+          "units": 160.4,
+          "accountType": "FHSA",
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        },
+        {
+          "ticker": "VFV",
+          "name": "Vanguard S&P 500 Index ETF",
+          "type": "ETF",
+          "valueCad": 4000,
+          "units": 33.3,
+          "accountType": "FHSA",
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "sarah-nonreg",
+      "type": "NON_REGISTERED",
+      "holdings": [
+        {
+          "ticker": "XEG",
+          "name": "iShares S&P/TSX Capped Energy Index ETF",
+          "type": "ETF",
+          "valueCad": 3500,
+          "units": 189.0,
+          "accountType": "NON_REGISTERED",
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        },
+        {
+          "ticker": "XGD",
+          "name": "iShares S&P/TSX Global Gold Index ETF",
+          "type": "ETF",
+          "valueCad": 2500,
+          "units": 135.0,
+          "accountType": "NON_REGISTERED",
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        }
+      ]
+    }
+  ],
+  "totalValueCad": 53000,
+  "lastUpdated": "2026-02-28T00:00:00Z"
+}

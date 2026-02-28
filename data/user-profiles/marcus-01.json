@@ -1,0 +1,15 @@
+{
+  "id": "marcus-01",
+  "name": "Marcus",
+  "age": 25,
+  "riskTolerance": "high",
+  "financialLiteracy": "moderate",
+  "goals": ["Maximum growth", "Early retirement"],
+  "investmentHorizonYears": 30,
+  "context": "Pure single-stock concentration. Active on WallStreetBets. Holds NVDA, SHOP, TSLA, and a Bitcoin ETF. Zero diversification, zero bonds. Every signal hits his entire portfolio.",
+  "shortContext": "YOLO Redditor — 4 stocks, 0 bonds",
+  "preferences": {
+    "maxDailyAlerts": 3,
+    "detailLevel": "detailed"
+  }
+}

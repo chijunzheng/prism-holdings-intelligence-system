@@ -1,0 +1,14 @@
+{
+  "ticker": "BTCX.B",
+  "name": "CI Galaxy Bitcoin ETF",
+  "provider": "CI Global Asset Management",
+  "assetClass": "commodity",
+  "market": "CA",
+  "holdings": [
+    { "name": "Bitcoin", "ticker": "BTC", "weight": 100.0, "sector": "Cryptocurrency", "country": "Global" }
+  ],
+  "coveragePercent": 100.0,
+  "dataSource": "CI Galaxy fund facts — single-asset Bitcoin ETF",
+  "dataAsOf": "2026-02-28",
+  "refreshFrequency": "daily"
+}

@@ -6,7 +6,7 @@ interface OverlapListProps {
 }
 
 export function OverlapList({ overlaps }: OverlapListProps) {
-  const { setActiveSidebarContext, setAskPrismOpen } = useAppContext()
+  const { setActiveAskPrismEntryContext, setActiveSidebarContext, setAskPrismOpen } = useAppContext()
 
   if (overlaps.length === 0) return null
 
@@ -17,6 +17,7 @@ export function OverlapList({ overlaps }: OverlapListProps) {
       label: o.assetName,
       detail: `via ${sources}`,
     })
+    setActiveAskPrismEntryContext(null)
     setAskPrismOpen(true)
   }
 

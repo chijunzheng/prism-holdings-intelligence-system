@@ -1,5 +1,7 @@
+import { useMemo } from 'react'
 import type { Signal, ExposureEntry } from '@prism/shared'
 import type { KeyboardEvent } from 'react'
+import { formatExposureCategory } from './exposure-category'
 interface SignalCardProps {
   readonly signal: Signal
   readonly viewed: boolean
@@ -61,6 +63,24 @@ function handleCardKeyDown(
   }
 }
 
+function getAffectedBuckets(
+  signal: Signal,
+  exposures: ReadonlyArray<ExposureEntry>,
+): ReadonlyArray<string> {
+  if (exposures.length === 0) return []
+  return exposures
+    .filter((e) =>
+      signal.affectedExposures.some(
+        (ae) =>
+          e.category.toLowerCase().includes(ae.toLowerCase()) ||
+          ae.toLowerCase().includes(e.category.toLowerCase()),
+      ),
+    )
+    .sort((a, b) => b.percentage - a.percentage)
+    .slice(0, 3)
+    .map((e) => formatExposureCategory(e.category))
+}
+
 function getTemporalDescription(classification: string): string {
   switch (classification) {
     case 'transient': return 'Short-term effect'
@@ -88,6 +108,7 @@ export function SignalCard({
   const source = signal.sources[0]
   const impact = estimateImpact(signal, exposures, totalPortfolioValue)
   const temporalDesc = getTemporalDescription(signal.temporalClassification)
+  const buckets = useMemo(() => getAffectedBuckets(signal, exposures), [signal, exposures])
 
   return (
     <article
@@ -114,8 +135,19 @@ export function SignalCard({
           </p>
         )}
 
-        {temporalDesc && (
-          <span className="signal-card__temporal">{temporalDesc}</span>
+        {(temporalDesc || buckets.length > 0) && (
+          <div className="signal-card__meta-row">
+            {temporalDesc && (
+              <span className="signal-card__temporal">{temporalDesc}</span>
+            )}
+            {buckets.length > 0 && (
+              <div className="signal-card__chips">
+                {buckets.map((b) => (
+                  <span key={b} className="signal-card__chip">{b}</span>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
 

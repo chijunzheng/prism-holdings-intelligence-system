@@ -20,7 +20,7 @@ function severityIcon(severity: WarningType['severity']): string {
 }
 
 export function ConcentrationWarning({ warnings }: ConcentrationWarningProps) {
-  const { setActiveSidebarContext, setAskPrismOpen } = useAppContext()
+  const { setActiveAskPrismEntryContext, setActiveSidebarContext, setAskPrismOpen } = useAppContext()
 
   if (warnings.length === 0) return null
 
@@ -31,6 +31,7 @@ export function ConcentrationWarning({ warnings }: ConcentrationWarningProps) {
       label: w.category,
       detail: message,
     })
+    setActiveAskPrismEntryContext(null)
     setAskPrismOpen(true)
   }
 

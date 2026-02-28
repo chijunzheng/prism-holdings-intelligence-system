@@ -1,8 +1,7 @@
 import { Link } from 'react-router-dom'
-import type { ExposureMap, HealthScore, Signal } from '@prism/shared'
+import type { ExposureMap, Signal } from '@prism/shared'
 
 interface IntelligenceBriefingProps {
-  readonly healthScore: HealthScore | null
   readonly signals: ReadonlyArray<Signal>
   readonly exposureMap: ExposureMap | null
   readonly totalValue: number
@@ -11,19 +10,6 @@ interface IntelligenceBriefingProps {
 
 function formatPortfolioValue(value: number): string {
   return `$${value.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
-interface Narrative {
-  readonly headline: string
-  readonly subtext: string
-  readonly tone: 'alert' | 'warning' | 'healthy'
-  readonly showCta: boolean
-}
-
-interface CoverageSummary {
-  readonly coveragePct: number
-  readonly matchedExposureCount: number
-  readonly topExposureCategory: string | null
 }
 
 function normalizeLabel(value: string): string {
@@ -36,105 +22,48 @@ function matchesExposure(affectedExposure: string, exposureCategory: string): bo
   return affected.includes(category) || category.includes(affected)
 }
 
-function computeCoverageSummary(
+function generateOneLiner(
   signals: ReadonlyArray<Signal>,
   exposureMap: ExposureMap | null,
-): CoverageSummary | null {
-  if (!exposureMap || signals.length === 0) return null
+): { text: string; tone: 'alert' | 'warning' | 'healthy'; showCta: boolean } {
+  if (signals.length > 0 && exposureMap) {
+    // Compute coverage across ALL signals (not just high/critical)
+    const matched = exposureMap.exposures.filter((exposure) =>
+      signals.some((signal) =>
+        signal.affectedExposures.some((ae) => matchesExposure(ae, exposure.category)),
+      ),
+    )
+    const coveragePct = Math.min(
+      100,
+      matched.reduce((sum, e) => sum + e.percentage, 0),
+    )
 
-  const matched = exposureMap.exposures.filter((exposure) =>
-    signals.some((signal) =>
-      signal.affectedExposures.some((affected) => matchesExposure(affected, exposure.category)),
-    ),
-  )
-
-  if (matched.length === 0) return null
-
-  const coveragePct = Math.min(
-    100,
-    matched.reduce((sum, exposure) => sum + exposure.percentage, 0),
-  )
-  const topExposure = [...matched].sort((a, b) => b.percentage - a.percentage)[0]
-
-  return {
-    coveragePct,
-    matchedExposureCount: matched.length,
-    topExposureCategory: topExposure?.category ?? null,
-  }
-}
-
-function generateNarrative(
-  healthScore: HealthScore | null,
-  signals: ReadonlyArray<Signal>,
-  exposureMap: ExposureMap | null,
-): Narrative {
-  // Priority 1: Active high/critical signals
-  const materialSignals = signals
-    .filter((s) => s.urgency === 'critical' || s.urgency === 'high')
-    .sort((a, b) => b.relevanceScore - a.relevanceScore)
-
-  if (materialSignals.length > 0) {
-    const coverage = computeCoverageSummary(materialSignals, exposureMap)
-    const signalCount = materialSignals.length
-    const signalLabel = `${signalCount} live signal${signalCount > 1 ? 's' : ''}`
-    const verb = signalCount > 1 ? 'touch' : 'touches'
-    const coverageText = coverage ? `${coverage.coveragePct.toFixed(0)}%` : 'key parts'
-    const topExposureText = coverage?.topExposureCategory
-      ? `, led by ${coverage.topExposureCategory}`
-      : ''
+    const hasUrgent = signals.some((s) => s.urgency === 'critical' || s.urgency === 'high')
+    const tone = hasUrgent ? 'alert' as const : 'warning' as const
 
     return {
-      headline: `${signalLabel} currently ${verb} ${coverageText} of your portfolio${topExposureText}.`,
-      subtext: coverage
-        ? `Coverage reflects the combined exposure footprint of active high-priority signals across ${coverage.matchedExposureCount} exposure bucket${coverage.matchedExposureCount > 1 ? 's' : ''}.`
-        : 'High-priority live signals are active; open Impact Analysis for full causal pathways and actions.',
-      tone: 'alert',
+      text: `${signals.length} signal${signals.length > 1 ? 's' : ''} touching ${coveragePct.toFixed(0)}% of your portfolio`,
+      tone,
       showCta: true,
     }
   }
 
-  // Priority 2: Medium signals exist
-  const mediumSignals = signals.filter((s) => s.urgency === 'medium')
-  if (mediumSignals.length > 0) {
-    const coverage = computeCoverageSummary(mediumSignals, exposureMap)
-    const verb = mediumSignals.length > 1 ? 'are monitoring' : 'is monitoring'
-    const coverageText = coverage ? `${coverage.coveragePct.toFixed(0)}%` : 'parts'
+  if (exposureMap && exposureMap.warnings.some((w) => w.severity === 'critical' || w.severity === 'high')) {
     return {
-      headline: `${mediumSignals.length} live signal${mediumSignals.length > 1 ? 's' : ''} ${verb} ${coverageText} of your portfolio exposure.`,
-      subtext: 'Potential effects are moderate; review signal drill-downs for path-level detail.',
+      text: 'Hidden concentrations detected in your holdings',
       tone: 'warning',
-      showCta: true,
+      showCta: false,
     }
   }
-
-  // Priority 3: Concentration warnings
-  if (exposureMap && exposureMap.warnings.length > 0) {
-    const critical = exposureMap.warnings.filter((w) => w.severity === 'critical' || w.severity === 'high')
-    if (critical.length > 0) {
-      const largest = critical.reduce((max, w) => w.percentage > max.percentage ? w : max, critical[0])
-      return {
-        headline: `${critical.length} hidden concentration${critical.length > 1 ? 's' : ''} detected. ${largest.category} is ${largest.percentage.toFixed(0)}% of your portfolio.`,
-        subtext: 'Concentration increases vulnerability to sector-specific shocks.',
-        tone: 'warning',
-        showCta: false,
-      }
-    }
-  }
-
-  // Priority 4: Default healthy
-  const sectorCount = exposureMap?.exposures.length ?? 0
-  const grade = healthScore?.grade ?? '—'
 
   return {
-    headline: `Portfolio health: ${grade}. ${sectorCount} sectors across your holdings.`,
-    subtext: 'Prism is monitoring live market events for anything that could affect your portfolio.',
+    text: `${exposureMap?.exposures.length ?? 0} sectors monitored across your holdings`,
     tone: 'healthy',
     showCta: false,
   }
 }
 
 export function IntelligenceBriefing({
-  healthScore,
   signals,
   exposureMap,
   totalValue,
@@ -142,31 +71,32 @@ export function IntelligenceBriefing({
 }: IntelligenceBriefingProps) {
   if (loading) {
     return (
-      <section className="intelligence-briefing intelligence-briefing--loading">
-        <span className="skeleton-pulse" style={{ width: 180, height: 32 }} />
-        <span className="skeleton-pulse" style={{ width: '60%', height: 16, marginTop: 8 }} />
+      <section className="compact-header compact-header--loading">
+        <span className="skeleton-pulse" style={{ width: 180, height: 28 }} />
+        <span className="skeleton-pulse" style={{ width: 120, height: 20 }} />
       </section>
     )
   }
 
-  const narrative = generateNarrative(healthScore, signals, exposureMap)
+  const narrative = generateOneLiner(signals, exposureMap)
 
   return (
-    <section className={`intelligence-briefing intelligence-briefing--${narrative.tone}`}>
-      <div className="intelligence-briefing__value">
-        {formatPortfolioValue(totalValue)} CAD
+    <section className={`compact-header compact-header--${narrative.tone}`}>
+      <div className="compact-header__left">
+        <span className="compact-header__value">
+          {formatPortfolioValue(totalValue)} CAD
+        </span>
       </div>
-      <p className="intelligence-briefing__headline">
-        {narrative.headline}
-      </p>
-      <p className="intelligence-briefing__subtext">
-        {narrative.subtext}
-      </p>
-      {narrative.showCta && (
-        <Link to="/signals" className="intelligence-briefing__cta">
-          Review live impact
-        </Link>
-      )}
+      <div className="compact-header__right">
+        {narrative.showCta ? (
+          <Link to="/signals" className="compact-header__narrative-link">
+            <span className="compact-header__narrative">{narrative.text}</span>
+            <span className="compact-header__cta">Review &rarr;</span>
+          </Link>
+        ) : (
+          <span className="compact-header__narrative">{narrative.text}</span>
+        )}
+      </div>
     </section>
   )
 }

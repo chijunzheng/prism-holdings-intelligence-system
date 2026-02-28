@@ -23,6 +23,9 @@
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
   --max-width: 1200px;
   --sidebar-width: 320px;
+  --layout-shell-max-width: 1160px;
+  --layout-sidebar-width: 300px;
+  --layout-page-padding-x: clamp(1rem, 2.4vw, 2rem);
 }
 
 html {
@@ -62,7 +65,7 @@ button {
   font-size: 0.75rem;
   color: var(--color-text-muted);
   border-top: 1px solid var(--color-border);
-  max-width: var(--max-width);
+  max-width: var(--layout-shell-max-width);
   margin: 0 auto;
   width: 100%;
 }

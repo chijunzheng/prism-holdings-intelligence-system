@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { ExposureMap, HealthScore } from '@prism/shared'
+import type { ExposureMap, HealthScore, Signal } from '@prism/shared'
 import { computeHealthScore } from '../utils/health-scoring'
 
 interface PortfolioHealthState {
@@ -7,14 +7,17 @@ interface PortfolioHealthState {
 }
 
 /**
- * Computes portfolio health score from exposure data.
- * Pure computation — no API calls, no LLM involvement.
+ * Computes portfolio health score from exposure data and active signals.
+ * Health is dynamic — it drops when active signals stress concentrated sectors.
  */
-export function usePortfolioHealth(exposureMap: ExposureMap | null): PortfolioHealthState {
+export function usePortfolioHealth(
+  exposureMap: ExposureMap | null,
+  signals: ReadonlyArray<Signal> = [],
+): PortfolioHealthState {
   const healthScore = useMemo(() => {
     if (!exposureMap) return null
-    return computeHealthScore(exposureMap)
-  }, [exposureMap])
+    return computeHealthScore(exposureMap, signals)
+  }, [exposureMap, signals])
 
   return { healthScore }
 }

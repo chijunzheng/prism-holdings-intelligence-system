@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as d3 from 'd3'
-import type { ExposureEntry } from '@prism/shared'
+import type { ExposureEntry, Signal } from '@prism/shared'
 import { formatExposureCategory } from './exposure-category'
 
 interface ExposurePieChartProps {
   readonly exposures: ReadonlyArray<ExposureEntry>
+  readonly signals?: ReadonlyArray<Signal>
 }
 
 const CHART_SIZE = 320
@@ -32,7 +33,20 @@ interface SliceData {
   readonly endAngle: number
 }
 
-export function ExposurePieChart({ exposures }: ExposurePieChartProps) {
+function isAffectedBySignal(
+  category: string,
+  signals: ReadonlyArray<Signal>,
+): boolean {
+  return signals.some((signal) =>
+    signal.affectedExposures.some(
+      (ae) =>
+        category.toLowerCase().includes(ae.toLowerCase()) ||
+        ae.toLowerCase().includes(category.toLowerCase()),
+    ),
+  )
+}
+
+export function ExposurePieChart({ exposures, signals = [] }: ExposurePieChartProps) {
   const svgRef = useRef<SVGSVGElement | null>(null)
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
@@ -159,6 +173,9 @@ export function ExposurePieChart({ exposures }: ExposurePieChartProps) {
               {formatExposureCategory(slice.entry.category)}
             </span>
             <span className="exposure-pie__legend-value">{slice.entry.percentage}%</span>
+            {signals.length > 0 && isAffectedBySignal(slice.entry.category, signals) && (
+              <span className="exposure-pie__legend-signal" title="Affected by active signal" />
+            )}
           </div>
         ))}
       </div>

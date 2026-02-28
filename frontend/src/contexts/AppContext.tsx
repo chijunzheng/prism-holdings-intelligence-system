@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useState } from 'react'
 import type { ReactNode } from 'react'
+import type { AskPrismEntryContext } from '@prism/shared'
 
 interface DemoProfile {
   readonly id: string
@@ -28,11 +29,13 @@ interface AppState {
   readonly profilesLoading: boolean
   readonly activeHoldingContext: HoldingContext | null
   readonly activeSidebarContext: SidebarContext | null
+  readonly activeAskPrismEntryContext: AskPrismEntryContext | null
   readonly askPrismOpen: boolean
   readonly setUserId: (id: string) => void
   readonly loadProfiles: () => void
   readonly setActiveHoldingContext: (context: HoldingContext | null) => void
   readonly setActiveSidebarContext: (context: SidebarContext | null) => void
+  readonly setActiveAskPrismEntryContext: (context: AskPrismEntryContext | null) => void
   readonly setAskPrismOpen: (open: boolean) => void
 }
 
@@ -52,6 +55,7 @@ export function AppProvider({ children }: AppProviderProps) {
   }, [])
   const [activeHoldingContext, setActiveHoldingContext] = useState<HoldingContext | null>(null)
   const [activeSidebarContext, setActiveSidebarContext] = useState<SidebarContext | null>(null)
+  const [activeAskPrismEntryContext, setActiveAskPrismEntryContext] = useState<AskPrismEntryContext | null>(null)
   const [askPrismOpen, setAskPrismOpen] = useState(false)
   const [profiles, setProfiles] = useState<ReadonlyArray<DemoProfile>>([])
   const [profilesLoading, setProfilesLoading] = useState(false)
@@ -74,7 +78,7 @@ export function AppProvider({ children }: AppProviderProps) {
   }, [profiles.length])
 
   return (
-    <AppContext.Provider value={{ userId, profiles, profilesLoading, activeHoldingContext, activeSidebarContext, askPrismOpen, setUserId, loadProfiles, setActiveHoldingContext, setActiveSidebarContext, setAskPrismOpen }}>
+    <AppContext.Provider value={{ userId, profiles, profilesLoading, activeHoldingContext, activeSidebarContext, activeAskPrismEntryContext, askPrismOpen, setUserId, loadProfiles, setActiveHoldingContext, setActiveSidebarContext, setActiveAskPrismEntryContext, setAskPrismOpen }}>
       {children}
     </AppContext.Provider>
   )

@@ -1,4 +1,4 @@
-import type { ExposureMap } from '@prism/shared'
+import type { ExposureMap, Signal } from '@prism/shared'
 import type { HealthScore, LetterGrade, SubScore } from '@prism/shared'
 
 // ── Grade Thresholds ─────────────────────────────────────
@@ -156,21 +156,82 @@ export function scoreFreshness(dataFreshness: ExposureMap['dataFreshness']): Sub
 }
 
 /**
+ * Signal stress penalty — reduces health when active signals
+ * hit concentrated or poorly diversified sectors.
+ *
+ * Penalty based on:
+ * - Number of active signals (more signals = more stress)
+ * - Signal urgency (critical/high = larger penalty)
+ * - Whether signals hit concentrated sectors (amplification)
+ */
+function computeSignalStressPenalty(
+  signals: ReadonlyArray<Signal>,
+  exposureMap: ExposureMap,
+): number {
+  if (signals.length === 0) return 0
+
+  const urgencyPenalty: Record<string, number> = {
+    critical: 6,
+    high: 4,
+    medium: 2,
+    low: 1,
+  }
+
+  let basePenalty = 0
+  for (const signal of signals) {
+    basePenalty += urgencyPenalty[signal.urgency] ?? 1
+  }
+
+  // Amplify if signals hit concentrated sectors
+  const concentratedCategories = new Set(
+    exposureMap.warnings
+      .filter((w) => w.severity === 'critical' || w.severity === 'high')
+      .map((w) => w.category.toLowerCase()),
+  )
+
+  let amplification = 1
+  if (concentratedCategories.size > 0) {
+    const hitsConcentrated = signals.some((signal) =>
+      signal.affectedExposures.some((ae) =>
+        [...concentratedCategories].some((cat) =>
+          cat.includes(ae.toLowerCase()) || ae.toLowerCase().includes(cat),
+        ),
+      ),
+    )
+    if (hitsConcentrated) {
+      amplification = 1.5
+    }
+  }
+
+  return Math.round(basePenalty * amplification)
+}
+
+/**
  * Compute the full portfolio health score from an ExposureMap.
+ * When signals are provided, the score is dynamically adjusted
+ * based on signal stress (more/higher urgency signals hitting
+ * concentrated sectors = lower health).
+ *
  * Pure function — no side effects or LLM calls.
  */
-export function computeHealthScore(exposureMap: ExposureMap): HealthScore {
+export function computeHealthScore(
+  exposureMap: ExposureMap,
+  signals: ReadonlyArray<Signal> = [],
+): HealthScore {
   const diversification = scoreDiversification(exposureMap.exposures)
   const concentration = scoreConcentration(exposureMap.warnings)
   const overlap = scoreOverlap(exposureMap.overlaps)
   const freshness = scoreFreshness(exposureMap.dataFreshness)
 
-  const composite = Math.round(
+  const structuralComposite = Math.round(
     WEIGHTS.diversification * diversification.score +
     WEIGHTS.concentration * concentration.score +
     WEIGHTS.overlap * overlap.score +
     WEIGHTS.freshness * freshness.score,
   )
+
+  const signalPenalty = computeSignalStressPenalty(signals, exposureMap)
+  const composite = Math.max(0, Math.min(100, structuralComposite - signalPenalty))
 
   return {
     composite,

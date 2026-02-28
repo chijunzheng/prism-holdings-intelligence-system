@@ -26,14 +26,10 @@ export function SignalCardsSection({
   signals,
   loading,
   error,
-  mode = null,
-  requestId = null,
   exposures = [],
   totalPortfolioValue = 0,
 }: SignalCardsSectionProps) {
   const navigate = useNavigate()
-  const requestTrace = requestId ? requestId.slice(0, 8) : null
-  const sourceMode = mode ?? 'standard'
   const [viewedSignalIds, setViewedSignalIds] = useState<ReadonlySet<string>>(
     () => readViewedSignalIds(userId),
   )
@@ -60,10 +56,6 @@ export function SignalCardsSection({
     <section className="signal-cards-section" id="signal-cards">
       <div className="signal-cards-section__header">
         <h2 className="section-title">Active Signals</h2>
-        <span className="signal-cards-section__mode" title={`Signal source mode: ${sourceMode}`}>
-          {sourceMode}
-          {requestTrace ? ` · ${requestTrace}` : ''}
-        </span>
         <Link to="/signals" className="signal-cards-section__overflow-link">
           View all signals &rarr;
         </Link>

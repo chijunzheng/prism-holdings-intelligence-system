@@ -62,12 +62,12 @@
 
 /* ── Two-Column Layout (legacy, kept for other views) ── */
 .portfolio-content {
-  max-width: var(--max-width);
+  max-width: var(--layout-shell-max-width);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 1fr var(--sidebar-width);
-  gap: 3.5rem;
-  padding: 2rem 2.5rem;
+  grid-template-columns: 1fr var(--layout-sidebar-width);
+  gap: 2rem;
+  padding: 2rem var(--layout-page-padding-x);
   align-items: start;
 }
 
@@ -85,83 +85,129 @@
 
 /* ── Redesigned Intelligence-First Layout ── */
 .portfolio-redesign {
-  max-width: var(--max-width);
+  max-width: var(--layout-shell-max-width);
   margin: 0 auto;
-  padding: 2rem 2.5rem;
+  padding: 2rem var(--layout-page-padding-x) 3rem;
   display: flex;
   flex-direction: column;
   gap: 2.5rem;
 }
 
-/* ── Intelligence Briefing Hero ──────────── */
-.intelligence-briefing {
+/* ── Compact Portfolio Header ──────────── */
+.compact-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 1rem 0 0.5rem;
+  gap: 1.5rem;
   animation: briefing-fade-in 0.4s ease-out;
 }
 
-.intelligence-briefing--loading {
+.compact-header--loading {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 1.5rem 0;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
 }
 
-.intelligence-briefing__value {
-  font-size: 2rem;
+.compact-header__left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.compact-header__value {
+  font-size: 1.75rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   line-height: 1.2;
   color: var(--color-text);
-  margin-bottom: 0.75rem;
 }
 
-.intelligence-briefing__headline {
-  font-size: 1rem;
-  font-weight: 400;
-  line-height: 1.5;
-  color: var(--color-text-secondary);
-  margin-bottom: 0.25rem;
-}
-
-.intelligence-briefing--alert .intelligence-briefing__headline {
-  color: var(--color-text);
-  font-weight: 500;
-}
-
-.intelligence-briefing--warning .intelligence-briefing__headline {
-  color: var(--color-text);
-  font-weight: 500;
-}
-
-.intelligence-briefing__subtext {
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
-  line-height: 1.5;
-  max-width: 560px;
-}
-
-.intelligence-briefing__cta {
+.compact-header__badge {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  margin-top: 0.875rem;
-  padding: 0.5rem 1.125rem;
+  padding: 0.25rem 0.625rem;
+  border: 1.5px solid;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.compact-header__badge-grade {
+  font-weight: 700;
+}
+
+.compact-header__badge-score {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.compact-header__right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.compact-header__narrative {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compact-header--alert .compact-header__narrative {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.compact-header--warning .compact-header__narrative {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.compact-header__narrative-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.compact-header__narrative-link:hover {
+  opacity: 0.8;
+}
+
+.compact-header__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.875rem;
   border: 1px solid var(--color-text);
   border-radius: 999px;
   background: var(--color-text);
   color: var(--color-bg);
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 500;
-  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-decoration: none;
   transition: background 0.15s, transform 0.1s;
 }
 
-.intelligence-briefing__cta:hover {
+.compact-header__narrative-link:hover .compact-header__cta {
   background: #333;
 }
 
-.intelligence-briefing__cta:active {
+.compact-header__narrative-link:active .compact-header__cta {
   transform: scale(0.98);
 }
 
@@ -173,8 +219,8 @@
 /* ── Exposure + Risk Radar Row ───────────── */
 .exposure-radar-row {
   display: grid;
-  grid-template-columns: 1fr 280px;
-  gap: 4rem;
+  grid-template-columns: minmax(0, 1fr) var(--layout-sidebar-width);
+  gap: 2rem;
   align-items: start;
 }
 
@@ -295,25 +341,40 @@
   font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
-  color: var(--color-text-secondary);
-  transition: color 0.15s;
+  color: var(--color-text);
+  transition: opacity 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
 }
 
-.risk-radar--clickable:hover .risk-radar__cta {
-  color: var(--color-text);
+.risk-radar__cta:hover {
+  opacity: 0.7;
+}
+
+/* ── Holdings Section Wrapper ──────────────── */
+.holdings-section-wrapper {
+  min-width: 0;
+}
+
+.holdings-section-wrapper > .section-title {
+  margin-bottom: 1rem;
 }
 
 /* ── Holdings + X-Ray Sidebar Row ──────────── */
 .holdings-radar-row {
   display: grid;
-  grid-template-columns: 1fr 280px;
-  gap: 4rem;
+  grid-template-columns: minmax(0, 1fr) var(--layout-sidebar-width);
+  gap: 2rem;
   align-items: start;
 }
 
 .holdings-xray-sidebar {
-  position: static;
+  position: sticky;
+  top: 4.5rem;
   margin-top: 2.875rem;
+  max-height: calc(100vh - 6rem);
+  overflow-y: auto;
 }
 
 .holdings-xray-sidebar__section + .holdings-xray-sidebar__section {
@@ -370,6 +431,448 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ── Holdings Row Impact Indicators ────────── */
+.holdings-row__impact {
+  vertical-align: middle;
+}
+
+.holdings-row__impact-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+}
+
+.holdings-row__impact-badge--positive {
+  color: var(--color-positive);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.holdings-row__impact-badge--negative {
+  color: var(--color-negative);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.holdings-row__impact-badge--neutral {
+  color: var(--color-text-muted);
+}
+
+.holdings-row__impact-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.holdings-row__impact-badge--positive .holdings-row__impact-dot {
+  background: var(--color-positive);
+}
+
+.holdings-row__impact-badge--negative .holdings-row__impact-dot {
+  background: var(--color-negative);
+}
+
+.holdings-row--clickable {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.holdings-row--clickable:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.holdings-row--selected {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.holdings-row--selected:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* ── Holdings Expandable Row ──────────────── */
+.holdings-row-group__cell {
+  padding: 0 !important;
+}
+
+.holdings-row-group .holdings-row {
+  display: flex;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: none;
+}
+
+.holdings-row-group .holdings-row .holdings-row__position-cell {
+  flex: 1;
+  min-width: 0;
+}
+
+.holdings-row-group .holdings-row .holdings-row__impact {
+  width: 120px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.holdings-row-group .holdings-row .holdings-row__value {
+  width: 160px;
+  flex-shrink: 0;
+}
+
+.holdings-row-group + .holdings-row-group {
+  border-top: 1px solid var(--color-border);
+}
+
+.holdings-row__impact-count {
+  font-size: 0.625rem;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.2rem;
+}
+
+/* ── Expanded Signal Detail (inline accordion) ── */
+.holdings-expand {
+  padding: 0.5rem 0 1rem 3.25rem;
+  animation: expand-in 0.2s ease-out;
+}
+
+@keyframes expand-in {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 500px; }
+}
+
+.holdings-expand__signals {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.holdings-expand__signal-row {
+  padding: 0.5rem 0.75rem;
+  background: var(--color-bg);
+  border-radius: 8px;
+  border-left: 3px solid var(--color-border);
+  transition: background 0.12s;
+}
+
+.holdings-expand__signal-row--clickable {
+  cursor: pointer;
+}
+
+.holdings-expand__signal-row--clickable:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.holdings-expand__signal-row:has(.holdings-expand__signal-impact--negative) {
+  border-left-color: var(--color-negative);
+}
+
+.holdings-expand__signal-row:has(.holdings-expand__signal-impact--positive) {
+  border-left-color: var(--color-positive);
+}
+
+.holdings-expand__signal-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.holdings-expand__signal-headline {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.4;
+  flex: 1;
+  min-width: 0;
+}
+
+.holdings-expand__signal-impact {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.holdings-expand__signal-impact--negative {
+  color: var(--color-negative);
+}
+
+.holdings-expand__signal-impact--positive {
+  color: var(--color-positive);
+}
+
+.holdings-expand__signal-impact--neutral {
+  color: var(--color-text-muted);
+}
+
+.holdings-expand__signal-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+  margin-top: 0.375rem;
+}
+
+.holdings-expand__sector-chip {
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--color-text-secondary);
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+
+.holdings-expand__temporal {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}
+
+.holdings-expand__exposure-note {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  padding-left: 0.75rem;
+}
+
+/* ── Scoped Sidebar (ETF Detail) ──────────── */
+.holdings-xray-sidebar__scoped-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.holdings-xray-sidebar__scoped-title {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.holdings-xray-sidebar__scoped-subtitle {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.holdings-xray-sidebar__impact {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.holdings-xray-sidebar__impact--neg {
+  color: var(--color-negative);
+}
+
+.holdings-xray-sidebar__impact--pos {
+  color: var(--color-positive);
+}
+
+.holdings-xray-sidebar__bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.holdings-xray-sidebar__bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.holdings-xray-sidebar__bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+}
+
+.holdings-xray-sidebar__bar-value {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.holdings-xray-sidebar__bar-track {
+  height: 4px;
+  background: var(--color-bg);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.holdings-xray-sidebar__bar-fill {
+  height: 100%;
+  background: var(--color-text);
+  border-radius: 2px;
+  transition: width 0.4s ease-out;
+}
+
+.holdings-xray-sidebar__empty {
+  padding: 1rem 0;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+/* ── Signal Exposure by Holding (default view) ── */
+.holdings-xray-sidebar__holding-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.holdings-xray-sidebar__holding-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: 8px;
+  transition: background 0.12s;
+}
+
+.holdings-xray-sidebar__holding-row--clickable {
+  cursor: pointer;
+}
+
+.holdings-xray-sidebar__holding-row--clickable:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.holdings-xray-sidebar__holding-row--selected {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.holdings-xray-sidebar__holding-row--selected:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.holdings-xray-sidebar__holding-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.holdings-xray-sidebar__holding-meta {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  line-height: 1.3;
+}
+
+.holdings-xray-sidebar__no-signal {
+  opacity: 0.5;
+}
+
+.holdings-xray-sidebar__mini-bar-track {
+  height: 3px;
+  background: var(--color-bg);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 0.125rem;
+}
+
+.holdings-xray-sidebar__mini-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease-out;
+}
+
+.holdings-xray-sidebar__mini-bar-fill--positive {
+  background: var(--color-positive);
+  opacity: 0.6;
+}
+
+.holdings-xray-sidebar__mini-bar-fill--negative {
+  background: var(--color-negative);
+  opacity: 0.6;
+}
+
+.holdings-xray-sidebar__mini-bar-fill--neutral {
+  background: var(--color-text-muted);
+  opacity: 0.3;
+}
+
+.holdings-xray-sidebar__impact--neutral {
+  color: var(--color-text-muted);
+}
+
+/* ── Also Affected chips ──────────────────── */
+.holdings-xray-sidebar__also-affected {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.holdings-xray-sidebar__also-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--color-bg);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.holdings-xray-sidebar__also-count {
+  font-size: 0.625rem;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Signal Card Chips ────────────────────── */
+.signal-card__meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+.signal-card__chips {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.signal-card__chip {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--color-text-secondary);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ── Exposure Pie Legend Signal Indicator ──── */
+.exposure-pie__legend-signal {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-negative);
+  flex-shrink: 0;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 /* ── Collapsible Holdings ────────────────── */
@@ -462,6 +965,10 @@
   letter-spacing: -0.01em;
 }
 
+.portfolio-redesign > section > .section-title {
+  margin-bottom: 1.25rem;
+}
+
 .section-link {
   font-size: 0.875rem;
   color: var(--color-text-secondary);
@@ -484,7 +991,7 @@
 }
 
 .holdings-section > .section-title {
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .holdings-card {
@@ -513,7 +1020,29 @@
   padding: 0.875rem 0;
 }
 
-.holdings-table th:last-child {
+.holdings-header-cell {
+  padding: 0.875rem 0 !important;
+}
+
+.holdings-header-row {
+  display: flex;
+  align-items: center;
+}
+
+.holdings-header-row__positions {
+  flex: 1;
+  min-width: 0;
+}
+
+.holdings-header-row__impact {
+  width: 120px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.holdings-header-row__value {
+  width: 160px;
+  flex-shrink: 0;
   text-align: right;
 }
 
@@ -961,6 +1490,238 @@
   opacity: 0.5;
 }
 
+/* ── Signal Impact Summary ─────────────────── */
+.signal-impact-summary {
+  background: var(--color-surface);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow-card);
+}
+
+.signal-impact-summary__stats {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.signal-impact-summary__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.signal-impact-summary__stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.signal-impact-summary__stat-value--negative {
+  color: var(--color-negative);
+}
+
+.signal-impact-summary__stat-value--positive {
+  color: var(--color-positive);
+}
+
+.signal-impact-summary__stat-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.signal-impact-summary__stat-divider {
+  width: 1px;
+  height: 2rem;
+  background: var(--color-border);
+  flex-shrink: 0;
+}
+
+.signal-impact-summary__amplification {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.625rem 0.875rem;
+  background: #fff7ed;
+  border: 1px solid #f5e6b8;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: #9a3412;
+}
+
+.signal-impact-summary__amplification-icon {
+  font-weight: 700;
+  font-size: 0.75rem;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f59e0b;
+  color: white;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.signal-impact-summary__cta-spacer {
+  flex: 1;
+}
+
+.signal-impact-summary__cta {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--color-text);
+  transition: opacity 0.15s;
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+.signal-impact-summary__cta:hover {
+  opacity: 0.7;
+}
+
+.signal-impact-summary__quiet {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+/* ── Sector Signal Map ─────────────────────── */
+.sector-signal-map {
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+  margin-top: 1rem;
+}
+
+.sector-signal-map__chart {
+  flex-shrink: 0;
+}
+
+.sector-signal-map__chart svg {
+  display: block;
+}
+
+.sector-signal-map__legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.sector-signal-map__row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  transition: background 0.12s;
+}
+
+.sector-signal-map__row:hover,
+.sector-signal-map__row.is-active {
+  background: var(--color-surface);
+}
+
+.sector-signal-map__row--clickable {
+  cursor: pointer;
+}
+
+.sector-signal-map__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sector-signal-map__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 140px;
+  flex-shrink: 0;
+}
+
+.sector-signal-map__pct {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  width: 44px;
+  text-align: right;
+}
+
+.sector-signal-map__impact-cell {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.sector-signal-map__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.sector-signal-map__pill--negative {
+  color: var(--color-negative);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.sector-signal-map__pill--positive {
+  color: var(--color-positive);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.sector-signal-map__pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sector-signal-map__pill--negative .sector-signal-map__pill-dot {
+  background: var(--color-negative);
+}
+
+.sector-signal-map__pill--positive .sector-signal-map__pill-dot {
+  background: var(--color-positive);
+}
+
+.sector-signal-map__no-signal {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+.sector-signal-map__arrow {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.sector-signal-map__row--clickable:hover .sector-signal-map__arrow {
+  opacity: 1;
+}
+
 /* ── Responsive ──────────────────────────── */
 @media (max-width: 768px) {
   .portfolio-content {
@@ -997,7 +1758,38 @@
     position: static;
   }
 
-  .intelligence-briefing__headline {
-    font-size: 1.25rem;
+  .compact-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .compact-header__narrative {
+    white-space: normal;
+  }
+
+  .holdings-xray-sidebar {
+    position: static;
+    max-height: none;
+  }
+
+  .signal-impact-summary__stats {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .signal-impact-summary__stat-divider {
+    display: none;
+  }
+
+  .sector-signal-map {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .sector-signal-map__label {
+    width: auto;
+    flex: 1;
   }
 }

@@ -24,7 +24,9 @@ function initialsForTicker(ticker: string): string {
 
 const BASE_URL = 'https://api.elbstream.com/logos/symbol'
 const FAILED_SYMBOL_STORAGE_KEY = 'prism.logo.failedSymbols.v1'
-const KNOWN_UNAVAILABLE_SYMBOLS = new Set<string>()
+const KNOWN_UNAVAILABLE_SYMBOLS = new Set<string>([
+  'CASH',
+])
 
 // Module-level cache: ticker → resolved image URL or null (failed)
 const logoCache = new Map<string, string | null>()
@@ -192,22 +194,44 @@ export function TickerIcon({ ticker, size = 32 }: TickerIconProps) {
           width: size,
           height: size,
           borderRadius: '50%',
+          position: 'relative',
           overflow: 'hidden',
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
-          backgroundColor: '#f5f5f5',
+          backgroundColor: bg,
+          color: '#ffffff',
+          fontSize,
+          fontWeight: 600,
+          letterSpacing: '-0.02em',
         }}
         aria-hidden="true"
       >
+        <span
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {initials}
+        </span>
         <img
           key={activeUrl}
           src={activeUrl}
           alt=""
           width={size}
           height={size}
-          style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            objectFit: 'cover',
+            width: '100%',
+            height: '100%',
+          }}
           loading="lazy"
           onLoad={handleLoad}
           onError={handleError}

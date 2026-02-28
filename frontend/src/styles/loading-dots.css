@@ -1,0 +1,57 @@
+/* ── Loading Dots ─────────────────────────── */
+.loading-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 4rem 0;
+  min-height: 200px;
+}
+
+.loading-dots--inline {
+  padding: 1rem 0;
+  min-height: auto;
+}
+
+.loading-dots--full-page {
+  min-height: 60vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.loading-dots__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-text);
+  animation: dot-bounce 1.2s ease-in-out infinite;
+}
+
+.loading-dots__dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.loading-dots__dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes dot-bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-dots__dot {
+    animation: none;
+    opacity: 0.6;
+  }
+}

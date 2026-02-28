@@ -18,7 +18,7 @@ function formatCurrency(value: number): string {
 }
 
 export function HoldingsDrawer({ holding, exposureMap, signals, onClose }: HoldingsDrawerProps) {
-  const { setActiveHoldingContext, setAskPrismOpen } = useAppContext()
+  const { setActiveHoldingContext, setActiveAskPrismEntryContext, setAskPrismOpen } = useAppContext()
 
   // Set active holding context when drawer opens
   useEffect(() => {
@@ -41,8 +41,9 @@ export function HoldingsDrawer({ holding, exposureMap, signals, onClose }: Holdi
 
   const handleAskPrism = useCallback(() => {
     onClose()
+    setActiveAskPrismEntryContext(null)
     setAskPrismOpen(true)
-  }, [onClose, setAskPrismOpen])
+  }, [onClose, setActiveAskPrismEntryContext, setAskPrismOpen])
 
   // Filter exposures that this holding contributes to
   const holdingExposures = exposureMap

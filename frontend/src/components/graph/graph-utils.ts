@@ -10,6 +10,30 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
 
+function temporalHorizonMultiplier(
+  temporalClassification: CausalChainNode['temporalClassification'],
+  horizon: GraphTimeHorizon,
+): number {
+  if (horizon === 'oneMonth') return 1
+
+  if (horizon === 'oneWeek') {
+    if (temporalClassification === 'transient') return 1.28
+    if (temporalClassification === 'structural') return 0.72
+    return 0.92
+  }
+
+  if (temporalClassification === 'structural') return 1.22
+  if (temporalClassification === 'transient') return 0.7
+  return 0.95
+}
+
+export function getNodeHorizonEmphasis(
+  node: CausalChainNode,
+  horizon: GraphTimeHorizon,
+): number {
+  return clamp(temporalHorizonMultiplier(node.temporalClassification, horizon), 0.55, 1.3)
+}
+
 function toDirection(net: number): CausalChainEdge['direction'] {
   if (net > 0.01) return 'positive'
   if (net < -0.01) return 'negative'
@@ -167,7 +191,17 @@ export function getHorizonAdjustedImpact(
   counterfactualEnabled: boolean,
 ): number {
   const baseImpact = node.dollarImpact ?? 0
-  if (!temporalAnalysis || node.type !== 'asset') {
+  if (node.type !== 'asset') {
+    return baseImpact
+  }
+
+  const temporalScale = temporalHorizonMultiplier(node.temporalClassification, horizon)
+
+  if (!temporalAnalysis) {
+    return baseImpact * temporalScale
+  }
+
+  if (baseImpact === 0) {
     return baseImpact
   }
 
@@ -175,7 +209,7 @@ export function getHorizonAdjustedImpact(
   const bucket = temporalAnalysis.timeBuckets[horizon]
   const magnitudeScale = Math.abs(bucket.expectedDollarImpact) / Math.max(Math.abs(oneMonth), 1)
   const sign = Math.sign(baseImpact) || 1
-  let adjusted = Math.abs(baseImpact) * magnitudeScale * sign
+  let adjusted = Math.abs(baseImpact) * magnitudeScale * sign * temporalScale
 
   if (counterfactualEnabled) {
     const difference = temporalAnalysis.counterfactual?.estimatedOutcomeDifferenceCad ?? 0

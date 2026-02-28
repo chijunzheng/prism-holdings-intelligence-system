@@ -385,10 +385,13 @@
 }
 
 .signal-sidebar__discuss {
-  display: block;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
   font-size: 0.85rem;
-  color: var(--color-primary, #2563eb);
+  font-weight: 500;
+  color: var(--color-text);
   background: none;
   border: none;
   cursor: pointer;
@@ -396,7 +399,7 @@
 }
 
 .signal-sidebar__discuss:hover {
-  text-decoration: underline;
+  opacity: 0.7;
 }
 
 /* ── Node Detail Bottom Sheet ─── */

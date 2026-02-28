@@ -1,11 +1,13 @@
 import { memo, type MouseEvent } from 'react'
 import type { CausalChainNode } from '@prism/shared'
 import type { GraphNodePosition } from '../../types/graph'
+import { TickerIcon } from '../common/TickerIcon'
 
 interface GraphNodeProps {
   readonly node: CausalChainNode
   readonly position: GraphNodePosition
   readonly displayImpact: number
+  readonly emphasis: number
   readonly selected: boolean
   readonly onSelect: (node: CausalChainNode, x: number, y: number) => void
   readonly onHover: (node: CausalChainNode, displayImpact: number, x: number, y: number) => void
@@ -35,6 +37,18 @@ function assetRadius(displayImpact: number): number {
   return clamp(26 + normalized, 26, 40)
 }
 
+function assetTicker(label: string): string {
+  const parenTicker = label.match(/\(([A-Z]{1,6}(?:\.[A-Z]{1,3})?)\)/)
+  if (parenTicker) return parenTicker[1]
+
+  const leadingTicker = label.match(/^([A-Z]{1,6}(?:\.[A-Z]{1,3})?)(\b|[^A-Z.])/)
+  if (leadingTicker) return leadingTicker[1]
+
+  const firstToken = label.trim().split(/\s+/)[0] ?? ''
+  const cleaned = firstToken.replace(/[^A-Za-z.]/g, '').toUpperCase()
+  return cleaned
+}
+
 function computeRectWidth(label: string): number {
   return clamp(label.length * 5.5 + 28, 120, 280)
 }
@@ -59,6 +73,10 @@ function assetShortLabel(label: string): string {
   return label.length > 6 ? label.slice(0, 6) : label
 }
 
+function isClusteredAsset(node: CausalChainNode): boolean {
+  return node.type === 'asset' && node.metadata.clustered === true
+}
+
 function handleNodeHover(
   event: MouseEvent<SVGGElement>,
   node: CausalChainNode,
@@ -72,6 +90,7 @@ function GraphNodeComponent({
   node,
   position,
   displayImpact,
+  emphasis,
   selected,
   onSelect,
   onHover,
@@ -89,11 +108,17 @@ function GraphNodeComponent({
   const rectHeight = isMultiLine ? 56 : 44
 
   const shortLabel = isAsset ? assetShortLabel(node.label) : ''
+  const iconTicker = isAsset ? assetTicker(node.label) : ''
+  const showAssetIcon = isAsset && iconTicker.length > 0 && !isClusteredAsset(node)
+  const iconSize = clamp(radius * 0.68, 16, 22)
+  const labelDy = showAssetIcon ? 4 : -5
+  const impactDy = showAssetIcon ? 16 : 9
 
   return (
     <g
       className={`graph-node graph-node--${node.type} ${selected ? 'is-selected' : ''}`}
       transform={`translate(${position.x} ${position.y})`}
+      style={{ opacity: clamp(emphasis, 0.55, 1) }}
       role="button"
       tabIndex={0}
       onClick={(event) => onSelect(node, event.clientX, event.clientY)}
@@ -126,10 +151,23 @@ function GraphNodeComponent({
 
       {isAsset ? (
         <>
-          <text className="graph-node__label graph-node__label--asset" textAnchor="middle" dominantBaseline="central" dy={-5}>
+          {showAssetIcon && (
+            <foreignObject
+              x={-iconSize / 2}
+              y={-radius + 4}
+              width={iconSize}
+              height={iconSize}
+              className="graph-node__asset-icon-fo"
+            >
+              <div className="graph-node__asset-icon">
+                <TickerIcon ticker={iconTicker} size={iconSize} />
+              </div>
+            </foreignObject>
+          )}
+          <text className="graph-node__label graph-node__label--asset" textAnchor="middle" dominantBaseline="central" dy={labelDy}>
             {shortLabel}
           </text>
-          <text className="graph-node__impact" textAnchor="middle" dy={9}>
+          <text className="graph-node__impact" textAnchor="middle" dy={impactDy}>
             {displayImpact >= 0 ? '+' : '-'}${Math.abs(displayImpact).toFixed(0)}
           </text>
         </>

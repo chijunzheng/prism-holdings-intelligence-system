@@ -219,6 +219,27 @@ describe('graph-utils', () => {
     expect(sixMonthCounterfactual).toBeLessThan(sixMonth)
   })
 
+  it('applies temporal classification multipliers across horizons', () => {
+    const chain = buildBaseChain()
+    const asset = chain.nodes.find((node) => node.id === 'asset-1')
+    expect(asset).toBeDefined()
+    if (!asset) return
+
+    const analysis = buildTemporalAnalysis()
+    const structuralOneWeek = getHorizonAdjustedImpact(asset, analysis, 'oneWeek', false)
+    const structuralSixMonth = getHorizonAdjustedImpact(asset, analysis, 'sixMonth', false)
+
+    const transientAsset = {
+      ...asset,
+      temporalClassification: 'transient' as const,
+    }
+    const transientOneWeek = getHorizonAdjustedImpact(transientAsset, analysis, 'oneWeek', false)
+    const transientSixMonth = getHorizonAdjustedImpact(transientAsset, analysis, 'sixMonth', false)
+
+    expect(transientOneWeek).toBeGreaterThan(structuralOneWeek)
+    expect(structuralSixMonth).toBeGreaterThan(transientSixMonth)
+  })
+
   it('places nodes in deterministic left-to-right ranks', () => {
     const chain = buildBaseChain()
     const positions = computeGraphPositions(chain, 1200, 700)

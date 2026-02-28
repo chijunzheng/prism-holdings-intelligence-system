@@ -26,7 +26,7 @@ const HORIZONS: ReadonlyArray<GraphTimeHorizon> = ['oneWeek', 'oneMonth', 'sixMo
 
 export function SignalImpactSidebar({ chain, temporalAnalysis, signalId }: SignalImpactSidebarProps) {
   const [horizon, setHorizon] = useState<GraphTimeHorizon>('oneMonth')
-  const { setAskPrismOpen } = useAppContext()
+  const { setAskPrismOpen, setActiveAskPrismEntryContext } = useAppContext()
 
   const bucket = temporalAnalysis.timeBuckets[horizon]
   const netImpact = bucket.expectedDollarImpact
@@ -34,8 +34,13 @@ export function SignalImpactSidebar({ chain, temporalAnalysis, signalId }: Signa
   const assetNodes = chain.nodes.filter((n) => n.type === 'asset')
 
   const handleDiscuss = useCallback(() => {
+    setActiveAskPrismEntryContext({
+      entryType: 'sidebar_cta',
+      signalId,
+      autoPrompt: 'Discuss this signal impact in detail and what I should watch next.',
+    })
     setAskPrismOpen(true)
-  }, [setAskPrismOpen])
+  }, [setActiveAskPrismEntryContext, setAskPrismOpen, signalId])
 
   return (
     <aside className="signal-sidebar">
@@ -98,6 +103,7 @@ export function SignalImpactSidebar({ chain, temporalAnalysis, signalId }: Signa
       </a>
 
       <button type="button" className="signal-sidebar__discuss" onClick={handleDiscuss}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         Discuss with Prism &rarr;
       </button>
     </aside>

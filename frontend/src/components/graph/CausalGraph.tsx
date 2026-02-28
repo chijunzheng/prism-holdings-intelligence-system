@@ -3,7 +3,7 @@ import type { CausalChain, CausalChainNode } from '@prism/shared'
 import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react'
 import type { GraphTimeHorizon, TemporalAnalysis } from '../../types/graph'
 import { useGraphLayout } from '../../hooks/useGraphLayout'
-import { getHorizonAdjustedImpact } from './graph-utils'
+import { getHorizonAdjustedImpact, getNodeHorizonEmphasis } from './graph-utils'
 import { GraphEdge } from './GraphEdge'
 import { GraphNode } from './GraphNode'
 import { GraphTooltip } from './GraphTooltip'
@@ -38,7 +38,7 @@ const EMBEDDED_SIZE = { width: 800, height: 400 }
 const MIN_WIDTH = 760
 const MAX_WIDTH = 2200
 const MIN_HEIGHT = 420
-const MAX_HEIGHT = 720
+const MAX_HEIGHT = 840
 const EMBEDDED_MIN_HEIGHT = 350
 const EMBEDDED_MAX_HEIGHT = 450
 const MIN_SCALE = 0.3
@@ -52,6 +52,7 @@ function fitToContent(
   positions: ReadonlyMap<string, { x: number; y: number }>,
   containerWidth: number,
   containerHeight: number,
+  mode: 'canvas' | 'embedded',
 ): PanZoomState {
   if (positions.size === 0) return { panX: 0, panY: 0, scale: 1 }
 
@@ -66,13 +67,14 @@ function fitToContent(
     maxY = Math.max(maxY, pos.y)
   }
 
-  const padding = 80
+  const padding = mode === 'canvas' ? 24 : 48
   const contentWidth = maxX - minX + padding * 2
   const contentHeight = maxY - minY + padding * 2
+  const fitScaleCap = mode === 'canvas' ? 2.15 : 1.35
   const scale = clamp(
     Math.min(containerWidth / contentWidth, containerHeight / contentHeight),
     MIN_SCALE,
-    1.0,
+    fitScaleCap,
   )
   const centerX = (minX + maxX) / 2
   const centerY = (minY + maxY) / 2
@@ -98,6 +100,7 @@ export function CausalGraph({
   const [hoverTooltip, setHoverTooltip] = useState<TooltipState | null>(null)
   const [pinnedTooltip, setPinnedTooltip] = useState<TooltipState | null>(null)
   const [panZoom, setPanZoom] = useState<PanZoomState>({ panX: 0, panY: 0, scale: 1 })
+  const [maximized, setMaximized] = useState(false)
   const isPanning = useRef(false)
   const lastPointer = useRef({ x: 0, y: 0 })
   const tooltipRafRef = useRef<number | null>(null)
@@ -115,6 +118,7 @@ export function CausalGraph({
   useEffect(() => {
     function handleEscape(event: KeyboardEvent): void {
       if (event.key !== 'Escape') return
+      setMaximized(false)
       setPinnedTooltip(null)
       setHoverTooltip(null)
     }
@@ -122,6 +126,15 @@ export function CausalGraph({
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
   }, [])
+
+  useEffect(() => {
+    if (!maximized) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previous
+    }
+  }, [maximized])
 
   useEffect(() => {
     const element = containerRef.current
@@ -132,8 +145,14 @@ export function CausalGraph({
       if (!entry) return
 
       const minHeight = mode === 'embedded' ? EMBEDDED_MIN_HEIGHT : MIN_HEIGHT
-      const maxHeight = mode === 'embedded' ? EMBEDDED_MAX_HEIGHT : MAX_HEIGHT
-      const width = clamp(Math.floor(entry.contentRect.width), MIN_WIDTH, MAX_WIDTH)
+      const maxHeightBase = mode === 'embedded' ? EMBEDDED_MAX_HEIGHT : MAX_HEIGHT
+      const maxHeight = maximized
+        ? Math.max(maxHeightBase, window.innerHeight - 72)
+        : maxHeightBase
+      const maxWidth = maximized
+        ? Math.max(MAX_WIDTH, window.innerWidth - 32)
+        : MAX_WIDTH
+      const width = clamp(Math.floor(entry.contentRect.width), MIN_WIDTH, maxWidth)
       const height = clamp(Math.floor(entry.contentRect.height), minHeight, maxHeight)
       setSize((prev) => {
         if (prev.width === width && prev.height === height) return prev
@@ -143,7 +162,7 @@ export function CausalGraph({
 
     observer.observe(element)
     return () => observer.disconnect()
-  }, [mode])
+  }, [maximized, mode])
 
   const { laidOutChain, positions } = useGraphLayout(chain, {
     width: size.width,
@@ -156,9 +175,9 @@ export function CausalGraph({
   // Fit to content when positions change
   useEffect(() => {
     if (positions.size > 0) {
-      setPanZoom(fitToContent(positions, size.width, size.height))
+      setPanZoom(fitToContent(positions, size.width, size.height, mode))
     }
-  }, [positions, size.width, size.height])
+  }, [mode, positions, size.width, size.height])
 
   const impactByNodeId = useMemo(() => {
     const map = new Map<string, number>()
@@ -170,6 +189,11 @@ export function CausalGraph({
     }
     return map
   }, [chain.nodes, counterfactualEnabled, horizon, temporalAnalysis])
+
+  const nodeById = useMemo(
+    () => new Map(chain.nodes.map((node) => [node.id, node])),
+    [chain.nodes],
+  )
 
   const nodes = laidOutChain?.nodes ?? []
   const edges = laidOutChain?.edges ?? []
@@ -278,8 +302,8 @@ export function CausalGraph({
   }, [])
 
   const handleReset = useCallback(() => {
-    setPanZoom(fitToContent(positions, size.width, size.height))
-  }, [positions, size.width, size.height])
+    setPanZoom(fitToContent(positions, size.width, size.height, mode))
+  }, [mode, positions, size.width, size.height])
 
   useEffect(() => {
     if (!pinnedTooltip) return
@@ -289,7 +313,7 @@ export function CausalGraph({
 
   const activeTooltip = pinnedTooltip ?? hoverTooltip
 
-  const containerClassName = mode === 'embedded' ? 'causal-graph causal-graph--embedded' : 'causal-graph'
+  const containerClassName = `causal-graph${mode === 'embedded' ? ' causal-graph--embedded' : ''}${maximized ? ' causal-graph--maximized' : ''}`
 
   return (
     <div className={containerClassName} ref={containerRef}>
@@ -323,7 +347,20 @@ export function CausalGraph({
             const source = positions.get(edge.source)
             const target = positions.get(edge.target)
             if (!source || !target) return null
-            return <GraphEdge key={edge.id} edge={edge} source={source} target={target} />
+
+            const sourceNode = nodeById.get(edge.source)
+            const targetNode = nodeById.get(edge.target)
+            const sourceEmphasis = sourceNode ? getNodeHorizonEmphasis(sourceNode, horizon) : 1
+            const targetEmphasis = targetNode ? getNodeHorizonEmphasis(targetNode, horizon) : 1
+            const edgeEmphasis = (sourceEmphasis + targetEmphasis) / 2
+
+            const adjustedEdge = {
+              ...edge,
+              magnitude: clamp(edge.magnitude * (0.72 + edgeEmphasis * 0.48), 0.05, 1),
+              confidence: clamp(edge.confidence * (0.7 + edgeEmphasis * 0.36), 0.2, 1),
+            }
+
+            return <GraphEdge key={edge.id} edge={adjustedEdge} source={source} target={target} />
           })}
 
           {nodes.map((node) => {
@@ -336,6 +373,7 @@ export function CausalGraph({
                 node={node}
                 position={position}
                 displayImpact={impactByNodeId.get(node.id) ?? 0}
+                emphasis={getNodeHorizonEmphasis(node, horizon)}
                 selected={node.id === selectedNodeId}
                 onSelect={handleGraphNodeSelect}
                 onHover={handleNodeHover}
@@ -346,11 +384,21 @@ export function CausalGraph({
         </g>
       </svg>
 
-      {mode === 'canvas' && (
-        <button className="causal-graph__reset" onClick={handleReset} type="button">
-          Reset view
+      <div className={`causal-graph__top-controls${mode === 'embedded' ? ' causal-graph__top-controls--embedded' : ''}`}>
+        {(mode === 'canvas' || maximized) && (
+          <button className="causal-graph__control" onClick={handleReset} type="button">
+            Reset view
+          </button>
+        )}
+        <button
+          className="causal-graph__control"
+          onClick={() => setMaximized((prev) => !prev)}
+          type="button"
+          aria-label={maximized ? 'Exit maximized canvas' : 'Maximize canvas'}
+        >
+          {maximized ? 'Exit' : 'Maximize'}
         </button>
-      )}
+      </div>
 
       {activeTooltip && (
         <GraphTooltip

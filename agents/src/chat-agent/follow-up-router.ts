@@ -2,7 +2,6 @@
 // Drill-downs use cached artifacts (<2s), what-ifs partially re-run pipeline (~8-12s),
 // new signals trigger full pipeline.
 
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai'
 import { HumanMessage } from '@langchain/core/messages'
 import type {
   Signal,
@@ -14,6 +13,7 @@ import type {
   UserProfile,
   DollarRange,
 } from '@prism/shared'
+import { createGeminiChatModel } from '../utils/gemini-chat-model'
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -131,8 +131,8 @@ async function classifyWithLlm(
   message: string,
   activeSignals: readonly Signal[],
 ): Promise<FollowUpClassification> {
-  const model = new ChatGoogleGenerativeAI({
-    model: 'gemini-2.0-flash',
+  const model = createGeminiChatModel({
+    model: 'gemini-2.5-flash',
     temperature: 0,
     maxOutputTokens: 512,
   })

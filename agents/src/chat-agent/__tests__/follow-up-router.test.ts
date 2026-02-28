@@ -57,14 +57,15 @@ const mockVerdict: FundManagerVerdict = {
 
 const mockPortfolio: Portfolio = {
   userId: 'user-1',
-  asOf: '2025-01-15',
+  totalValueCad: 10000,
+  lastUpdated: '2025-01-15T00:00:00Z',
   accounts: [{
-    accountId: 'acct-1',
-    accountType: 'TFSA',
+    id: 'acct-1',
+    type: 'TFSA',
     holdings: [
-      { ticker: 'RY', name: 'Royal Bank', units: 10, priceCad: 500, valueCad: 5000 },
-      { ticker: 'ZAG', name: 'BMO Bond', units: 30, priceCad: 100, valueCad: 3000 },
-      { ticker: 'VFV', name: 'Vanguard S&P 500', units: 20, priceCad: 100, valueCad: 2000 },
+      { ticker: 'RY', name: 'Royal Bank', type: 'STOCK', units: 10, valueCad: 5000, accountType: 'TFSA', dataAsOf: '2025-01-15T00:00:00Z' },
+      { ticker: 'ZAG', name: 'BMO Bond', type: 'BOND_ETF', units: 30, valueCad: 3000, accountType: 'TFSA', dataAsOf: '2025-01-15T00:00:00Z' },
+      { ticker: 'VFV', name: 'Vanguard S&P 500', type: 'ETF', units: 20, valueCad: 2000, accountType: 'TFSA', dataAsOf: '2025-01-15T00:00:00Z' },
     ],
   }],
 }
@@ -73,9 +74,12 @@ const mockUserProfile: UserProfile = {
   id: 'user-1',
   name: 'Test User',
   age: 35,
-  investorType: 'growth',
   riskTolerance: 'moderate',
-  investmentHorizon: '10+ years',
+  financialLiteracy: 'moderate',
+  goals: ['Growth'],
+  investmentHorizonYears: 10,
+  context: 'Test user for follow-up router',
+  preferences: { maxDailyAlerts: 2, detailLevel: 'moderate' },
 }
 
 // ── classifyByPattern ───────────────────────────────────────

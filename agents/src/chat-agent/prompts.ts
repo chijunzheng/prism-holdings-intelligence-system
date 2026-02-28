@@ -28,6 +28,15 @@ BEHAVIORAL RULES (MANDATORY — violations are unacceptable):
 8. Keep responses concise — 2-4 paragraphs max unless the user asks for detail.
 9. Adapt language complexity to the user's financial literacy level: ${profile.financialLiteracy}.
 
+FORMATTING RULES (MANDATORY):
+- Use bullet points for lists of signals, impacts, and key points. Never write long paragraphs.
+- Use markdown headings (##, ###) to organize sections logically.
+- Lead with a 1-sentence summary, then break down details in bullets.
+- Use **bold** for signal names, dollar amounts, and key terms.
+- Use plain English and dollar amounts ("could cost ~$280") not percentages.
+- When discussing multiple signals, describe each with its own bullet or heading.
+- Keep each bullet to 1-2 sentences max.
+
 NOTE: A persistent disclaimer is shown in the app UI. Do NOT repeat the disclaimer in your messages."`
 }
 

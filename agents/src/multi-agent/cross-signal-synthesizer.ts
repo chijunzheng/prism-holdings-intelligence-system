@@ -3,7 +3,6 @@
 // Pure computation for aggregation + interaction classification.
 // LLM for interaction insights + holistic recommendations.
 
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai'
 import { HumanMessage } from '@langchain/core/messages'
 import type {
   FundManagerVerdict,
@@ -14,6 +13,7 @@ import type {
   Recommendation,
   CalibratedHoldingImpact,
 } from '@prism/shared'
+import { createGeminiChatModel } from '../utils/gemini-chat-model'
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -170,8 +170,8 @@ function extractJson(text: string): string {
 }
 
 function createSynthesizerModel() {
-  return new ChatGoogleGenerativeAI({
-    model: 'gemini-2.0-flash',
+  return createGeminiChatModel({
+    model: 'gemini-2.5-flash',
     temperature: 0.3,
     maxOutputTokens: 4096,
   })

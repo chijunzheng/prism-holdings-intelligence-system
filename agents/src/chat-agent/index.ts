@@ -1,25 +1,45 @@
 import type { AgentConfig } from '../types'
-// ADK removed — this entire chat-agent will be replaced by LangGraph chat (Feature 15-17).
-// Stub for compilation until replacement is built.
-async function runPrismAdkPrompt(_params: {
-  userId: string
-  message: string
-  sessionId: string
-}): Promise<{ success: boolean; data?: { response: string }; error?: string }> {
-  return { success: false, error: 'ADK removed — chat-agent pending LangGraph migration' }
-}
 import { getGeminiApiKey, getGeminiModelName } from '../utils/env'
+import { GoogleGenAI } from '@google/genai'
+
+// Direct Gemini call — replaces the old ADK runtime.
+async function runGeminiPrompt(params: {
+  message: string
+}): Promise<{ success: boolean; data?: { response: string }; error?: string }> {
+  const apiKey = getGeminiApiKey()
+  if (!apiKey) {
+    return { success: false, error: 'Gemini API key not configured' }
+  }
+
+  try {
+    const genai = new GoogleGenAI({ apiKey })
+    const response = await genai.models.generateContent({
+      model: getGeminiModelName(),
+      contents: params.message,
+      config: { temperature: 0.7 },
+    })
+
+    const text = response.text ?? ''
+    if (!text) {
+      return { success: false, error: 'Empty response from Gemini' }
+    }
+
+    return { success: true, data: { response: text } }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Gemini call failed',
+    }
+  }
+}
 import { buildSystemPrompt, buildNodeContextPrompt, buildWhatIfDetectionPrompt } from './prompts'
 import type { ChatContext, ChatMessage, WhatIfDetection } from './types'
-import { GoogleGenAI } from '@google/genai'
 
 export const config: AgentConfig = {
   name: 'chat-agent',
   description: 'Contextual chat agent scoped to a selected causal graph node via ADK runtime',
   usesLlm: true,
 }
-
-const CHAT_SESSION_PREFIX = 'chat'
 
 function buildInitialPrompt(context: ChatContext): string {
   const systemPrompt = buildSystemPrompt(context.profile)
@@ -92,10 +112,8 @@ export async function generateInitialMessage(
     return { content: '', error: 'Gemini API key not configured.' }
   }
 
-  const result = await runPrismAdkPrompt({
-    userId: context.profile.id,
+  const result = await runGeminiPrompt({
     message: buildInitialPrompt(context),
-    sessionId: `${CHAT_SESSION_PREFIX}:${context.profile.id}:${context.signal.id}:${context.node.id}:init`,
   })
 
   if (!result.success || !result.data) {
@@ -122,10 +140,8 @@ export async function* streamChatResponse(
     return
   }
 
-  const result = await runPrismAdkPrompt({
-    userId: context.profile.id,
+  const result = await runGeminiPrompt({
     message: buildChatPrompt(context, history, userMessage),
-    sessionId: `${CHAT_SESSION_PREFIX}:${context.profile.id}:${context.signal.id}:${context.node.id}`,
   })
 
   if (!result.success || !result.data) {
@@ -205,10 +221,8 @@ export async function generateGeneralInitialMessage(
     warnings ? `\nConcentration warnings:\n${warnings}` : '',
   ].join('\n')
 
-  const result = await runPrismAdkPrompt({
-    userId: profile.id,
+  const result = await runGeminiPrompt({
     message: prompt,
-    sessionId: `${CHAT_SESSION_PREFIX}:${profile.id}:general:init`,
   })
 
   if (!result.success || !result.data) {
@@ -258,10 +272,8 @@ export async function* streamGeneralChatResponse(
     'Respond with practical analysis only. Avoid markdown headings.',
   ].join('\n')
 
-  const result = await runPrismAdkPrompt({
-    userId: profile.id,
+  const result = await runGeminiPrompt({
     message: prompt,
-    sessionId: `${CHAT_SESSION_PREFIX}:${profile.id}:general`,
   })
 
   if (!result.success || !result.data) {
@@ -282,7 +294,7 @@ export async function* streamAskPrismResponse(
   context: import('@prism/shared').AskPrismContext,
   history: ReadonlyArray<ChatMessage>,
   userMessage: string,
-  sessionScope: import('@prism/shared').AskPrismSessionScope = 'global',
+  _sessionScope: import('@prism/shared').AskPrismSessionScope = 'global',
 ): AsyncGenerator<string, void, undefined> {
   if (!getGeminiApiKey()) {
     yield 'Error: Gemini API key not configured.'
@@ -305,10 +317,8 @@ export async function* streamAskPrismResponse(
     `LATEST USER MESSAGE: ${userMessage}`,
   ].join('\n')
 
-  const result = await runPrismAdkPrompt({
-    userId: context.profile.id,
+  const result = await runGeminiPrompt({
     message: prompt,
-    sessionId: `ask-prism:${context.profile.id}:${sessionScope.replace(/[^a-zA-Z0-9:_-]/g, '-')}`,
   })
 
   if (!result.success || !result.data) {

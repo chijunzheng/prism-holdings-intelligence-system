@@ -1,4 +1,4 @@
-// SignalCard — new signal notification with urgency, sentiment, and action buttons.
+// SignalCard — rich signal card with urgency badge, sentiment, exposure chips, and action.
 
 import type { Signal } from '@prism/shared'
 
@@ -7,42 +7,95 @@ interface SignalCardProps {
   readonly onAnalyze?: (signalId: string) => void
 }
 
-const URGENCY_COLORS: Record<string, string> = {
-  high: 'var(--color-negative, #d92b2b)',
-  moderate: 'var(--color-ambiguous, #c87d15)',
-  low: 'var(--color-positive, #0da750)',
+const URGENCY_CONFIG: Record<string, { label: string; className: string }> = {
+  critical: { label: 'CRITICAL', className: 'signal-card__badge--critical' },
+  high: { label: 'HIGH', className: 'signal-card__badge--high' },
+  medium: { label: 'MEDIUM', className: 'signal-card__badge--medium' },
+  low: { label: 'LOW', className: 'signal-card__badge--low' },
+}
+
+const SENTIMENT_LABELS: Record<string, string> = {
+  positive: 'Positive',
+  negative: 'Negative',
+  mixed: 'Mixed',
+}
+
+function formatTimeAgo(dateStr: string): string {
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+
+  if (diffHours < 1) return 'Just now'
+  if (diffHours < 24) return `${diffHours}h ago`
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays === 1) return 'Yesterday'
+  return `${diffDays}d ago`
 }
 
 export function SignalCard({ data, onAnalyze }: SignalCardProps) {
   const signal = data as Signal
+  const urgency = URGENCY_CONFIG[signal.urgency] ?? { label: signal.urgency.toUpperCase(), className: '' }
+  const sentiment = SENTIMENT_LABELS[signal.sentiment] ?? signal.sentiment
+  const timeAgo = formatTimeAgo(signal.detectedAt)
 
   return (
-    <div className="chat-card chat-card--signal">
-      <div className="chat-card__header">
-        <span
-          className="chat-card__urgency"
-          style={{ color: URGENCY_COLORS[signal.urgency] ?? '#737373' }}
-        >
-          {signal.urgency.toUpperCase()}
-        </span>
-        <span className="chat-card__sentiment">{signal.sentiment}</span>
+    <div
+      className="signal-card"
+      onClick={() => onAnalyze?.(signal.id)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter') onAnalyze?.(signal.id) }}
+    >
+      <div className="signal-card__top">
+        <span className={`signal-card__badge ${urgency.className}`}>{urgency.label}</span>
+        <span className="signal-card__sentiment">{sentiment}</span>
+        <span className="signal-card__time">{timeAgo}</span>
       </div>
-      <h4 className="chat-card__title">{signal.headline}</h4>
-      <p className="chat-card__description">{signal.description}</p>
-      <div className="chat-card__exposures">
-        {signal.affectedExposures.map((exp) => (
-          <span key={exp} className="chat-card__exposure-chip">{exp}</span>
+
+      <h4 className="signal-card__headline">{signal.headline}</h4>
+      <p className="signal-card__description">{signal.description}</p>
+
+      <div className="signal-card__exposures">
+        {signal.affectedExposures.slice(0, 4).map((exp) => (
+          <span key={exp} className="signal-card__chip">{exp}</span>
         ))}
+        {signal.affectedExposures.length > 4 && (
+          <span className="signal-card__chip signal-card__chip--more">
+            +{signal.affectedExposures.length - 4}
+          </span>
+        )}
       </div>
-      <div className="chat-card__actions">
+
+      {signal.sources.length > 0 && (
+        <div className="signal-card__sources">
+          {signal.sources.slice(0, 2).map((src, i) => (
+            <a
+              key={i}
+              className="signal-card__source-link"
+              href={src.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {src.title}
+            </a>
+          ))}
+        </div>
+      )}
+
+      <div className="signal-card__footer">
         <button
-          className="chat-card__btn chat-card__btn--primary"
-          onClick={() => onAnalyze?.(signal.id)}
+          className="signal-card__analyze-btn"
+          onClick={(e) => {
+            e.stopPropagation()
+            onAnalyze?.(signal.id)
+          }}
         >
           Analyze Impact
-        </button>
-        <button className="chat-card__btn chat-card__btn--secondary">
-          Dismiss
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M5.25 3.5L8.75 7L5.25 10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
       </div>
     </div>

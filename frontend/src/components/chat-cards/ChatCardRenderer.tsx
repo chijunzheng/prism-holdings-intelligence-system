@@ -3,6 +3,7 @@
 
 import { SignalCard } from './SignalCard'
 import { ThinkingCard } from './ThinkingCard'
+import { PipelineProgressCard } from './PipelineProgressCard'
 import { DebateSummaryCard } from './DebateSummaryCard'
 import { CheckpointCard } from './CheckpointCard'
 import { StressScenarioCard } from './StressScenarioCard'
@@ -20,14 +21,17 @@ interface ChatCardRendererProps {
   readonly card: ChatCard
   readonly onCheckpointSubmit?: (value: string) => void
   readonly onRecommendationSelect?: (id: string) => void
+  readonly onSignalAnalyze?: (signalId: string) => void
 }
 
-export function ChatCardRenderer({ card, onCheckpointSubmit, onRecommendationSelect }: ChatCardRendererProps) {
+export function ChatCardRenderer({ card, onCheckpointSubmit, onRecommendationSelect, onSignalAnalyze }: ChatCardRendererProps) {
   switch (card.type) {
     case 'signal':
-      return <SignalCard data={card.data} />
+      return <SignalCard data={card.data} onAnalyze={onSignalAnalyze} />
     case 'thinking':
       return <ThinkingCard data={card.data} />
+    case 'pipeline_progress':
+      return <PipelineProgressCard data={card.data} />
     case 'debate_summary':
       return <DebateSummaryCard data={card.data} />
     case 'checkpoint':

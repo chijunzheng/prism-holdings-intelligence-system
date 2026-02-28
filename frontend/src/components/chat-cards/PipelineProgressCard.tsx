@@ -1,24 +1,14 @@
 // PipelineProgressCard — vertical progress tracker for multi-agent pipeline stages.
 // Shows completed stages (checkmark), active stage (spinner), and pending stages (dimmed).
 
-interface StageInfo {
-  readonly id: string
-  readonly label: string
-  readonly status: 'pending' | 'active' | 'complete'
-  readonly message?: string
-}
-
-interface PipelineProgressData {
-  readonly stages: readonly StageInfo[]
-  readonly error?: string
-}
+import type { PipelineProgressData } from './types'
 
 interface PipelineProgressCardProps {
-  readonly data: unknown
+  readonly data: PipelineProgressData
 }
 
 export function PipelineProgressCard({ data }: PipelineProgressCardProps) {
-  const progress = data as PipelineProgressData
+  const progress = data
   const hasError = Boolean(progress.error)
 
   return (

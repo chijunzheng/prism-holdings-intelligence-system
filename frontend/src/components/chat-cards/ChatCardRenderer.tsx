@@ -11,11 +11,11 @@ import { RecommendationCard } from './RecommendationCard'
 import { TransparencyCard } from './TransparencyCard'
 import { PortfolioReviewCard } from './PortfolioReviewCard'
 import { ResearchBriefCard } from './ResearchBriefCard'
-
-type ChatCard = {
-  readonly type: string
-  readonly data: unknown
-}
+import { SignalImpactDeltaCard } from './SignalImpactDeltaCard'
+import { ActionPlaybookCard } from './ActionPlaybookCard'
+import { TraceNavigatorCard } from './TraceNavigatorCard'
+import { ReasoningTraceCard } from './ReasoningTraceCard'
+import type { ChatCard } from './types'
 
 interface ChatCardRendererProps {
   readonly card: ChatCard
@@ -46,6 +46,14 @@ export function ChatCardRenderer({ card, onCheckpointSubmit, onRecommendationSel
       return <PortfolioReviewCard data={card.data} />
     case 'research_brief':
       return <ResearchBriefCard data={card.data} />
+    case 'signal_impact_delta':
+      return <SignalImpactDeltaCard data={card.data} />
+    case 'action_playbook':
+      return <ActionPlaybookCard data={card.data} onSelect={onRecommendationSelect} />
+    case 'trace_navigator':
+      return <TraceNavigatorCard data={card.data} />
+    case 'reasoning_trace':
+      return <ReasoningTraceCard data={card.data} />
     default:
       return (
         <div className="chat-card chat-card--unknown">

@@ -8,7 +8,22 @@ import { ChatMessage } from '../chat/ChatMessage'
 import { ChatCardRenderer } from '../chat-cards/ChatCardRenderer'
 import { SuggestedPrompts } from '../chat/SuggestedPrompts'
 import type { ChatMessage as ChatMessageType } from '../../hooks/useChat'
-import type { Signal } from '@prism/shared'
+import type { FundManagerVerdict, ResearchBrief, Signal } from '@prism/shared'
+import type {
+  ActionPlaybookData,
+  AnalysisCompleteData,
+  ChatCard,
+  PipelineStageInfo,
+  ReasoningTraceData,
+  ReasoningTraceStep,
+  SignalImpactDeltaData,
+} from '../chat-cards/types'
+import {
+  mapActionPlaybookData,
+  mapImpactDeltaData,
+  mapReasoningTraceData,
+  mapTraceNavigatorData,
+} from '../chat-cards/mappers'
 
 interface ChatAreaProps {
   readonly userId: string
@@ -16,15 +31,15 @@ interface ChatAreaProps {
   readonly signals?: readonly Signal[]
   readonly onSendRef?: MutableRefObject<((msg: string) => void) | null>
   readonly onAnalyzeSignalRef?: MutableRefObject<((signal: Signal) => void) | null>
-}
-
-type ChatCardData = {
-  readonly type: string
-  readonly data: unknown
+  readonly onInsightsUpdate?: (insights: {
+    readonly impactDelta?: SignalImpactDeltaData
+    readonly playbook?: ActionPlaybookData
+    readonly reasoningTrace?: ReasoningTraceData
+  }) => void
 }
 
 type EnhancedMessage = ChatMessageType & {
-  readonly card?: ChatCardData
+  readonly card?: ChatCard
 }
 
 const WELCOME_PROMPTS = [
@@ -140,15 +155,6 @@ async function* parseSseStream(
 
 // ── Pipeline Progress Stage Definitions ──────────────────────
 
-type StageStatus = 'pending' | 'active' | 'complete'
-
-interface StageInfo {
-  readonly id: string
-  readonly label: string
-  readonly status: StageStatus
-  readonly message?: string
-}
-
 const PIPELINE_STAGES: readonly { id: string; label: string }[] = [
   { id: 'risk_profile', label: 'Inferring risk profile' },
   { id: 'market_data', label: 'Fetching market data' },
@@ -162,18 +168,18 @@ const PIPELINE_STAGES: readonly { id: string; label: string }[] = [
   { id: 'brief', label: 'Generating research brief' },
 ]
 
-function buildInitialStages(): StageInfo[] {
+function buildInitialStages(): PipelineStageInfo[] {
   return PIPELINE_STAGES.map((s, i) => ({
     ...s,
-    status: (i === 0 ? 'active' : 'pending') as StageStatus,
+    status: i === 0 ? 'active' : 'pending',
   }))
 }
 
 function advanceStages(
-  stages: readonly StageInfo[],
+  stages: readonly PipelineStageInfo[],
   completedStageId: string,
   message?: string,
-): StageInfo[] {
+): PipelineStageInfo[] {
   const completedIdx = stages.findIndex((s) => s.id === completedStageId)
   if (completedIdx === -1) return [...stages]
 
@@ -188,13 +194,36 @@ function advanceStages(
   })
 }
 
-function markAllComplete(stages: readonly StageInfo[]): StageInfo[] {
+function markAllComplete(stages: readonly PipelineStageInfo[]): PipelineStageInfo[] {
   return stages.map((s) => ({ ...s, status: 'complete' as const }))
+}
+
+function upsertCardMessage(
+  messages: readonly EnhancedMessage[],
+  id: string,
+  card: ChatCard,
+): EnhancedMessage[] {
+  const next = [...messages]
+  const idx = next.findIndex((msg) => msg.id === id)
+  const message: EnhancedMessage = { id, role: 'assistant', content: '', card }
+  if (idx === -1) {
+    next.push(message)
+    return next
+  }
+  next[idx] = message
+  return next
 }
 
 // ── Component ───────────────────────────────────────────────
 
-export function ChatArea({ userId, activeSessionId, signals, onSendRef, onAnalyzeSignalRef }: ChatAreaProps) {
+export function ChatArea({
+  userId,
+  activeSessionId,
+  signals,
+  onSendRef,
+  onAnalyzeSignalRef,
+  onInsightsUpdate,
+}: ChatAreaProps) {
   const [messages, setMessages] = useState<readonly EnhancedMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -232,6 +261,11 @@ export function ChatArea({ userId, activeSessionId, signals, onSendRef, onAnalyz
       const controller = new AbortController()
       abortRef.current = controller
 
+      let latestImpactDelta: SignalImpactDeltaData | undefined
+      let latestPlaybook: ActionPlaybookData | undefined
+      let latestReasoningTrace: ReasoningTraceData | undefined
+      let reasoningSteps: ReasoningTraceStep[] = []
+
       const userMsg: EnhancedMessage = {
         id: uid('msg'),
         role: 'user',
@@ -246,6 +280,12 @@ export function ChatArea({ userId, activeSessionId, signals, onSendRef, onAnalyz
       }
 
       const progressId = uid('card-progress')
+      const impactDeltaId = uid('card-impact-delta')
+      const actionPlaybookId = uid('card-playbook')
+      const traceNavigatorId = uid('card-trace-nav')
+      const reasoningTraceId = uid('card-reasoning-trace')
+      const recommendationId = uid('card-rec')
+      const researchBriefId = uid('card-brief')
       const initialStages = buildInitialStages()
       const progressMsg: EnhancedMessage = {
         id: progressId,
@@ -286,51 +326,164 @@ export function ChatArea({ userId, activeSessionId, signals, onSendRef, onAnalyz
           for await (const sseEvent of parseSseStream(reader)) {
             if (controller.signal.aborted) break
 
-            if (sseEvent.event === 'complete') {
+            if (sseEvent.event === 'impact_delta') {
+              const impactData = sseEvent.data as SignalImpactDeltaData
+              latestImpactDelta = impactData
+
+              setMessages((prev) =>
+                upsertCardMessage(prev, impactDeltaId, {
+                  type: 'signal_impact_delta',
+                  data: impactData,
+                }),
+              )
+
+              onInsightsUpdate?.({
+                impactDelta: latestImpactDelta,
+                playbook: latestPlaybook,
+                reasoningTrace: latestReasoningTrace,
+              })
+            } else if (sseEvent.event === 'playbook') {
+              const playbookData = sseEvent.data as ActionPlaybookData
+              latestPlaybook = playbookData
+
+              setMessages((prev) =>
+                upsertCardMessage(prev, actionPlaybookId, {
+                  type: 'action_playbook',
+                  data: playbookData,
+                }),
+              )
+
+              onInsightsUpdate?.({
+                impactDelta: latestImpactDelta,
+                playbook: latestPlaybook,
+                reasoningTrace: latestReasoningTrace,
+              })
+            } else if (sseEvent.event === 'trace_step') {
+              const step = sseEvent.data as ReasoningTraceStep
+              reasoningSteps = [...reasoningSteps, step]
+
+              setMessages((prev) => {
+                let next = upsertCardMessage(prev, traceNavigatorId, {
+                  type: 'trace_navigator',
+                  data: mapTraceNavigatorData({
+                    signal,
+                    steps: reasoningSteps,
+                    totalSteps: PIPELINE_STAGES.length,
+                  }),
+                })
+
+                const traceData = mapReasoningTraceData({
+                  signal,
+                  verdict: {
+                    signalId: signal.id,
+                    holdingImpacts: [],
+                    recommendations: [],
+                    riskAdjustments: {
+                      confidenceHaircut: 0,
+                      magnitudeBoundsApplied: [],
+                      scenarioPreference: 'base',
+                    },
+                    perspectiveBreakdown: {
+                      bullCase: '',
+                      bearCase: '',
+                      unresolvedDisagreements: [],
+                    },
+                    qualityScore: 0,
+                    humanDecisionRequired: true,
+                  },
+                  steps: reasoningSteps,
+                })
+                latestReasoningTrace = traceData
+                next = upsertCardMessage(next, reasoningTraceId, {
+                  type: 'reasoning_trace',
+                  data: traceData,
+                })
+
+                return next
+              })
+
+              onInsightsUpdate?.({
+                impactDelta: latestImpactDelta,
+                playbook: latestPlaybook,
+                reasoningTrace: latestReasoningTrace,
+              })
+            } else if (sseEvent.event === 'complete') {
               // Pipeline finished — mark all stages complete, add result cards
               const finalStages = markAllComplete(currentStages)
-              const payload = sseEvent.data as {
-                verdict?: { recommendations?: unknown; transparencyNote?: unknown }
-                researchBrief?: unknown
-              }
+              const payload = sseEvent.data as AnalysisCompleteData
 
-              const resultCards: EnhancedMessage[] = []
-
-              if (payload.verdict?.recommendations) {
-                resultCards.push({
-                  id: uid('card-rec'),
-                  role: 'assistant',
-                  content: '',
-                  card: { type: 'recommendation', data: payload.verdict.recommendations },
-                })
-              }
-
-              if (payload.verdict?.transparencyNote) {
-                resultCards.push({
-                  id: uid('card-transparency'),
-                  role: 'assistant',
-                  content: '',
-                  card: { type: 'transparency', data: payload.verdict },
-                })
-              }
-
-              if (payload.researchBrief) {
-                resultCards.push({
-                  id: uid('card-brief'),
-                  role: 'assistant',
-                  content: '',
-                  card: { type: 'research_brief', data: payload.researchBrief },
-                })
-              }
-
-              setMessages((prev) => [
-                ...prev.map((m) =>
+              setMessages((prev) => {
+                let next = prev.map((m) =>
                   m.id === progressId
-                    ? { ...m, card: { type: 'pipeline_progress', data: { stages: finalStages } } }
+                    ? { ...m, card: { type: 'pipeline_progress', data: { stages: finalStages } } as ChatCard }
                     : m,
-                ),
-                ...resultCards,
-              ])
+                )
+
+                if (payload.verdict) {
+                  const verdict = payload.verdict as FundManagerVerdict
+                  const impactDelta = latestImpactDelta ?? mapImpactDeltaData(signal, verdict)
+                  const playbook = latestPlaybook ?? mapActionPlaybookData(signal, verdict)
+                  const reasoningTrace = mapReasoningTraceData({
+                    signal,
+                    verdict,
+                    researchBrief: payload.researchBrief as ResearchBrief | undefined,
+                    intermediateArtifacts: payload.intermediateArtifacts,
+                    steps: reasoningSteps,
+                  })
+
+                  latestImpactDelta = impactDelta
+                  latestReasoningTrace = reasoningTrace
+                  if (playbook) latestPlaybook = playbook
+
+                  next = upsertCardMessage(next, impactDeltaId, {
+                    type: 'signal_impact_delta',
+                    data: impactDelta,
+                  })
+
+                  if (playbook) {
+                    next = upsertCardMessage(next, actionPlaybookId, {
+                      type: 'action_playbook',
+                      data: playbook,
+                    })
+                  }
+
+                  next = upsertCardMessage(next, traceNavigatorId, {
+                    type: 'trace_navigator',
+                    data: mapTraceNavigatorData({
+                      signal,
+                      steps: reasoningSteps,
+                      totalSteps: PIPELINE_STAGES.length,
+                    }),
+                  })
+
+                  next = upsertCardMessage(next, reasoningTraceId, {
+                    type: 'reasoning_trace',
+                    data: reasoningTrace,
+                  })
+
+                  if (verdict.recommendations.length > 0) {
+                    next = upsertCardMessage(next, recommendationId, {
+                      type: 'recommendation',
+                      data: verdict.recommendations,
+                    })
+                  }
+                }
+
+                if (payload.researchBrief) {
+                  next = upsertCardMessage(next, researchBriefId, {
+                    type: 'research_brief',
+                    data: payload.researchBrief as ResearchBrief,
+                  })
+                }
+
+                return next
+              })
+
+              onInsightsUpdate?.({
+                impactDelta: latestImpactDelta,
+                playbook: latestPlaybook,
+                reasoningTrace: latestReasoningTrace,
+              })
             } else if (sseEvent.event === 'error') {
               const errorData = sseEvent.data as { message?: string }
               // Keep progress card with error state — no duplicate error message
@@ -362,60 +515,80 @@ export function ChatArea({ userId, activeSessionId, signals, onSendRef, onAnalyz
           const json = await res.json() as {
             success: boolean
             cached?: boolean
-            data?: {
-              verdict?: { recommendations?: unknown; transparencyNote?: unknown }
-              researchBrief?: unknown
-            }
+            data?: AnalysisCompleteData
           }
 
-          const resultCards: EnhancedMessage[] = []
-
-          if (json.cached) {
-            resultCards.push({
-              id: uid('msg-cached'),
-              role: 'assistant',
-              content: 'Retrieved cached analysis results.',
-            })
-          }
-
-          if (json.success && json.data) {
-            if (json.data.verdict?.recommendations) {
-              resultCards.push({
-                id: uid('card-rec'),
-                role: 'assistant',
-                content: '',
-                card: { type: 'recommendation', data: json.data.verdict.recommendations },
-              })
-            }
-
-            if (json.data.verdict?.transparencyNote) {
-              resultCards.push({
-                id: uid('card-transparency'),
-                role: 'assistant',
-                content: '',
-                card: { type: 'transparency', data: json.data.verdict },
-              })
-            }
-
-            if (json.data.researchBrief) {
-              resultCards.push({
-                id: uid('card-brief'),
-                role: 'assistant',
-                content: '',
-                card: { type: 'research_brief', data: json.data.researchBrief },
-              })
-            }
-          }
-
-          // Replace progress card with completed state + result cards
-          setMessages((prev) => [
-            ...prev.map((m) =>
+          setMessages((prev) => {
+            let next = prev.map((m) =>
               m.id === progressId
                 ? { ...m, card: { type: 'pipeline_progress', data: { stages: markAllComplete(initialStages) } } }
-                : m,
-            ),
-            ...resultCards,
-          ])
+                : m)
+
+            if (json.cached) {
+              next = [
+                ...next,
+                {
+                  id: uid('msg-cached'),
+                  role: 'assistant',
+                  content: 'Retrieved cached analysis results.',
+                },
+              ]
+            }
+
+            if (json.success && json.data?.verdict) {
+              const verdict = json.data.verdict
+              const impactDelta = mapImpactDeltaData(signal, verdict)
+              const playbook = mapActionPlaybookData(signal, verdict)
+              const reasoningTrace = mapReasoningTraceData({
+                signal,
+                verdict,
+                researchBrief: json.data.researchBrief,
+                intermediateArtifacts: json.data.intermediateArtifacts,
+                steps: reasoningSteps,
+              })
+
+              latestImpactDelta = impactDelta
+              latestReasoningTrace = reasoningTrace
+              if (playbook) latestPlaybook = playbook
+
+              next = upsertCardMessage(next, impactDeltaId, {
+                type: 'signal_impact_delta',
+                data: impactDelta,
+              })
+
+              if (playbook) {
+                next = upsertCardMessage(next, actionPlaybookId, {
+                  type: 'action_playbook',
+                  data: playbook,
+                })
+              }
+
+              next = upsertCardMessage(next, reasoningTraceId, {
+                type: 'reasoning_trace',
+                data: reasoningTrace,
+              })
+
+              next = upsertCardMessage(next, recommendationId, {
+                type: 'recommendation',
+                data: verdict.recommendations,
+              })
+            }
+
+            if (json.success && json.data?.researchBrief) {
+              next = upsertCardMessage(next, researchBriefId, {
+                type: 'research_brief',
+                data: json.data.researchBrief,
+              })
+            }
+
+            return next
+          })
+
+          onInsightsUpdate?.({
+            impactDelta: latestImpactDelta,
+            playbook: latestPlaybook,
+            reasoningTrace: latestReasoningTrace,
+          })
         }
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') return
@@ -431,7 +604,7 @@ export function ChatArea({ userId, activeSessionId, signals, onSendRef, onAnalyz
 
       setIsLoading(false)
     },
-    [isLoading, userId],
+    [isLoading, onInsightsUpdate, userId],
   )
 
   // ── Portfolio Review Flow ───────────────────────────────

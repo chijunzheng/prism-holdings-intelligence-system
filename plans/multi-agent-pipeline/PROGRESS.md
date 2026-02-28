@@ -84,11 +84,15 @@
 
 ## Phase 7: Chat UI
 - [x] Build left panel (holdings, sessions, expectations)
-- [x] Build main chat area with SSE streaming
+- [x] Build main chat area with message rendering
 - [x] Build 9 rich card components + ChatCardRenderer dispatcher
-- [x] Wire holdings interaction (HoldingsPanel click handler)
-- [x] Wire checkpoint interactions (CheckpointCard with chips + text input)
+- [x] Wire holdings interaction — `onHoldingClick` wired via ref pattern in ChatView
+- [x] Wire checkpoint card UI components (CheckpointCard with chips + text input)
 - [x] Session management (useSessions hook + SessionList panel)
+- [x] **ChatArea calls `/api/v2/analyze` for signal analysis** (fixed in Phase 7.5)
+- [x] **SSE consumption of pipeline stage events** (fixed in Phase 7.5)
+- [ ] Checkpoint resume (`/api/v2/analyze/:threadId/resume`) — stub exists, needs thread ID tracking
+- [x] **Signal detection via `useSignals` hook in ChatView** (fixed in Phase 7.5)
 
 ## Phase 8: Evaluation
 - [x] Curate 25 historical events (8 rate, 4 CPI, 4 oil, 3 banking, 3 geopolitical, 3 FX)
@@ -110,6 +114,18 @@
 - [x] Run full test suite — 232/232 pass
 - [x] Line count: 58,787 → 41,673 (17,114 lines removed, 29% reduction)
 - [ ] (Deferred) Full server/src/index.ts monolith refactoring — v1 orchestrator routes still wired
+
+## Phase 7.5: Frontend-Pipeline Wiring (Critical Gap Fix)
+- [x] Wire ChatArea to call `/api/v2/analyze` with `skipCheckpoints: true` for signal analysis
+- [x] Consume SSE stream: parse stage events and render ThinkingCards, DebateSummaryCard, etc.
+- [x] Map SSE `complete` event → render RecommendationCard + TransparencyCard + ResearchBriefCard
+- [x] Load signals on mount via `useSignals` hook in ChatView
+- [x] Render SignalCards in chat when signals are detected
+- [x] Wire `onHoldingClick` to send holding context into chat
+- [x] Fix ADK reference crash in server signals endpoint (guard `USE_ADK_ORCHESTRATION`)
+- [x] Fix AnalyzeRequestSchema enum mismatch (urgency/sentiment) with Signal type
+- [x] Add portfolio review flow (`/api/v2/analyze/portfolio`) wiring
+- [x] Handle both cached JSON and SSE response formats
 
 ## Phase 10: GCP Deployment
 - [ ] Dockerfiles
@@ -133,7 +149,8 @@
 | Phase 5: Synthesis | ✅ Complete | 15/15 |
 | Phase 5.5: Cross-Signal | ✅ Complete | 5/5 |
 | Phase 6: Integration | ✅ Complete | 5/5 |
-| Phase 7: Chat UI | ✅ Complete | 6/6 |
+| Phase 7: Chat UI | ✅ Complete | 9/10 (1 deferred: checkpoint resume) |
+| Phase 7.5: FE-Pipeline Wiring | ✅ Complete | 10/10 |
 | Phase 8: Evaluation | ✅ Complete | 5/5 |
 | Phase 9: Final Cleanup | ✅ Complete | 11/12 |
 | Phase 10: Deployment | ⬜ Not Started | 0/5 |

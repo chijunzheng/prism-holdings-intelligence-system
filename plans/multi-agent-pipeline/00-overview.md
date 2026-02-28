@@ -3,7 +3,7 @@
 **Created:** 2026-02-28
 **Status:** In Progress
 **Total Features:** 22
-**Completed:** 6/22
+**Completed:** 21/23 (Feature 17.5 complete; remaining: 03 cleanup partial, 20 deployment)
 
 ## Progress Summary
 
@@ -15,22 +15,23 @@
 | 03 | Codebase Cleanup | 🔄 In Progress | - | 0 | High |
 | 04 | Market Data Service | ✅ Completed | 01 | 1 | High |
 | 05 | Risk Profile Inference | ✅ Completed | 01 | 1 | High |
-| 06 | Research Brief Template | ⬜ Not Started | 01 | 1 | Medium |
+| 06 | Research Brief Template | ✅ Completed | 01 | 1 | Medium |
 | 07 | Calibration Engine | ✅ Completed | 04 | 2 | High |
-| 08 | Analyst Team | ⬜ Not Started | 04 | 2 | High |
-| 09 | Researcher Debate | ⬜ Not Started | 08 | 3 | High |
-| 10 | Risk Management Team | ⬜ Not Started | 07 | 3 | High |
-| 11 | Fund Manager | ⬜ Not Started | 09, 10 | 4 | High |
-| 12 | Judge Agent | ⬜ Not Started | 11 | 4 | High |
-| 13 | Pipeline Orchestrator | ⬜ Not Started | 12 | 5 | High |
-| 14 | Cross-Signal Synthesizer | ⬜ Not Started | 13 | 5 | High |
-| 15 | Chat UI Layout | ⬜ Not Started | 03 | 6 | High |
-| 16 | Chat Card Components | ⬜ Not Started | 03 | 6 | High |
-| 17 | Server API Endpoints | ⬜ Not Started | 13, 15 | 7 | High |
-| 18 | Follow-Up Query Routing | ⬜ Not Started | 13, 15 | 7 | Medium |
-| 19 | Evaluation Harness | ⬜ Not Started | 13 | 8 | Medium |
-| 20 | GCP Deployment | ⬜ Not Started | 17, 21 | 10 | Low |
-| 21 | Final Codebase Cleanup | ⬜ Not Started | 00-19 | 9 | Medium |
+| 08 | Analyst Team | ✅ Completed | 04 | 2 | High |
+| 09 | Researcher Debate | ✅ Completed | 08 | 3 | High |
+| 10 | Risk Management Team | ✅ Completed | 07 | 3 | High |
+| 11 | Fund Manager | ✅ Completed | 09, 10 | 4 | High |
+| 12 | Judge Agent | ✅ Completed | 11 | 4 | High |
+| 13 | Pipeline Orchestrator | ✅ Completed | 12 | 5 | High |
+| 14 | Cross-Signal Synthesizer | ✅ Completed | 13 | 5 | High |
+| 15 | Chat UI Layout | ✅ Completed | 03 | 6 | High |
+| 16 | Chat Card Components | ✅ Completed | 03 | 6 | High |
+| 17 | Server API Endpoints | ✅ Completed | 13, 15 | 7 | High |
+| 17.5 | Frontend-Pipeline Wiring | ✅ Completed | 17, 15, 16 | 7.5 | **CRITICAL** |
+| 18 | Follow-Up Query Routing | ✅ Completed | 13, 15 | 7 | Medium |
+| 19 | Evaluation Harness | ✅ Completed | 13 | 8 | Medium |
+| 20 | GCP Deployment | ⬜ Not Started | 17.5, 21 | 10 | Low |
+| 21 | Final Codebase Cleanup | ✅ Completed | 00-19 | 9 | Medium |
 
 ## Dependency Graph
 

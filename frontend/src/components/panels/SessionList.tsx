@@ -56,7 +56,9 @@ export function SessionList({
       </div>
       <ul className="session-list__items">
         {sessions.length === 0 && (
-          <li className="session-list__empty">No sessions yet</li>
+          <li className="session-list__empty">
+            Start by tapping a holding or asking a question
+          </li>
         )}
         {sessions.map((session) => (
           <li

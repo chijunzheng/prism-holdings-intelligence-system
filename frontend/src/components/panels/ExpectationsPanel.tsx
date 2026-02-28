@@ -44,7 +44,7 @@ export function ExpectationsPanel({ userId }: ExpectationsPanelProps) {
           <span className="expectations-panel__value">{profile.financialLiteracy}</span>
         </div>
       </div>
-      {profile.goals.length > 0 && (
+      {profile.goals && profile.goals.length > 0 && (
         <div className="expectations-panel__expectations">
           <div className="expectations-panel__item">
             <span className="expectations-panel__label">Goals</span>

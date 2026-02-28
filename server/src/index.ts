@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto'
 import { existsSync, readFileSync } from 'fs'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
-import type { CausalChain } from '@prism/shared'
+import type { CausalChain, StrategyScenarioItem } from '@prism/shared'
 import {
   CompareWorkspaceBranchesRequestSchema,
   CreateWorkspaceBranchRequestSchema,
@@ -62,6 +62,10 @@ import {
   parseStrategyDraftRequest,
   parseStrategyEvaluateRequest,
 } from './strategy-service'
+import {
+  buildPlanCopilotProposalResponse,
+  parsePlanCopilotRequest,
+} from './plan-copilot-service'
 import {
   appendWorkspaceOperation,
   compareWorkspaceBranches,
@@ -688,6 +692,150 @@ app.post('/api/strategy/:userId/evaluate', async (req, res) => {
   })
 })
 
+// Strategy copilot proposal endpoint for Ask Prism Playbook chat
+app.post('/api/strategy/:userId/copilot-proposal', async (req, res) => {
+  const parseResult = parsePlanCopilotRequest(req.body)
+  if (!parseResult.ok) {
+    res.status(400).json({ success: false, error: parseResult.error })
+    return
+  }
+
+  const payload = parseResult.data
+  const ctx = buildPipelineCtx(req.params.userId)
+  if (!ctx) {
+    res.status(404).json({ success: false, error: 'Portfolio or profile not found' })
+    return
+  }
+
+  try {
+    const effectiveSignalId = payload.entryContext?.signalId ?? payload.signalId
+    const sessionScope = resolveAskPrismSessionScope(
+      {
+        page: 'plan',
+        signalId: effectiveSignalId,
+        sessionScope: payload.sessionScope,
+        entryContext: payload.entryContext,
+        planSelections: payload.currentSelections,
+        history: payload.history,
+        message: payload.message,
+      },
+      effectiveSignalId,
+    )
+
+    const exposureResult = await runExposureAnalysis(ctx)
+    if (!exposureResult.success || !exposureResult.data) {
+      res.status(500).json({ success: false, error: 'Failed to load exposure data' })
+      return
+    }
+
+    const signalResult = await runSignalMonitor(exposureResult.data)
+    if (!signalResult.success || !signalResult.data) {
+      res.status(500).json({ success: false, error: 'Failed to load signals' })
+      return
+    }
+
+    const holdings: import('@prism/shared').Holding[] = []
+    for (const account of ctx.portfolio.accounts) {
+      for (const holding of account.holdings) {
+        holdings.push(holding)
+      }
+    }
+
+    const context: import('@prism/shared').AskPrismContext = {
+      page: 'plan',
+      sessionScope,
+      entryContext: payload.entryContext,
+      profile: ctx.profile,
+      holdings,
+      exposureMap: exposureResult.data,
+      activeSignals: signalResult.data,
+      strategyCandidates: payload.candidateUniverse,
+      currentPlan: payload.currentSelections,
+      contextSnapshotMeta: {
+        generatedAt: new Date().toISOString(),
+        activeSignalCount: signalResult.data.length,
+        signalSourceSummary: signalResult.data.map((signal) => ({
+          signalId: signal.id,
+          sourceCount: signal.sources.length,
+        })),
+      },
+    }
+
+    if (effectiveSignalId && effectiveSignalId !== 'portfolio-net') {
+      const graphResult = await runGraphPipeline(ctx, effectiveSignalId)
+      if (graphResult.success && graphResult.data) {
+        const { signal, chain, temporalAnalysis } = graphResult.data
+        const focusedNodeId = payload.entryContext?.nodeId ?? extractNodeIdFromScope(sessionScope)
+        const focusedNode = focusedNodeId
+          ? chain.nodes.find((node) => node.id === focusedNodeId)
+          : undefined
+
+        const askPrismTemporal: import('@prism/shared').AskPrismTemporalAnalysis = {
+          classification: temporalAnalysis.classification,
+          confidence: temporalAnalysis.confidence,
+          timeBuckets: {
+            oneWeek: { expectedDollarImpact: temporalAnalysis.timeBuckets.oneWeek.expectedDollarImpact },
+            oneMonth: { expectedDollarImpact: temporalAnalysis.timeBuckets.oneMonth.expectedDollarImpact },
+            sixMonth: { expectedDollarImpact: temporalAnalysis.timeBuckets.sixMonth.expectedDollarImpact },
+          },
+          counterfactual: temporalAnalysis.counterfactual,
+        }
+
+        Object.assign(context, {
+          focusedSignal: signal,
+          causalChain: chain,
+          temporalAnalysis: askPrismTemporal,
+          focusedNode,
+          contextSnapshotMeta: {
+            ...context.contextSnapshotMeta,
+            focusedSignalDetectedAt: signal.detectedAt,
+          },
+        })
+      }
+    }
+
+    if (payload.currentSelections.length > 0 && payload.candidateUniverse.length > 0) {
+      const scenarioItems = buildScenarioItemsFromSelections(
+        payload.currentSelections,
+        payload.candidateUniverse,
+      )
+      if (scenarioItems.length > 0) {
+        const evaluationResult = await evaluateStrategy(ctx, {
+          signalId: effectiveSignalId,
+          scenario: { items: scenarioItems },
+        })
+        if (evaluationResult.success && evaluationResult.data) {
+          Object.assign(context, { evaluation: evaluationResult.data })
+        }
+      }
+    }
+
+    const history = normalizeAskPrismHistory(payload.history)
+    const assistantText = await collectStreamedText(
+      streamAskPrismResponse(context, history, payload.message, sessionScope),
+    )
+
+    const topExposure = [...exposureResult.data.exposures]
+      .sort((a, b) => b.percentage - a.percentage)[0]
+
+    const response = buildPlanCopilotProposalResponse({
+      message: payload.message,
+      assistantText,
+      currentSelections: payload.currentSelections,
+      candidateUniverse: payload.candidateUniverse,
+      signalHeadline: context.focusedSignal?.headline,
+      signalOneMonthImpactCad: context.temporalAnalysis?.timeBuckets.oneMonth.expectedDollarImpact,
+      topExposureLabel: topExposure ? `${topExposure.category} (${topExposure.percentage.toFixed(1)}%)` : undefined,
+      warningCount: exposureResult.data.warnings.length,
+    })
+
+    res.json({ success: true, data: response })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to generate copilot proposal'
+    res.status(500).json({ success: false, error: message })
+  }
+})
+
 // ── Plan Session Endpoints ─────────────────────────────────────
 
 app.get('/api/plans/:userId', (_req, res) => {
@@ -1021,11 +1169,102 @@ app.post('/api/chat/:userId/message', async (req, res) => {
 // ── Unified Ask Prism Chat ─────────────────────────────────────
 
 interface AskPrismChatRequestBody {
-  readonly page: 'portfolio' | 'signal' | 'plan'
+  readonly page: import('@prism/shared').AskPrismPage
   readonly signalId?: string
+  readonly sessionScope?: import('@prism/shared').AskPrismSessionScope
+  readonly entryContext?: import('@prism/shared').AskPrismEntryContext
   readonly planSelections?: ReadonlyArray<import('@prism/shared').PlanSelection>
   readonly message: string
-  readonly history?: ReadonlyArray<AgentChatMessage>
+  readonly history?: ReadonlyArray<{
+    readonly role: string
+    readonly content: string
+  }>
+}
+
+function resolveAskPrismSessionScope(
+  body: AskPrismChatRequestBody,
+  signalId?: string,
+): import('@prism/shared').AskPrismSessionScope {
+  const provided = body.sessionScope?.trim()
+  if (provided === 'global') return 'global'
+  if (provided && /^plan:[^:]+$/.test(provided)) return provided as import('@prism/shared').AskPrismSessionScope
+  if (provided && /^signal:[^:]+$/.test(provided)) return provided as import('@prism/shared').AskPrismSessionScope
+  if (provided && /^node:[^:]+:[^:]+$/.test(provided)) return provided as import('@prism/shared').AskPrismSessionScope
+
+  const effectiveSignalId = body.entryContext?.signalId ?? signalId
+  if (body.entryContext?.nodeId && effectiveSignalId) {
+    return `node:${effectiveSignalId}:${body.entryContext.nodeId}`
+  }
+  if (effectiveSignalId && body.page === 'plan') {
+    return `plan:${effectiveSignalId}`
+  }
+  if (effectiveSignalId && (body.page === 'signal' || body.page === 'signals_overview')) {
+    return `signal:${effectiveSignalId}`
+  }
+  return 'global'
+}
+
+function extractNodeIdFromScope(scope: import('@prism/shared').AskPrismSessionScope): string | undefined {
+  if (!scope.startsWith('node:')) return undefined
+  const pieces = scope.split(':')
+  if (pieces.length < 3) return undefined
+  return pieces.slice(2).join(':')
+}
+
+function normalizeAskPrismHistory(
+  history?: ReadonlyArray<{ readonly role: string; readonly content: string }>,
+): ReadonlyArray<AgentChatMessage> {
+  if (!history) return []
+  return history
+    .filter((message): message is { readonly role: 'user' | 'assistant'; readonly content: string } =>
+      (message.role === 'user' || message.role === 'assistant') &&
+      typeof message.content === 'string' &&
+      message.content.trim().length > 0,
+    )
+    .map((message) => ({
+      role: message.role,
+      content: message.content,
+    }))
+}
+
+function clampPlanAllocation(value: number): number {
+  return Math.max(0.5, Math.min(value, 10))
+}
+
+function buildScenarioItemsFromSelections(
+  selections: ReadonlyArray<import('@prism/shared').PlanSelection>,
+  candidates: ReadonlyArray<import('@prism/shared').StrategyCandidate>,
+): ReadonlyArray<StrategyScenarioItem> {
+  const candidateById = new Map(candidates.map((candidate) => [candidate.id, candidate]))
+  return selections
+    .map((selection): StrategyScenarioItem | null => {
+      const candidate = candidateById.get(selection.candidateId)
+      if (!candidate) return null
+      return {
+        candidateId: candidate.id,
+        ticker: candidate.ticker,
+        name: candidate.name,
+        type: candidate.type,
+        rationale: candidate.rationale,
+        confidence: candidate.confidence,
+        expectedMitigationCad: candidate.expectedMitigationCad,
+        diversificationScore: candidate.diversificationScore,
+        estimatedTurnoverCostCad: candidate.estimatedTurnoverCostCad,
+        estimatedTaxCostCad: candidate.estimatedTaxCostCad,
+        allocationPct: clampPlanAllocation(selection.allocationPct),
+      }
+    })
+    .filter((item): item is StrategyScenarioItem => item !== null)
+}
+
+async function collectStreamedText(
+  stream: AsyncGenerator<string, void, undefined>,
+): Promise<string> {
+  let output = ''
+  for await (const chunk of stream) {
+    output += chunk
+  }
+  return output.trim()
 }
 
 app.post('/api/chat/:userId/ask-prism', async (req, res) => {
@@ -1045,6 +1284,10 @@ app.post('/api/chat/:userId/ask-prism', async (req, res) => {
   }
 
   try {
+    const effectiveSignalId = body.entryContext?.signalId ?? body.signalId
+    const sessionScope = resolveAskPrismSessionScope(body, effectiveSignalId)
+    let signalsOverviewChain: CausalChain | undefined
+
     // Build pipeline context for orchestrator
     const pipelineContext: PipelineContext = {
       portfolio,
@@ -1075,21 +1318,70 @@ app.post('/api/chat/:userId/ask-prism', async (req, res) => {
 
     // Build base context with Layer 1
     const context: import('@prism/shared').AskPrismContext = {
+      page: body.page,
+      sessionScope,
+      entryContext: body.entryContext,
       profile,
       holdings,
       exposureMap: exposureResult.data,
       activeSignals: signalResult.data,
+      contextSnapshotMeta: {
+        generatedAt: new Date().toISOString(),
+        activeSignalCount: signalResult.data.length,
+        signalSourceSummary: signalResult.data.map((signal) => ({
+          signalId: signal.id,
+          sourceCount: signal.sources.length,
+        })),
+      },
     }
 
-    // Layer 2: Add signal detail if on signal or plan page
-    if ((body.page === 'signal' || body.page === 'plan') && body.signalId) {
-      const graphResult = await runGraphPipeline(pipelineContext, body.signalId)
+    if (body.page === 'signals_overview') {
+      const netImpactResult = await runPortfolioNetImpactPipeline(pipelineContext)
+      if (netImpactResult.success && netImpactResult.data) {
+        signalsOverviewChain = netImpactResult.data.chain
+        Object.assign(context, {
+          portfolioNetImpact: {
+            signalUniverseCount: netImpactResult.data.signalUniverseCount,
+            includedSignalCount: netImpactResult.data.includedSignalCount,
+            oneWeekImpactCad: netImpactResult.data.temporalAnalysis.timeBuckets.oneWeek.expectedDollarImpact,
+            oneMonthImpactCad: netImpactResult.data.temporalAnalysis.timeBuckets.oneMonth.expectedDollarImpact,
+            sixMonthImpactCad: netImpactResult.data.temporalAnalysis.timeBuckets.sixMonth.expectedDollarImpact,
+            topContributors: netImpactResult.data.signalContributions
+              .slice(0, 5)
+              .map((item) => ({
+                signalId: item.signalId,
+                headline: item.headline,
+                normalizedWeight: item.normalizedWeight,
+                oneMonthImpactCad: item.oneMonthImpactCad,
+              })),
+          },
+        })
+      }
+    }
+
+    // Layer 2: Add signal detail for signal- or node-scoped chats
+    const shouldLoadSignalDetail =
+      Boolean(effectiveSignalId) &&
+      effectiveSignalId !== 'portfolio-net' &&
+      (
+        body.page === 'signal' ||
+        body.page === 'plan' ||
+        sessionScope.startsWith('signal:') ||
+        sessionScope.startsWith('node:')
+      )
+
+    if (shouldLoadSignalDetail && effectiveSignalId) {
+      const graphResult = await runGraphPipeline(pipelineContext, effectiveSignalId)
       if (!graphResult.success || !graphResult.data) {
         res.status(500).json({ success: false, error: 'Failed to load signal detail' })
         return
       }
 
       const { signal, chain, temporalAnalysis } = graphResult.data
+      const scopedNodeId = body.entryContext?.nodeId ?? extractNodeIdFromScope(sessionScope)
+      const focusedNode = scopedNodeId
+        ? chain.nodes.find((node) => node.id === scopedNodeId)
+        : undefined
 
       // Convert TemporalAnalysis to AskPrismTemporalAnalysis
       const askPrismTemporal: import('@prism/shared').AskPrismTemporalAnalysis = {
@@ -1105,9 +1397,22 @@ app.post('/api/chat/:userId/ask-prism', async (req, res) => {
 
       Object.assign(context, {
         focusedSignal: signal,
+        focusedNode,
         causalChain: chain,
         temporalAnalysis: askPrismTemporal,
+        contextSnapshotMeta: {
+          ...context.contextSnapshotMeta,
+          focusedSignalDetectedAt: signal.detectedAt,
+        },
       })
+    } else if (signalsOverviewChain) {
+      const scopedNodeId = body.entryContext?.nodeId ?? extractNodeIdFromScope(sessionScope)
+      if (scopedNodeId) {
+        const focusedNode = signalsOverviewChain.nodes.find((node) => node.id === scopedNodeId)
+        if (focusedNode) {
+          Object.assign(context, { focusedNode })
+        }
+      }
     }
 
     // Layer 3: Add plan context if on plan page
@@ -1126,9 +1431,9 @@ app.post('/api/chat/:userId/ask-prism', async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache')
     res.setHeader('Connection', 'keep-alive')
 
-    const history: ReadonlyArray<AgentChatMessage> = body.history ?? []
+    const history = normalizeAskPrismHistory(body.history)
 
-    for await (const chunk of streamAskPrismResponse(context, history, body.message)) {
+    for await (const chunk of streamAskPrismResponse(context, history, body.message, sessionScope)) {
       res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`)
     }
 

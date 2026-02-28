@@ -69,11 +69,11 @@
 - [x] 15 unit tests (9 judge, 6 research brief)
 
 ## Phase 5.5: Cross-Signal Synthesizer
-- [ ] Implement cross-signal aggregation (pure computation)
-- [ ] Implement interaction classification
-- [ ] Implement LLM insights + holistic recommendations
-- [ ] Implement runPortfolioReview()
-- [ ] Test offsetting/compounding interactions
+- [x] Implement cross-signal aggregation (pure computation)
+- [x] Implement interaction classification
+- [x] Implement LLM insights + holistic recommendations
+- [x] Implement runPortfolioReview()
+- [x] Test offsetting/compounding interactions
 
 ## Phase 6: Integration + Cache
 - [ ] Wire pipeline into server endpoints (SSE)
@@ -131,14 +131,14 @@
 | Phase 3: Debate | ✅ Complete | 5/5 |
 | Phase 4: Risk Team | ✅ Complete | 4/4 |
 | Phase 5: Synthesis | ✅ Complete | 15/15 |
-| Phase 5.5: Cross-Signal | ⬜ Not Started | 0/5 |
+| Phase 5.5: Cross-Signal | ✅ Complete | 5/5 |
 | Phase 6: Integration | ⬜ Not Started | 0/5 |
 | Phase 7: Chat UI | ⬜ Not Started | 0/6 |
 | Phase 8: Evaluation | ⬜ Not Started | 0/5 |
 | Phase 9: Final Cleanup | ⬜ Not Started | 0/12 |
 | Phase 10: Deployment | ⬜ Not Started | 0/5 |
 
-**Tests:** 127/127 passing
+**Tests:** 140/140 passing
 - risk-profile-inference: 12
 - calibration: 14
 - market-data: 12
@@ -147,4 +147,5 @@
 - debate-protocol: 6
 - judge: 9
 - research-brief: 6
+- cross-signal-synthesizer: 13
 - (existing legacy tests: 52)

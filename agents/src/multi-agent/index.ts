@@ -19,6 +19,7 @@ import type {
   UserProfile,
 } from '@prism/shared'
 import { compilePipeline, compilePipelineNoCheckpoints } from './orchestrator.js'
+import { synthesizeCrossSignal } from './cross-signal-synthesizer.js'
 
 export type MultiAgentResult = {
   readonly verdict: FundManagerVerdict
@@ -114,17 +115,45 @@ export async function runMultiAgentAnalysis(params: {
  * Run portfolio review mode: analyze multiple signals in parallel,
  * then synthesize cross-signal interactions into a unified PortfolioVerdict.
  */
-export async function runPortfolioReview(_params: {
+export async function runPortfolioReview(params: {
   readonly signals: readonly Signal[]
   readonly portfolio: Portfolio
   readonly exposureMap: ExposureMap
+  readonly userProfile: UserProfile
   readonly userExpectations?: UserExpectations
   readonly onProgress?: AnalysisProgressCallback
 }): Promise<PortfolioVerdict> {
-  throw new Error('Not yet implemented — see plans/multi-agent-pipeline/')
+  const { signals, portfolio, exposureMap, userProfile, userExpectations, onProgress } = params
+
+  // Run per-signal pipelines in parallel
+  const results = await Promise.all(
+    signals.map(async (signal) => {
+      onProgress?.('pipeline_start', { signalId: signal.id })
+      const result = await runMultiAgentAnalysis({
+        signal,
+        portfolio,
+        exposureMap,
+        userProfile,
+        userExpectations,
+        skipCheckpoints: true, // Portfolio review runs uninterrupted
+      })
+      onProgress?.('pipeline_complete', { signalId: signal.id })
+      return { signal, result }
+    }),
+  )
+
+  // Synthesize cross-signal interactions
+  const signalVerdicts = results.map(({ signal, result }) => ({
+    signal,
+    verdict: result.verdict,
+  }))
+
+  onProgress?.('cross_signal_synthesis', { signalCount: signals.length })
+  return synthesizeCrossSignal({ signalVerdicts })
 }
 
 // Re-export key modules for direct access
 export { buildPipelineGraph, compilePipeline, compilePipelineNoCheckpoints } from './orchestrator.js'
 export { PipelineState } from './state.js'
 export { generateResearchBrief } from './research-brief.js'
+export { synthesizeCrossSignal, aggregateHoldingImpacts, classifyInteraction } from './cross-signal-synthesizer.js'

@@ -1,10 +1,25 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { AskPrismPage } from '@prism/shared'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type {
+  AskPrismEntryContext,
+  AskPrismPage,
+  AskPrismPlanAction,
+  AskPrismSessionScope,
+  PlanSelection,
+  StrategyCandidate,
+} from '@prism/shared'
+import { Link } from 'react-router-dom'
 import { useAppContext } from '../../contexts/AppContext'
 import type { SidebarContext } from '../../contexts/AppContext'
 import { useAskPrismChat } from '../../hooks/useChat'
 import { usePageContext } from '../../hooks/usePageContext'
 import { useExposureData } from '../../hooks/useExposureData'
+import {
+  buildFollowUpQueries,
+  buildNavigationChips,
+  buildWelcomeContextCard,
+  getAskPrismComposerPlaceholder,
+  getAskPrismWelcomeSubtitle,
+} from './ask-prism-drawer-utils'
 import { ChatMessage } from '../chat/ChatMessage'
 import { ChatInput } from '../chat/ChatInput'
 import '../../styles/ask-prism-drawer.css'
@@ -16,6 +31,12 @@ const PAGE_PROMPTS: Record<AskPrismPage, ReadonlyArray<string>> = {
     'Explain my overlaps',
     'Compare my signals',
     'How diversified is my portfolio?',
+  ],
+  signals_overview: [
+    'Which live signal is driving most downside?',
+    'What changed most this week?',
+    'Where is my biggest regime risk?',
+    'How should I monitor this setup?',
   ],
   signal: [
     'What if this reverses?',
@@ -32,6 +53,40 @@ const PAGE_PROMPTS: Record<AskPrismPage, ReadonlyArray<string>> = {
 }
 
 const DEFAULT_PROMPTS = PAGE_PROMPTS.portfolio
+
+function sessionScopeLabel(scope: AskPrismSessionScope): string {
+  if (scope === 'global') return 'Global Thread'
+  if (scope.startsWith('node:')) return 'Node Thread'
+  if (scope.startsWith('plan:')) return 'Plan Thread'
+  return 'Signal Thread'
+}
+
+function buildEntryAutoPrompt(entryContext: AskPrismEntryContext): string {
+  if (entryContext.autoPrompt) return entryContext.autoPrompt
+  if (entryContext.entryType === 'graph_node' && entryContext.nodeLabel) {
+    return `Explain how ${entryContext.nodeLabel} affects my holdings and what I should watch next.`
+  }
+  if (entryContext.entryType === 'signals_canvas') {
+    return 'Summarize the current full regime impact across my holdings and highlight the biggest downside path.'
+  }
+  if (entryContext.signalId) {
+    return `Analyze signal ${entryContext.signalId} in detail and explain its transmission path through my portfolio.`
+  }
+  return 'Ground me on my current portfolio risk and the strongest active signals.'
+}
+
+function entryDividerLabel(entryContext: AskPrismEntryContext): string {
+  if (entryContext.entryType === 'graph_node' && entryContext.nodeLabel) {
+    return `New topic: ${entryContext.nodeLabel}`
+  }
+  if (entryContext.entryType === 'signals_canvas') {
+    return 'New topic: Full signals regime'
+  }
+  if (entryContext.signalId) {
+    return `New topic: Signal ${entryContext.signalId}`
+  }
+  return 'New topic: Ask Prism'
+}
 
 function getContextualPrompts(ticker: string): ReadonlyArray<string> {
   return [
@@ -103,27 +158,58 @@ function getDividerLabel(ctx: SidebarContext): string {
 
 interface AskPrismDrawerProps {
   readonly onClose: () => void
+  readonly planSelections?: ReadonlyArray<PlanSelection>
+  readonly planCandidates?: ReadonlyArray<StrategyCandidate>
+  readonly onApplyPlanActions?: (
+    actions: ReadonlyArray<AskPrismPlanAction>,
+  ) => Promise<void> | void
 }
 
-export function AskPrismDrawer({ onClose }: AskPrismDrawerProps) {
-  const { userId, activeHoldingContext, activeSidebarContext, setActiveSidebarContext } = useAppContext()
+export function AskPrismDrawer({
+  onClose,
+  planSelections,
+  planCandidates,
+  onApplyPlanActions,
+}: AskPrismDrawerProps) {
+  const {
+    userId,
+    activeHoldingContext,
+    activeSidebarContext,
+    activeAskPrismEntryContext,
+    setActiveSidebarContext,
+    setActiveAskPrismEntryContext,
+  } = useAppContext()
   const { page, signalId } = usePageContext()
-  const { messages, isLoading, error, sendMessage, addDivider } = useAskPrismChat({
+  const { messages, isLoading, error, sessionScope, sendMessage, addDivider } = useAskPrismChat({
     userId,
     page,
     signalId,
+    entryContext: activeAskPrismEntryContext,
+    planSelections,
+    planCandidates,
   })
   const { exposureMap } = useExposureData(userId)
-  const isInitialized = messages.length >= 1 && !isLoading
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const sendMessageRef = useRef(sendMessage)
   const addDividerRef = useRef(addDivider)
   const autoSentRef = useRef(false)
+  const entryAutoSentKeyRef = useRef<string | null>(null)
   const [pendingSidebarContext, setPendingSidebarContext] = useState<SidebarContext | null>(null)
-  const [showFollowUps, setShowFollowUps] = useState(false)
-  const [userSentManual, setUserSentManual] = useState(false)
+  const [dismissedProposalIds, setDismissedProposalIds] = useState<ReadonlySet<string>>(new Set())
+  const [appliedProposalIds, setAppliedProposalIds] = useState<ReadonlySet<string>>(new Set())
+  const [applyingProposalIds, setApplyingProposalIds] = useState<ReadonlySet<string>>(new Set())
+  const [proposalErrorById, setProposalErrorById] = useState<ReadonlyMap<string, string>>(new Map())
   const hasExistingConversation = messages.length > 1
+  const entryContextKey = useMemo(() => {
+    if (!activeAskPrismEntryContext) return null
+    return [
+      activeAskPrismEntryContext.entryType,
+      activeAskPrismEntryContext.signalId ?? '',
+      activeAskPrismEntryContext.nodeId ?? '',
+      activeAskPrismEntryContext.autoPrompt ?? '',
+    ].join(':')
+  }, [activeAskPrismEntryContext])
 
   sendMessageRef.current = sendMessage
   addDividerRef.current = addDivider
@@ -137,19 +223,24 @@ export function AskPrismDrawer({ onClose }: AskPrismDrawerProps) {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [onClose])
 
+  // Clear transient entry context when drawer closes
+  useEffect(() => {
+    return () => {
+      setActiveAskPrismEntryContext(null)
+    }
+  }, [setActiveAskPrismEntryContext])
+
   // Capture sidebar context on change
   useEffect(() => {
     if (activeSidebarContext) {
       setPendingSidebarContext(activeSidebarContext)
       autoSentRef.current = false
-      setShowFollowUps(false)
-      setUserSentManual(false)
     }
   }, [activeSidebarContext])
 
-  // Auto-send when chat is ready
+  // Auto-send sidebar prompt
   useEffect(() => {
-    if (pendingSidebarContext && isInitialized && !isLoading && !autoSentRef.current) {
+    if (pendingSidebarContext && !isLoading && !autoSentRef.current) {
       autoSentRef.current = true
       const message = buildAutoSendMessage(pendingSidebarContext)
 
@@ -160,23 +251,39 @@ export function AskPrismDrawer({ onClose }: AskPrismDrawerProps) {
       setActiveSidebarContext(null)
       sendMessageRef.current(message)
     }
-  }, [pendingSidebarContext, isInitialized, isLoading, hasExistingConversation, setActiveSidebarContext])
+  }, [pendingSidebarContext, isLoading, hasExistingConversation, setActiveSidebarContext])
 
-  // Show follow-up suggestions after auto-sent message response completes
+  // Auto-send entry-context prompt (node/canvas/signal)
   useEffect(() => {
-    if (pendingSidebarContext && autoSentRef.current && !isLoading && messages.length >= 3) {
-      const lastMsg = messages[messages.length - 1]
-      if (lastMsg.role === 'assistant' && !lastMsg.isStreaming) {
-        setShowFollowUps(true)
-      }
+    if (!activeAskPrismEntryContext || !entryContextKey || isLoading) return
+    if (entryAutoSentKeyRef.current === entryContextKey) return
+
+    entryAutoSentKeyRef.current = entryContextKey
+    if (hasExistingConversation) {
+      addDividerRef.current(entryDividerLabel(activeAskPrismEntryContext))
     }
-  }, [pendingSidebarContext, isLoading, messages])
+    sendMessageRef.current(buildEntryAutoPrompt(activeAskPrismEntryContext))
+  }, [
+    activeAskPrismEntryContext,
+    entryContextKey,
+    hasExistingConversation,
+    isLoading,
+  ])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const showWelcome = messages.length <= 1 && !isLoading && !pendingSidebarContext
+  const hasConversationTurns = useMemo(
+    () => messages.some((message) => message.role === 'user' || message.role === 'assistant'),
+    [messages],
+  )
+
+  const showWelcome =
+    !hasConversationTurns &&
+    !isLoading &&
+    !pendingSidebarContext &&
+    !activeAskPrismEntryContext
 
   const suggestedPrompts = useMemo(() => {
     if (activeSidebarContext) return getSidebarContextPrompts(activeSidebarContext)
@@ -184,49 +291,115 @@ export function AskPrismDrawer({ onClose }: AskPrismDrawerProps) {
     return PAGE_PROMPTS[page] ?? DEFAULT_PROMPTS
   }, [activeHoldingContext, activeSidebarContext, page])
 
-  const followUpPrompts = useMemo(() => {
-    if (!pendingSidebarContext) return []
-    return getSidebarContextPrompts(pendingSidebarContext).slice(1)
-  }, [pendingSidebarContext])
+  const assistantAssistByMessageId = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        readonly navigationChips: ReturnType<typeof buildNavigationChips>
+        readonly followUpQueries: ReturnType<typeof buildFollowUpQueries>
+      }
+    >()
+
+    for (let index = 0; index < messages.length; index += 1) {
+      const message = messages[index]
+      if (message.role !== 'assistant' || message.isStreaming || !message.content.trim()) continue
+
+      let priorUserMessage = ''
+      for (let seek = index - 1; seek >= 0; seek -= 1) {
+        if (messages[seek].role === 'user') {
+          priorUserMessage = messages[seek].content
+          break
+        }
+      }
+
+      const turnContext = `${priorUserMessage} ${message.content}`.toLowerCase()
+      map.set(message.id, {
+        navigationChips: buildNavigationChips(page, signalId, turnContext),
+        followUpQueries:
+          message.suggestedFollowUps && message.suggestedFollowUps.length > 0
+            ? message.suggestedFollowUps.slice(0, 3)
+            : buildFollowUpQueries(page, turnContext, activeHoldingContext?.ticker),
+      })
+    }
+
+    return map
+  }, [activeHoldingContext?.ticker, messages, page, signalId])
 
   const handleSend = useCallback(
     (content: string) => {
-      setUserSentManual(true)
-      setShowFollowUps(false)
       sendMessage(content)
     },
     [sendMessage],
   )
 
-  const handleFollowUp = useCallback(
-    (prompt: string) => {
-      setShowFollowUps(false)
-      setUserSentManual(true)
-      sendMessage(prompt)
+  const handleDismissProposal = useCallback((messageId: string) => {
+    setDismissedProposalIds((prev) => new Set(prev).add(messageId))
+  }, [])
+
+  const handleApplyProposal = useCallback(
+    async (messageId: string, actions: ReadonlyArray<AskPrismPlanAction>) => {
+      if (!onApplyPlanActions || actions.length === 0) return
+
+      setApplyingProposalIds((prev) => new Set(prev).add(messageId))
+      setProposalErrorById((prev) => {
+        const next = new Map(prev)
+        next.delete(messageId)
+        return next
+      })
+
+      try {
+        await onApplyPlanActions(actions)
+        setAppliedProposalIds((prev) => new Set(prev).add(messageId))
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to apply proposal'
+        setProposalErrorById((prev) => {
+          const next = new Map(prev)
+          next.set(messageId, errorMessage)
+          return next
+        })
+      } finally {
+        setApplyingProposalIds((prev) => {
+          const next = new Set(prev)
+          next.delete(messageId)
+          return next
+        })
+      }
     },
-    [sendMessage],
+    [onApplyPlanActions],
   )
 
-  const portfolioSummary = useMemo(() => {
-    if (!exposureMap) return null
-    const topExposures = [...exposureMap.exposures]
-      .sort((a, b) => b.percentage - a.percentage)
-      .slice(0, 3)
-    return {
-      topExposures,
-      warningCount: exposureMap.warnings.length,
-      overlapCount: exposureMap.overlaps.length,
-    }
-  }, [exposureMap])
+  const contextCard = useMemo(
+    () =>
+      buildWelcomeContextCard({
+        page,
+        signalId,
+        entryContext: activeAskPrismEntryContext,
+        exposureMap,
+        planSelections,
+        holdingTicker: activeHoldingContext?.ticker,
+      }),
+    [activeAskPrismEntryContext, activeHoldingContext?.ticker, exposureMap, page, planSelections, signalId],
+  )
 
-  const visibleMessages = showWelcome ? messages.slice(1) : messages
+  const welcomeSubtitle = useMemo(
+    () => getAskPrismWelcomeSubtitle(page, activeAskPrismEntryContext),
+    [activeAskPrismEntryContext, page],
+  )
+
+  const composerPlaceholder = useMemo(
+    () => getAskPrismComposerPlaceholder(page, activeAskPrismEntryContext),
+    [activeAskPrismEntryContext, page],
+  )
 
   return (
     <div className="ask-prism-overlay" role="dialog" aria-label="Ask Prism">
       <div className="ask-prism-backdrop" onClick={onClose} />
       <div className="ask-prism-drawer">
         <div className="ask-prism-drawer__header">
-          <span className="ask-prism-drawer__title">Ask Prism</span>
+          <div className="ask-prism-drawer__header-title">
+            <span className="ask-prism-drawer__title">Ask Prism</span>
+            <span className="ask-prism-drawer__scope-pill">{sessionScopeLabel(sessionScope)}</span>
+          </div>
           <button type="button" className="ask-prism-drawer__close" onClick={onClose}>
             Close
           </button>
@@ -239,58 +412,123 @@ export function AskPrismDrawer({ onClose }: AskPrismDrawerProps) {
 
           {error && <p className="ask-prism-drawer__error">{error}</p>}
 
-          {visibleMessages.map((msg) => (
-            <ChatMessage key={msg.id} message={msg} />
-          ))}
+          {messages.map((msg) => {
+            const inlineAssist = assistantAssistByMessageId.get(msg.id)
+            const planProposal = msg.planProposal
+            const proposalError = proposalErrorById.get(msg.id)
+            const proposalDismissed = dismissedProposalIds.has(msg.id)
+            const proposalApplied = appliedProposalIds.has(msg.id)
+            const proposalApplying = applyingProposalIds.has(msg.id)
 
-          {showFollowUps && !userSentManual && followUpPrompts.length > 0 && (
-            <div className="ask-prism-drawer__follow-ups">
-              <p className="ask-prism-drawer__follow-ups-label">Follow up:</p>
-              <div className="ask-prism-drawer__follow-ups-chips">
-                {followUpPrompts.map((prompt) => (
-                  <button
-                    key={prompt}
-                    type="button"
-                    className="ask-prism-drawer__follow-up-chip"
-                    onClick={() => handleFollowUp(prompt)}
-                    disabled={isLoading}
-                  >
-                    {prompt}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+            return (
+              <Fragment key={msg.id}>
+                <ChatMessage message={msg} />
+                {msg.role === 'assistant' && planProposal && !proposalDismissed && (
+                  <div className="ask-prism-drawer__proposal">
+                    <p className="ask-prism-drawer__proposal-title">Proposed Playbook Update</p>
+                    <p className="ask-prism-drawer__proposal-rationale">{planProposal.rationale}</p>
+                    <div className="ask-prism-drawer__proposal-actions">
+                      {planProposal.actions.map((action, index) => (
+                        <span key={`${msg.id}-action-${index}`} className="ask-prism-drawer__proposal-action-pill">
+                          {action.type === 'add_candidate' && `Add ${action.ticker} (${action.allocationPct.toFixed(1)}%)`}
+                          {action.type === 'remove_candidate' && `Remove ${action.ticker}`}
+                          {action.type === 'set_allocation' &&
+                            `Set ${action.ticker} to ${action.allocationPct.toFixed(1)}%`}
+                        </span>
+                      ))}
+                    </div>
+                    {planProposal.expectedEffects.length > 0 && (
+                      <div className="ask-prism-drawer__proposal-effects">
+                        {planProposal.expectedEffects.map((effect) => (
+                          <p key={`${msg.id}-${effect}`} className="ask-prism-drawer__proposal-effect">
+                            {effect}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                    {planProposal.warnings.length > 0 && (
+                      <div className="ask-prism-drawer__proposal-warnings">
+                        {planProposal.warnings.map((warning) => (
+                          <p key={`${msg.id}-${warning}`} className="ask-prism-drawer__proposal-warning">
+                            {warning}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                    {proposalError && (
+                      <p className="ask-prism-drawer__proposal-error">{proposalError}</p>
+                    )}
+                    <div className="ask-prism-drawer__proposal-cta-row">
+                      <button
+                        type="button"
+                        className="ask-prism-drawer__proposal-cta ask-prism-drawer__proposal-cta--primary"
+                        onClick={() => handleApplyProposal(msg.id, planProposal.actions)}
+                        disabled={proposalApplying || proposalApplied || !onApplyPlanActions}
+                      >
+                        {proposalApplied ? 'Applied' : proposalApplying ? 'Applying...' : 'Apply To Playbook'}
+                      </button>
+                      <button
+                        type="button"
+                        className="ask-prism-drawer__proposal-cta"
+                        onClick={() => handleDismissProposal(msg.id)}
+                        disabled={proposalApplying}
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {inlineAssist && (
+                  <div className="ask-prism-drawer__inline-assist">
+                    <div className="ask-prism-drawer__inline-assist-row">
+                      {inlineAssist.navigationChips.map((chip) => (
+                        <Link
+                          key={`${msg.id}-${chip.to}`}
+                          to={chip.to}
+                          className="ask-prism-drawer__follow-up-chip ask-prism-drawer__follow-up-chip--link ask-prism-drawer__follow-up-chip--nav"
+                          onClick={onClose}
+                        >
+                          {chip.label}
+                        </Link>
+                      ))}
+                    </div>
+                    <div className="ask-prism-drawer__inline-assist-row">
+                      {inlineAssist.followUpQueries.map((prompt) => (
+                        <button
+                          key={`${msg.id}-${prompt}`}
+                          type="button"
+                          className="ask-prism-drawer__follow-up-chip"
+                          onClick={() => handleSend(prompt)}
+                          disabled={isLoading}
+                        >
+                          {prompt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </Fragment>
+            )
+          })}
 
           {showWelcome && (
             <div className="ask-prism-drawer__welcome">
               <h2 className="ask-prism-drawer__welcome-title">Ask Prism</h2>
-              <p className="ask-prism-drawer__welcome-subtitle">
-                Ask about your portfolio, exposure, or market conditions
-              </p>
+              <p className="ask-prism-drawer__welcome-subtitle">{welcomeSubtitle}</p>
 
-              {portfolioSummary && (
-                <div className="ask-prism-drawer__portfolio-context">
-                  <p className="ask-prism-drawer__portfolio-context-title">Your portfolio</p>
-                  <div className="ask-prism-drawer__portfolio-context-items">
-                    {portfolioSummary.topExposures.map((exp) => (
-                      <span key={exp.category} className="ask-prism-drawer__portfolio-context-item">
-                        {exp.category}: {exp.percentage.toFixed(1)}%
-                      </span>
-                    ))}
-                    {portfolioSummary.warningCount > 0 && (
-                      <span className="ask-prism-drawer__portfolio-context-item ask-prism-drawer__portfolio-context-item--warning">
-                        {portfolioSummary.warningCount} warning{portfolioSummary.warningCount > 1 ? 's' : ''}
-                      </span>
-                    )}
-                    {portfolioSummary.overlapCount > 0 && (
-                      <span className="ask-prism-drawer__portfolio-context-item">
-                        {portfolioSummary.overlapCount} overlap{portfolioSummary.overlapCount > 1 ? 's' : ''}
-                      </span>
-                    )}
-                  </div>
+              <div className="ask-prism-drawer__welcome-context">
+                <p className="ask-prism-drawer__welcome-context-title">{contextCard.title}</p>
+                <div className="ask-prism-drawer__welcome-context-items">
+                  {contextCard.badges.map((badge) => (
+                    <span
+                      key={badge.label}
+                      className={`ask-prism-drawer__welcome-context-item${badge.warning ? ' ask-prism-drawer__welcome-context-item--warning' : ''}`}
+                    >
+                      {badge.label}
+                    </span>
+                  ))}
                 </div>
-              )}
+              </div>
 
               {activeHoldingContext && (
                 <div className="ask-prism-drawer__context-badge">
@@ -321,7 +559,12 @@ export function AskPrismDrawer({ onClose }: AskPrismDrawerProps) {
         </div>
 
         <div className="ask-prism-drawer__input">
-          <ChatInput onSend={handleSend} disabled={isLoading} />
+          <ChatInput
+            onSend={handleSend}
+            disabled={isLoading}
+            placeholder={composerPlaceholder}
+            minRows={3}
+          />
         </div>
       </div>
     </div>

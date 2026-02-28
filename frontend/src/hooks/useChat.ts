@@ -1,5 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import type { AskPrismPage, CausalChain, CausalChainNode, Signal } from '@prism/shared'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type {
+  AskPrismCopilotProposalResponse,
+  AskPrismEntryContext,
+  AskPrismPage,
+  AskPrismPlanProposal,
+  AskPrismSessionScope,
+  CausalChain,
+  CausalChainNode,
+  PlanSelection,
+  Signal,
+  StrategyCandidate,
+} from '@prism/shared'
 import type { TemporalAnalysis } from '../types/graph'
 
 export interface ChatMessage {
@@ -7,6 +18,8 @@ export interface ChatMessage {
   readonly role: 'user' | 'assistant' | 'divider'
   readonly content: string
   readonly isStreaming?: boolean
+  readonly planProposal?: AskPrismPlanProposal
+  readonly suggestedFollowUps?: ReadonlyArray<string>
 }
 
 interface UseChatOptions {
@@ -21,46 +34,93 @@ interface UseChatOptions {
 // ── Ask Prism unified chat hook ──────────────────
 
 interface AskPrismChatCache {
-  readonly userId: string
+  readonly scopeKey: string
   readonly messages: ReadonlyArray<ChatMessage>
 }
 
-let askPrismCache: AskPrismChatCache | null = null
+const askPrismCache = new Map<string, AskPrismChatCache>()
 
 interface UseAskPrismChatOptions {
   readonly userId: string
   readonly page: AskPrismPage
   readonly signalId?: string
+  readonly entryContext?: AskPrismEntryContext | null
+  readonly planSelections?: ReadonlyArray<PlanSelection>
+  readonly planCandidates?: ReadonlyArray<StrategyCandidate>
 }
 
 interface UseAskPrismChatReturn {
   readonly messages: ReadonlyArray<ChatMessage>
   readonly isLoading: boolean
   readonly error: string | null
+  readonly sessionScope: AskPrismSessionScope
   readonly sendMessage: (content: string) => void
   readonly addDivider: (label: string) => void
 }
 
-export function useAskPrismChat({ userId, page, signalId }: UseAskPrismChatOptions): UseAskPrismChatReturn {
-  const [messages, setMessages] = useState<ReadonlyArray<ChatMessage>>(
-    () => (askPrismCache?.userId === userId ? askPrismCache.messages : []),
+function deriveAskPrismSessionScope(
+  page: AskPrismPage,
+  signalId?: string,
+  entryContext?: AskPrismEntryContext | null,
+): AskPrismSessionScope {
+  const scopedSignalId = entryContext?.signalId ?? signalId
+  if (entryContext?.nodeId && scopedSignalId) {
+    return `node:${scopedSignalId}:${entryContext.nodeId}`
+  }
+  if (scopedSignalId && page === 'plan') {
+    return `plan:${scopedSignalId}`
+  }
+  if (scopedSignalId && (page === 'signal' || page === 'signals_overview')) {
+    return `signal:${scopedSignalId}`
+  }
+  return 'global'
+}
+
+export function useAskPrismChat({
+  userId,
+  page,
+  signalId,
+  entryContext,
+  planSelections,
+  planCandidates,
+}: UseAskPrismChatOptions): UseAskPrismChatReturn {
+  const sessionScope = useMemo(
+    () => deriveAskPrismSessionScope(page, signalId, entryContext),
+    [entryContext, page, signalId],
   )
+  const scopeKey = `${userId}:${sessionScope}`
+
+  const [messages, setMessages] = useState<ReadonlyArray<ChatMessage>>(() => {
+    const cached = askPrismCache.get(scopeKey)
+    return cached?.messages ?? []
+  })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
-  // Persist to module cache
+  // Persist scoped thread to module cache
   useEffect(() => {
-    if (messages.length > 0) {
-      askPrismCache = { userId, messages }
+    if (messages.length > 0 || askPrismCache.has(scopeKey)) {
+      askPrismCache.set(scopeKey, { scopeKey, messages })
     }
-  }, [messages, userId])
+  }, [messages, scopeKey])
 
-  // Clear cache on user switch
+  // Restore cached thread when scope changes
   useEffect(() => {
-    if (askPrismCache && askPrismCache.userId !== userId) {
-      askPrismCache = null
-      setMessages([])
+    abortRef.current?.abort()
+    const cached = askPrismCache.get(scopeKey)
+    setMessages(cached?.messages ?? [])
+    setError(null)
+    setIsLoading(false)
+  }, [scopeKey])
+
+  // Cleanup stale caches from other users
+  useEffect(() => {
+    const userPrefix = `${userId}:`
+    for (const key of askPrismCache.keys()) {
+      if (!key.startsWith(userPrefix)) {
+        askPrismCache.delete(key)
+      }
     }
   }, [userId])
 
@@ -82,15 +142,78 @@ export function useAskPrismChat({ userId, page, signalId }: UseAskPrismChatOptio
       const controller = new AbortController()
       abortRef.current = controller
 
-      const history = [...messages, userMsg].map((m) => ({
-        role: m.role,
-        content: m.content,
-      }))
+      const history = [...messages, userMsg]
+        .filter((m) => m.role === 'user' || m.role === 'assistant')
+        .map((m) => ({
+          role: m.role,
+          content: m.content,
+        }))
+
+      if (page === 'plan') {
+        fetch(`/api/strategy/${userId}/copilot-proposal`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            signalId,
+            message: content,
+            sessionScope,
+            entryContext,
+            currentSelections: planSelections ?? [],
+            candidateUniverse: planCandidates ?? [],
+            history,
+          }),
+          signal: controller.signal,
+        })
+          .then(async (res) => {
+            if (!res.ok) {
+              const payload = await res.json()
+              throw new Error((payload as { error?: string }).error ?? 'Copilot request failed')
+            }
+            const payload = await res.json() as {
+              readonly success: boolean
+              readonly data?: AskPrismCopilotProposalResponse
+              readonly error?: string
+            }
+            if (!payload.success || !payload.data) {
+              throw new Error(payload.error ?? 'Copilot request failed')
+            }
+
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId
+                  ? {
+                      ...m,
+                      content: payload.data!.assistantText,
+                      isStreaming: false,
+                      planProposal: payload.data!.proposal ?? undefined,
+                      suggestedFollowUps: payload.data!.followUps,
+                    }
+                  : m,
+              ),
+            )
+            setIsLoading(false)
+          })
+          .catch((err: Error) => {
+            if (err.name === 'AbortError') return
+            setError(err.message)
+            setIsLoading(false)
+            setMessages((prev) => prev.filter((m) => m.id !== assistantId))
+          })
+        return
+      }
 
       fetch(`/api/chat/${userId}/ask-prism`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ page, signalId, message: content, history }),
+        body: JSON.stringify({
+          page,
+          signalId,
+          planSelections,
+          sessionScope,
+          entryContext,
+          message: content,
+          history,
+        }),
         signal: controller.signal,
       })
         .then(async (res) => {
@@ -146,7 +269,17 @@ export function useAskPrismChat({ userId, page, signalId }: UseAskPrismChatOptio
           setMessages((prev) => prev.filter((m) => m.id !== assistantId))
         })
     },
-    [isLoading, messages, page, signalId, userId],
+    [
+      entryContext,
+      isLoading,
+      messages,
+      page,
+      planCandidates,
+      planSelections,
+      sessionScope,
+      signalId,
+      userId,
+    ],
   )
 
   const addDivider = useCallback((label: string) => {
@@ -156,7 +289,7 @@ export function useAskPrismChat({ userId, page, signalId }: UseAskPrismChatOptio
     ])
   }, [])
 
-  return { messages, isLoading, error, sendMessage, addDivider }
+  return { messages, isLoading, error, sessionScope, sendMessage, addDivider }
 }
 
 interface UseChatReturn {

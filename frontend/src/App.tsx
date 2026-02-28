@@ -1,7 +1,8 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AppProvider } from './contexts/AppContext'
 import { ErrorBoundary } from './components/shared/ErrorBoundary'
 import { AppLayout } from './components/shared/AppLayout'
+import { ChatView } from './routes/ChatView'
 import { PortfolioView } from './routes/PortfolioView'
 import { SignalsLayout } from './routes/signals/SignalsLayout'
 import { CombinedSignalsPane } from './routes/signals/CombinedSignalsPane'
@@ -15,8 +16,10 @@ export function App() {
       <ErrorBoundary>
         <BrowserRouter>
           <Routes>
+            {/* New single-page chat interface */}
+            <Route path="/" element={<ChatView />} />
+            {/* Legacy routes (preserved during migration) */}
             <Route element={<AppLayout />}>
-              <Route path="/" element={<Navigate to="/portfolio" replace />} />
               <Route path="/portfolio" element={<PortfolioView />} />
               <Route path="/signals" element={<SignalsLayout />}>
                 <Route index element={<CombinedSignalsPane />} />

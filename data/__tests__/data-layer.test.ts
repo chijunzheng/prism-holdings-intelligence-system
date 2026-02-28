@@ -10,9 +10,9 @@ import {
 
 describe('Data Layer', () => {
   describe('Portfolios', () => {
-    it('loads all 3 portfolios with valid schemas', () => {
+    it('loads all 6 portfolios with valid schemas', () => {
       const portfolios = getPortfolios()
-      expect(portfolios).toHaveLength(3)
+      expect(portfolios).toHaveLength(6)
     })
 
     it('primary portfolio has correct total value', () => {
@@ -39,9 +39,9 @@ describe('Data Layer', () => {
   })
 
   describe('Fund Compositions', () => {
-    it('loads all 8 fund compositions', () => {
+    it('loads all 13 fund compositions', () => {
       const funds = getAllFundCompositions()
-      expect(funds.size).toBe(8)
+      expect(funds.size).toBe(13)
     })
 
     it('VFV has top holdings with Apple as largest', () => {
@@ -85,9 +85,9 @@ describe('Data Layer', () => {
   })
 
   describe('User Profiles', () => {
-    it('loads all 3 user profiles', () => {
+    it('loads all 6 user profiles', () => {
       const profiles = getUserProfiles()
-      expect(profiles).toHaveLength(3)
+      expect(profiles).toHaveLength(6)
     })
 
     it('Sarah is the primary demo user (mid-career, moderate risk)', () => {

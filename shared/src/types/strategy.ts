@@ -6,6 +6,21 @@ export type StrategySecurityType = z.infer<typeof StrategySecurityType>
 export const StrategyLiquidityTier = z.enum(['high', 'medium', 'low'])
 export type StrategyLiquidityTier = z.infer<typeof StrategyLiquidityTier>
 
+export const StrategyQuoteSource = z.enum([
+  'holding_implied',
+  'model_estimate',
+  'unavailable',
+])
+export type StrategyQuoteSource = z.infer<typeof StrategyQuoteSource>
+
+export const StrategyPositionSuggestionSchema = z.object({
+  targetCad: z.number().min(0),
+  estimatedShares: z.number().int().nonnegative().nullable(),
+  estimatedTradeCad: z.number().min(0).nullable(),
+  residualCad: z.number().min(0).nullable(),
+}).readonly()
+export type StrategyPositionSuggestion = z.infer<typeof StrategyPositionSuggestionSchema>
+
 export const StrategyObjective = z.enum([
   'minimize_one_month_downside_with_six_month_guardrail',
 ])
@@ -26,6 +41,10 @@ export const StrategyCandidateSchema = z.object({
   isLargeCapProxy: z.boolean().default(false),
   liquidityTier: StrategyLiquidityTier,
   rankScore: z.number(),
+  referencePriceCad: z.number().positive().optional(),
+  quoteSource: StrategyQuoteSource.optional(),
+  quoteAsOf: z.string().datetime().optional(),
+  positionSuggestion: StrategyPositionSuggestionSchema.optional(),
 })
 export type StrategyCandidate = z.infer<typeof StrategyCandidateSchema>
 

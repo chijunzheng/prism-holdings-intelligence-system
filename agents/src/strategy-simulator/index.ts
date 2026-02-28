@@ -1,5 +1,7 @@
 import type {
+  Portfolio,
   StrategyConstraints,
+  StrategyCandidate,
   StrategyDraft,
   StrategyDraftRequest,
   StrategyEvaluateRequest,
@@ -21,6 +23,29 @@ import { evaluateScenarioModel } from './scoring'
 const DEFAULT_MAX_CANDIDATES = 5
 const STRATEGY_OBJECTIVE: StrategyObjective =
   'minimize_one_month_downside_with_six_month_guardrail'
+
+const MODEL_REFERENCE_PRICES_CAD: Readonly<Record<string, number>> = {
+  CASH: 1,
+  ZAG: 15.2,
+  XIC: 37.4,
+  ZEB: 43.8,
+  ZDV: 19.1,
+  VFV: 122.8,
+  XQQ: 153.4,
+  XEG: 18.5,
+  XGD: 18.2,
+  CNQ: 97.1,
+  SU: 48.6,
+  RY: 145.4,
+  TD: 84.2,
+  BNS: 70.6,
+  BMO: 128.3,
+  CM: 68.9,
+  NA: 114.7,
+  NEM: 61.5,
+  ABX: 29.3,
+  AEM: 86.8,
+}
 
 function riskTurnoverCap(riskTolerance: string): number {
   if (riskTolerance === 'low') return 3
@@ -49,6 +74,75 @@ function buildConstraints(
     noMicrocaps: true,
     excludeLeveragedEtfs: true,
     maxNewPositions: 2,
+  }
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value))
+}
+
+function buildHoldingPriceMap(portfolio: Portfolio): ReadonlyMap<string, number> {
+  const priceMap = new Map<string, number>()
+  for (const account of portfolio.accounts) {
+    for (const holding of account.holdings) {
+      const ticker = holding.ticker.trim().toUpperCase()
+      if (!ticker || holding.units <= 0) continue
+      const implied = holding.valueCad / holding.units
+      if (Number.isFinite(implied) && implied > 0) {
+        priceMap.set(ticker, implied)
+      }
+    }
+  }
+  return priceMap
+}
+
+function resolveReferencePrice(
+  ticker: string,
+  holdingPriceMap: ReadonlyMap<string, number>,
+): { readonly priceCad: number | null; readonly source: 'holding_implied' | 'model_estimate' | 'unavailable' } {
+  const normalized = ticker.trim().toUpperCase()
+  const holdingPrice = holdingPriceMap.get(normalized)
+  if (typeof holdingPrice === 'number' && holdingPrice > 0) {
+    return { priceCad: holdingPrice, source: 'holding_implied' }
+  }
+  const modelPrice = MODEL_REFERENCE_PRICES_CAD[normalized]
+  if (typeof modelPrice === 'number' && modelPrice > 0) {
+    return { priceCad: modelPrice, source: 'model_estimate' }
+  }
+  return { priceCad: null, source: 'unavailable' }
+}
+
+function buildPositionSuggestion(
+  portfolioTotalCad: number,
+  allocationPct: number,
+  priceCad: number | null,
+  type: StrategyCandidate['type'],
+): StrategyCandidate['positionSuggestion'] {
+  const targetCad = Math.max(0, portfolioTotalCad * Math.max(allocationPct, 0) / 100)
+  if (type === 'cash') {
+    return {
+      targetCad,
+      estimatedShares: null,
+      estimatedTradeCad: targetCad,
+      residualCad: 0,
+    }
+  }
+  if (!priceCad || priceCad <= 0) {
+    return {
+      targetCad,
+      estimatedShares: null,
+      estimatedTradeCad: null,
+      residualCad: null,
+    }
+  }
+  const estimatedShares = Math.max(0, Math.floor(targetCad / priceCad))
+  const estimatedTradeCad = estimatedShares * priceCad
+  const residualCad = clamp(targetCad - estimatedTradeCad, 0, targetCad)
+  return {
+    targetCad,
+    estimatedShares,
+    estimatedTradeCad,
+    residualCad,
   }
 }
 
@@ -160,9 +254,29 @@ export async function buildStrategyDraft(
     maxCandidates,
     getFundComposition: ctx.getFundComposition,
   })
+  const holdingPriceMap = buildHoldingPriceMap(ctx.portfolio)
+  const quoteAsOf = new Date().toISOString()
+
+  const enrichedCandidates: ReadonlyArray<StrategyCandidate> = candidates.map((candidate) => {
+    const resolvedPrice = resolveReferencePrice(candidate.ticker, holdingPriceMap)
+    const suggestion = buildPositionSuggestion(
+      ctx.portfolio.totalValueCad,
+      candidate.proposedShiftPct,
+      resolvedPrice.priceCad,
+      candidate.type,
+    )
+
+    return {
+      ...candidate,
+      referencePriceCad: resolvedPrice.priceCad ?? undefined,
+      quoteSource: resolvedPrice.source,
+      quoteAsOf,
+      positionSuggestion: suggestion,
+    }
+  })
 
   const scenario = {
-    items: candidates.slice(0, Math.min(3, candidates.length)).map((candidate) => ({
+    items: enrichedCandidates.slice(0, Math.min(3, enrichedCandidates.length)).map((candidate) => ({
       candidateId: candidate.id,
       ticker: candidate.ticker,
       name: candidate.name,
@@ -185,7 +299,7 @@ export async function buildStrategyDraft(
       generatedAt: new Date().toISOString(),
       objective: STRATEGY_OBJECTIVE,
       constraints,
-      candidates,
+      candidates: enrichedCandidates,
       scenario,
       baselineOneMonthCad: resolved.oneMonthCad,
       baselineSixMonthCad: resolved.sixMonthCad,

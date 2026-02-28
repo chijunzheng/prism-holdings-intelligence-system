@@ -9,6 +9,31 @@ import { buildSystemPrompt } from './prompts'
 export function buildAskPrismPrompt(context: AskPrismContext): string {
   const sections: string[] = [buildSystemPrompt(context.profile), '']
 
+  sections.push('## SESSION CONTEXT')
+  sections.push(`- Page: ${context.page}`)
+  sections.push(`- Session scope: ${context.sessionScope}`)
+  sections.push(`- Snapshot generated: ${context.contextSnapshotMeta.generatedAt}`)
+  sections.push(`- Active signals in snapshot: ${context.contextSnapshotMeta.activeSignalCount}`)
+  if (context.contextSnapshotMeta.focusedSignalDetectedAt) {
+    sections.push(`- Focused signal detected at: ${context.contextSnapshotMeta.focusedSignalDetectedAt}`)
+  }
+  if (context.entryContext) {
+    sections.push(`- Entry type: ${context.entryContext.entryType}`)
+    if (context.entryContext.signalId) sections.push(`- Entry signal id: ${context.entryContext.signalId}`)
+    if (context.entryContext.nodeLabel) sections.push(`- Entry node: ${context.entryContext.nodeLabel}`)
+  }
+  sections.push('')
+
+  if (context.contextSnapshotMeta.signalSourceSummary.length > 0) {
+    sections.push('### Signal Source Coverage')
+    const sourceSummary = context.contextSnapshotMeta.signalSourceSummary
+      .slice(0, 8)
+      .map((row) => `- ${row.signalId}: ${row.sourceCount} source(s)`)
+      .join('\n')
+    sections.push(sourceSummary)
+    sections.push('')
+  }
+
   // Layer 1: Portfolio context (always present)
   sections.push('## PORTFOLIO CONTEXT')
   sections.push('')
@@ -52,7 +77,7 @@ export function buildAskPrismPrompt(context: AskPrismContext): string {
   if (context.exposureMap.overlaps.length > 0) {
     sections.push('### Overlapping Exposures')
     const overlapsList = context.exposureMap.overlaps
-      .map((o) => `- ${o.category}: ${o.percentage.toFixed(1)}% (overlaps ${o.overlappingCount} holdings)`)
+      .map((o) => `- ${o.assetName}: ${o.totalPercentage.toFixed(1)}% (overlaps ${o.sources.length} fund positions)`)
       .join('\n')
     sections.push(overlapsList)
     sections.push('')
@@ -68,6 +93,23 @@ export function buildAskPrismPrompt(context: AskPrismContext): string {
       })
       .join('\n')
     sections.push(signalsList)
+    sections.push('')
+  }
+
+  if (context.portfolioNetImpact) {
+    sections.push('### Signals Overview Net Impact')
+    sections.push(`- Included signals: ${context.portfolioNetImpact.includedSignalCount}/${context.portfolioNetImpact.signalUniverseCount}`)
+    sections.push(`- 1-week impact: $${context.portfolioNetImpact.oneWeekImpactCad.toLocaleString('en-CA')}`)
+    sections.push(`- 1-month impact: $${context.portfolioNetImpact.oneMonthImpactCad.toLocaleString('en-CA')}`)
+    sections.push(`- 6-month impact: $${context.portfolioNetImpact.sixMonthImpactCad.toLocaleString('en-CA')}`)
+    if (context.portfolioNetImpact.topContributors.length > 0) {
+      sections.push('**Top contributors:**')
+      sections.push(
+        context.portfolioNetImpact.topContributors
+          .map((item) => `- ${item.headline}: ${item.normalizedWeight.toFixed(2)} weight, $${item.oneMonthImpactCad.toLocaleString('en-CA')} (1M)`)
+          .join('\n'),
+      )
+    }
     sections.push('')
   }
 
@@ -119,6 +161,17 @@ export function buildAskPrismPrompt(context: AskPrismContext): string {
       .join('\n')
     sections.push(nodesList)
     sections.push('')
+
+    if (context.focusedNode) {
+      sections.push('**Focused Node:**')
+      sections.push(`- ${context.focusedNode.label} (${context.focusedNode.type})`)
+      sections.push(`- Confidence: ${Math.round(context.focusedNode.confidence * 100)}%`)
+      sections.push(`- Description: ${context.focusedNode.description}`)
+      if (context.focusedNode.dollarImpact !== undefined) {
+        sections.push(`- Node dollar impact: $${context.focusedNode.dollarImpact.toLocaleString('en-CA')}`)
+      }
+      sections.push('')
+    }
 
     // List all edges with mechanisms
     sections.push('**Causal Mechanisms:**')
@@ -220,7 +273,7 @@ export function buildAskPrismPrompt(context: AskPrismContext): string {
   }
 
   sections.push('TASK:')
-  sections.push('Answer the user's question using the context above. Keep responses concise and practical.')
+  sections.push("Answer the user's question using the context above. Keep responses concise and practical.")
   sections.push('Reference specific holdings, exposures, or plan details when relevant.')
   sections.push('Avoid markdown headings.')
 

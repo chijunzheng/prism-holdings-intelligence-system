@@ -19,8 +19,8 @@ export function getGeminiApiKey(): string | null {
   return key
 }
 
-const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash'
-const DEFAULT_FAST_GEMINI_MODEL = 'gemini-2.5-flash-lite'
+const DEFAULT_GEMINI_MODEL = 'gemini-3-flash-preview'
+const DEFAULT_FAST_GEMINI_MODEL = 'gemini-3-flash-preview'
 
 /**
  * Returns the Gemini model name from env with a safe default.

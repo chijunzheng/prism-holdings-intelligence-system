@@ -274,6 +274,7 @@ export async function* streamAskPrismResponse(
   context: import('@prism/shared').AskPrismContext,
   history: ReadonlyArray<ChatMessage>,
   userMessage: string,
+  sessionScope: import('@prism/shared').AskPrismSessionScope = 'global',
 ): AsyncGenerator<string, void, undefined> {
   if (!getGeminiApiKey()) {
     yield 'Error: Gemini API key not configured.'
@@ -299,7 +300,7 @@ export async function* streamAskPrismResponse(
   const result = await runPrismAdkPrompt({
     userId: context.profile.id,
     message: prompt,
-    sessionId: `ask-prism:${context.profile.id}`,
+    sessionId: `ask-prism:${context.profile.id}:${sessionScope.replace(/[^a-zA-Z0-9:_-]/g, '-')}`,
   })
 
   if (!result.success || !result.data) {

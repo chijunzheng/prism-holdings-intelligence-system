@@ -83,12 +83,12 @@
 - [x] Session CRUD endpoints
 
 ## Phase 7: Chat UI
-- [ ] Build left panel (holdings, sessions, expectations)
-- [ ] Build main chat area
-- [ ] Build 15+ card components
-- [ ] Wire holdings interaction
-- [ ] Wire checkpoint interactions
-- [ ] Session management
+- [x] Build left panel (holdings, sessions, expectations)
+- [x] Build main chat area with SSE streaming
+- [x] Build 9 rich card components + ChatCardRenderer dispatcher
+- [x] Wire holdings interaction (HoldingsPanel click handler)
+- [x] Wire checkpoint interactions (CheckpointCard with chips + text input)
+- [x] Session management (useSessions hook + SessionList panel)
 
 ## Phase 8: Evaluation
 - [ ] Curate 25 historical events
@@ -133,12 +133,12 @@
 | Phase 5: Synthesis | ✅ Complete | 15/15 |
 | Phase 5.5: Cross-Signal | ✅ Complete | 5/5 |
 | Phase 6: Integration | ✅ Complete | 5/5 |
-| Phase 7: Chat UI | ⬜ Not Started | 0/6 |
+| Phase 7: Chat UI | ✅ Complete | 6/6 |
 | Phase 8: Evaluation | ⬜ Not Started | 0/5 |
 | Phase 9: Final Cleanup | ⬜ Not Started | 0/12 |
 | Phase 10: Deployment | ⬜ Not Started | 0/5 |
 
-**Tests:** 163/163 passing
+**Tests:** 225/225 passing
 - risk-profile-inference: 12
 - calibration: 14
 - market-data: 12

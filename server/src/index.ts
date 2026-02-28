@@ -247,6 +247,12 @@ app.use('/api/:resource/:userId', (req, _res, next) => {
   next()
 })
 
+// ── v2 Routes (multi-agent pipeline) ──────────────────────
+import { analyzeRouter } from './routes/analyze'
+import { sessionsRouter } from './routes/sessions'
+app.use('/api/v2/analyze', analyzeRouter)
+app.use('/api/v2/sessions', sessionsRouter)
+
 // Health check
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })

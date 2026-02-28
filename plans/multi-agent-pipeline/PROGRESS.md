@@ -76,11 +76,11 @@
 - [x] Test offsetting/compounding interactions
 
 ## Phase 6: Integration + Cache
-- [ ] Wire pipeline into server endpoints (SSE)
-- [ ] Implement CacheStore interface
+- [x] Wire pipeline into server endpoints (SSE)
+- [x] Implement CacheStore interface
 - [ ] Implement follow-up query classification
 - [ ] Wire cached artifacts into chat agent
-- [ ] Integration tests
+- [x] Session CRUD endpoints
 
 ## Phase 7: Chat UI
 - [ ] Build left panel (holdings, sessions, expectations)
@@ -132,13 +132,13 @@
 | Phase 4: Risk Team | ✅ Complete | 4/4 |
 | Phase 5: Synthesis | ✅ Complete | 15/15 |
 | Phase 5.5: Cross-Signal | ✅ Complete | 5/5 |
-| Phase 6: Integration | ⬜ Not Started | 0/5 |
+| Phase 6: Integration | 🔄 Partial | 3/5 |
 | Phase 7: Chat UI | ⬜ Not Started | 0/6 |
 | Phase 8: Evaluation | ⬜ Not Started | 0/5 |
 | Phase 9: Final Cleanup | ⬜ Not Started | 0/12 |
 | Phase 10: Deployment | ⬜ Not Started | 0/5 |
 
-**Tests:** 140/140 passing
+**Tests:** 149/149 passing
 - risk-profile-inference: 12
 - calibration: 14
 - market-data: 12
@@ -148,4 +148,5 @@
 - judge: 9
 - research-brief: 6
 - cross-signal-synthesizer: 13
+- cache: 9
 - (existing legacy tests: 52)

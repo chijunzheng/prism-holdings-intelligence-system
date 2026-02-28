@@ -11,6 +11,7 @@ const TEST_SIGNAL: Signal = {
   affectedExposures: ['Canadian Financials', 'Canadian Housing'],
   relevanceScore: 0.88,
   urgency: 'high',
+  sentiment: 'negative',
   temporalClassification: 'structural',
   sources: [
     {

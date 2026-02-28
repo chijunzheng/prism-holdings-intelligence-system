@@ -1,5 +1,13 @@
 import type { AgentConfig } from '../types'
-import { runPrismAdkPrompt } from '../adk'
+// ADK removed — this entire chat-agent will be replaced by LangGraph chat (Feature 15-17).
+// Stub for compilation until replacement is built.
+async function runPrismAdkPrompt(_params: {
+  userId: string
+  message: string
+  sessionId: string
+}): Promise<{ success: boolean; data?: { response: string }; error?: string }> {
+  return { success: false, error: 'ADK removed — chat-agent pending LangGraph migration' }
+}
 import { getGeminiApiKey, getGeminiModelName } from '../utils/env'
 import { buildSystemPrompt, buildNodeContextPrompt, buildWhatIfDetectionPrompt } from './prompts'
 import type { ChatContext, ChatMessage, WhatIfDetection } from './types'

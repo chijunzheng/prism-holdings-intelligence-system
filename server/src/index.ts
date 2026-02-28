@@ -4,26 +4,9 @@ import { randomUUID } from 'crypto'
 import { existsSync, readFileSync } from 'fs'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
-import type { CausalChain, StrategyScenarioItem } from '@prism/shared'
-import {
-  CompareWorkspaceBranchesRequestSchema,
-  CreateWorkspaceBranchRequestSchema,
-  CreateWorkspaceCheckpointRequestSchema,
-  CreateWorkspaceSessionRequestSchema,
-  UpdateWorkspaceBranchRequestSchema,
-  UpdateWorkspaceSessionRequestSchema,
-  WorkspaceOperationAppendRequestSchema,
-} from '@prism/shared'
+import type { CausalChain } from '@prism/shared'
 import { getPortfolioByUserId, getFundComposition, getUserProfileById, getUserProfiles } from '@prism/data'
-import {
-  listPlanSessions,
-  getPlanSession,
-  createPlanSession,
-  updatePlanSession,
-  deletePlanSession,
-  CreatePlanSessionRequestSchema as CreatePlanReqSchema,
-  UpdatePlanSessionRequestSchema as UpdatePlanReqSchema,
-} from './plan-session-service'
+// plan-session-service removed — legacy routes deleted
 import { analyze } from '@prism/agents/src/exposure-analyzer/index'
 import {
   runExposureAnalysis,
@@ -56,34 +39,9 @@ import {
   startBackgroundChecker,
   clearCheckerState,
 } from './background-signal-checker'
-import {
-  createStrategyDraft,
-  evaluateStrategy,
-  parseStrategyDraftRequest,
-  parseStrategyEvaluateRequest,
-} from './strategy-service'
-import {
-  buildPlanCopilotProposalResponse,
-  parsePlanCopilotRequest,
-} from './plan-copilot-service'
-import {
-  appendWorkspaceOperation,
-  compareWorkspaceBranches,
-  createWorkspaceBranch,
-  createWorkspaceCheckpoint,
-  createWorkspaceSession,
-  getWorkspaceSessionBundle,
-  listWorkspaceSessions,
-  restoreWorkspaceCheckpoint,
-  updateWorkspaceBranch,
-  updateWorkspaceSession,
-} from './workspace-session-service'
+// strategy-service, plan-copilot-service, workspace-session-service removed — legacy routes deleted
 import type { ChatMessage as AgentChatMessage } from '@prism/agents/src/chat-agent/types'
-import {
-  runAdkGraphPipeline,
-  runAdkSignalsPipeline,
-  runPrismAdkPrompt,
-} from '@prism/agents/src/adk/index'
+// ADK imports removed — adk directory no longer exists
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 

@@ -29,8 +29,8 @@
 | 17 | Server API Endpoints | ⬜ Not Started | 13, 15 | 7 | High |
 | 18 | Follow-Up Query Routing | ⬜ Not Started | 13, 15 | 7 | Medium |
 | 19 | Evaluation Harness | ⬜ Not Started | 13 | 8 | Medium |
-| 20 | GCP Deployment | ⬜ Not Started | 17 | 8 | Low |
-| 21 | Final Codebase Cleanup | ⬜ Not Started | 00-20 | 9 | Medium |
+| 20 | GCP Deployment | ⬜ Not Started | 17, 21 | 10 | Low |
+| 21 | Final Codebase Cleanup | ⬜ Not Started | 00-19 | 9 | Medium |
 
 ## Dependency Graph
 
@@ -59,7 +59,10 @@ Tier 7 (parallel):    │    │
                       │    │    18 ── 13+15
 Tier 8 (parallel):    │    │
                       │    │    19 ── 13
-                      │    │    20 ── 17
+Tier 9 (seq):         │    │
+                      │    │    21 ── 00-19
+Tier 10 (seq):        │    │
+                      │    │    20 ── 17+21
 ```
 
 ## Maximum Parallelism Schedule
@@ -73,8 +76,8 @@ Tier 8 (parallel):    │    │
 | T4 | 11-fund-manager | 12-judge | - | - |
 | T5 | 13-orchestrator | 14-cross-signal | 17-server-api | - |
 | T6 | 18-follow-up | 19-eval-harness | - | - |
-| T7 | 20-gcp-deploy | - | - | - |
-| T8 | 21-final-cleanup | - | - | - |
+| T7 | 21-final-cleanup | - | - | - |
+| T8 | 20-gcp-deploy | - | - | - |
 
 ## Architecture Summary
 

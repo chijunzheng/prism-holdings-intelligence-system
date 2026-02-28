@@ -140,6 +140,7 @@ Key card types: `SignalCard`, `ThinkingCard` (per-agent reasoning), `DebateSumma
 ## Workflow Rules
 
 - **Use `/create-features` for every non-trivial feature requests.** When the user asks to implement a new feature, invoke the `create-features` skill to convert the plan into tracked feature tasks with dependency management before writing any code. This ensures all work is documented, tracked, and aligned with the plan. Make sure to check off the todo list in the .md files under the plan directory as you complete features.
+- **Update plan progress after completing each phase/feature.** After completing each todo list item in `plans/multi-agent-pipeline/PROGRESS.md`, update the entire plan directory: check off items in `PROGRESS.md`, update the corresponding feature file in `features/*.md` (status, checklist items), update `00-overview.md` (completion count, status column), and add any relevant decisions to `DECISIONS.md`.
 
 ### Documentation Requirements
 

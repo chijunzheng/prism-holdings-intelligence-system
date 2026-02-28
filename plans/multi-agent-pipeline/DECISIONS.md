@@ -41,3 +41,9 @@
 **Decision:** Replace generic demo portfolios with 3 exaggerated but realistic personas.
 **Rationale:** Each showcases different capabilities: Marcus (concentration risk), Sarah (time-horizon mismatch), Diana (hidden overlap). More compelling demo.
 **Trade-offs:** Requires 5 new fund data files for single stocks.
+
+## Decision 8: Final Codebase Cleanup Before GCP Deployment
+**Date:** 2026-02-28
+**Decision:** Reordered phases so Final Codebase Cleanup (Phase 9) runs before GCP Deployment (Phase 10). Feature 21 (cleanup) depends on 00-19; Feature 20 (deployment) depends on 17 + 21.
+**Rationale:** Deploying dead code to production wastes resources and increases attack surface. Cleaning up first ensures we deploy a lean, audited codebase. Also easier to debug deployment issues when the codebase is clean.
+**Trade-offs:** None — strictly better ordering.

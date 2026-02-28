@@ -4,8 +4,8 @@
 **Status:** ⬜ Not Started
 **Priority:** Low
 **Estimated Complexity:** High
-**Dependencies:** 17 (Server API Endpoints)
-**Tier:** 8
+**Dependencies:** 17 (Server API Endpoints), 21 (Final Codebase Cleanup)
+**Tier:** 10
 
 ## Description
 

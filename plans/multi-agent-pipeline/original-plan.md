@@ -2170,21 +2170,7 @@ Replace the existing multi-page SPA with a single elegant chat interface. The ap
 - [ ] Document results for demo writeup (addresses "what would break first at scale")
 - **Files:** `eval/*`
 
-### Phase 9: GCP Cloud Run Deployment
-- [ ] Create `Dockerfile` for API server (Express + agents)
-- [ ] Create `Dockerfile` for frontend (Vite build → static serve)
-- [ ] Set up Firestore collections: `users`, `portfolios`, `sessions`, `verdicts`, `briefs`
-- [ ] Migrate sample portfolio data from JSON files to Firestore
-- [ ] Set up Cloud Memorystore (Redis) for hot cache (signal verdicts, exposure cache, session state)
-- [ ] Implement `RedisCacheStore` and `FirestoreCacheStore` implementing the `CacheStore` interface
-- [ ] Store API keys in Secret Manager (GEMINI_API_KEY, LANGSMITH_API_KEY)
-- [ ] Deploy API service to Cloud Run (northamerica-northeast1, minInstances: 1)
-- [ ] Deploy frontend to Cloud Run (or Cloud Storage + CDN for static)
-- [ ] Verify: full analysis pipeline runs on Cloud Run, follow-up queries use cached artifacts, SSE streaming works
-- [ ] Share deployment URL with recruiter
-- **Files:** `Dockerfile`, `docker-compose.yml`, `deploy/`, `agents/src/orchestrator/cache.ts` (swap implementations)
-
-### Phase 10: Final Codebase Cleanup (Post-Completion Sweep)
+### Phase 9: Final Codebase Cleanup (Post-Completion Sweep)
 
 After all features are implemented, perform a comprehensive codebase-wide cleanup to remove any dead code, unused components, orphaned files, and stale imports that accumulated during the multi-phase build. This is distinct from Phase 0.5 (which removes known dead code from the old UI) — this phase catches anything that became dead *during* the new implementation.
 
@@ -2203,6 +2189,20 @@ After all features are implemented, perform a comprehensive codebase-wide cleanu
 - [ ] Final line count audit: compare before/after to quantify dead code removed
 - **Files:** All packages — this is a cross-cutting cleanup pass
 - **Tools:** `knip`, `depcheck`, `ts-prune`, TypeScript compiler strict mode, `pnpm build`
+
+### Phase 10: GCP Cloud Run Deployment
+- [ ] Create `Dockerfile` for API server (Express + agents)
+- [ ] Create `Dockerfile` for frontend (Vite build → static serve)
+- [ ] Set up Firestore collections: `users`, `portfolios`, `sessions`, `verdicts`, `briefs`
+- [ ] Migrate sample portfolio data from JSON files to Firestore
+- [ ] Set up Cloud Memorystore (Redis) for hot cache (signal verdicts, exposure cache, session state)
+- [ ] Implement `RedisCacheStore` and `FirestoreCacheStore` implementing the `CacheStore` interface
+- [ ] Store API keys in Secret Manager (GEMINI_API_KEY, LANGSMITH_API_KEY)
+- [ ] Deploy API service to Cloud Run (northamerica-northeast1, minInstances: 1)
+- [ ] Deploy frontend to Cloud Run (or Cloud Storage + CDN for static)
+- [ ] Verify: full analysis pipeline runs on Cloud Run, follow-up queries use cached artifacts, SSE streaming works
+- [ ] Share deployment URL with recruiter
+- **Files:** `Dockerfile`, `docker-compose.yml`, `deploy/`, `agents/src/orchestrator/cache.ts` (swap implementations)
 
 ---
 

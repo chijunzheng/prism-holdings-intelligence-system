@@ -4,7 +4,7 @@
 **Status:** ⬜ Not Started
 **Priority:** Medium
 **Estimated Complexity:** Medium
-**Dependencies:** 00-20 (all other features must be complete)
+**Dependencies:** 00-19 (all features except GCP deployment must be complete)
 **Tier:** 9
 
 ## Description

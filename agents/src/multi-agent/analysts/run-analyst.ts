@@ -1,7 +1,6 @@
 // Core analyst runner — invokes Gemini Flash with Search grounding
 // and parses the response into a validated AnalystAssessment.
 
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai'
 import { HumanMessage } from '@langchain/core/messages'
 import {
   AnalystAssessmentSchema,
@@ -14,11 +13,12 @@ import {
   type MarketDataBundle,
 } from '@prism/shared'
 import { buildAnalystPrompt } from './shared-prompt.js'
+import { createGeminiChatModel } from '../../utils/gemini-chat-model'
 
 // ── Gemini Configuration ────────────────────────────────────
 function createAnalystModel() {
-  return new ChatGoogleGenerativeAI({
-    model: 'gemini-2.0-flash',
+  return createGeminiChatModel({
+    model: 'gemini-2.5-flash',
     temperature: 0.3, // Low temp for analytical consistency
     maxOutputTokens: 4096,
   })

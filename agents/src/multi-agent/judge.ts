@@ -1,7 +1,6 @@
 // Judge Agent — quality evaluator for Fund Manager verdicts.
 // Scores 5 dimensions, triggers re-synthesis if quality < 0.65 (max 2 iterations).
 
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai'
 import { HumanMessage } from '@langchain/core/messages'
 import type {
   JudgeVerdict,
@@ -10,6 +9,7 @@ import type {
   Signal,
 } from '@prism/shared'
 import { JudgeVerdictSchema } from '@prism/shared'
+import { createGeminiChatModel } from '../utils/gemini-chat-model'
 
 function extractJson(text: string): string {
   const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/)
@@ -55,8 +55,8 @@ export async function runJudge(params: {
 }): Promise<JudgeVerdict> {
   const { verdict, signal, analystAssessments, iteration } = params
 
-  const model = new ChatGoogleGenerativeAI({
-    model: 'gemini-2.0-flash',
+  const model = createGeminiChatModel({
+    model: 'gemini-2.5-flash',
     temperature: 0.1, // Low temp for consistent scoring
     maxOutputTokens: 2048,
   })

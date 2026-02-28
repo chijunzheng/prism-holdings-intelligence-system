@@ -2,7 +2,6 @@
 // Finds flaws, missing risks, over-confidence, historical counterexamples.
 // MUST introduce NEW evidence each round — cannot repeat prior arguments.
 
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai'
 import { HumanMessage } from '@langchain/core/messages'
 import {
   DebateArgumentSchema,
@@ -10,6 +9,7 @@ import {
   type AnalystAssessment,
   type Signal,
 } from '@prism/shared'
+import { createGeminiChatModel } from '../../utils/gemini-chat-model'
 
 function extractJson(text: string): string {
   const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/)
@@ -89,8 +89,8 @@ export async function runBearResearcher(params: {
   readonly bullArgument: DebateArgument
   readonly ownPriorArgument?: DebateArgument
 }): Promise<DebateArgument> {
-  const model = new ChatGoogleGenerativeAI({
-    model: 'gemini-2.0-flash',
+  const model = createGeminiChatModel({
+    model: 'gemini-2.5-flash',
     temperature: 0.5, // Slightly higher for creative counter-arguments
     maxOutputTokens: 3072,
   })

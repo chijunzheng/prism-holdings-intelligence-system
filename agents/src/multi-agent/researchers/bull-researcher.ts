@@ -2,7 +2,6 @@
 // Round 1: Synthesizes all 4 analyst views into a coherent thesis.
 // Subsequent rounds: Responds to Bear's counterarguments with evidence.
 
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai'
 import { HumanMessage } from '@langchain/core/messages'
 import {
   DebateArgumentSchema,
@@ -11,6 +10,7 @@ import {
   type Signal,
   type ExposureMap,
 } from '@prism/shared'
+import { createGeminiChatModel } from '../../utils/gemini-chat-model'
 
 function extractJson(text: string): string {
   const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/)
@@ -100,8 +100,8 @@ export async function runBullResearcher(params: {
   readonly bearArgument?: DebateArgument
   readonly ownPriorArgument?: DebateArgument
 }): Promise<DebateArgument> {
-  const model = new ChatGoogleGenerativeAI({
-    model: 'gemini-2.0-flash',
+  const model = createGeminiChatModel({
+    model: 'gemini-2.5-flash',
     temperature: 0.4,
     maxOutputTokens: 3072,
   })

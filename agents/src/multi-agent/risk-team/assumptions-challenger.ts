@@ -2,13 +2,13 @@
 // Reviews all analyst assessments, finds counter-evidence, produces confidence haircut.
 // Uses Gemini Flash with Search grounding for counter-evidence.
 
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai'
 import { HumanMessage } from '@langchain/core/messages'
 import {
   RiskChallengeSchema,
   type RiskChallenge,
   type AnalystAssessment,
 } from '@prism/shared'
+import { createGeminiChatModel } from '../../utils/gemini-chat-model'
 
 function extractJson(text: string): string {
   const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/)
@@ -82,8 +82,8 @@ export async function runAssumptionsChallenger(params: {
   readonly analystAssessments: readonly AnalystAssessment[]
   readonly humanCorrection?: string
 }): Promise<RiskChallenge> {
-  const model = new ChatGoogleGenerativeAI({
-    model: 'gemini-2.0-flash',
+  const model = createGeminiChatModel({
+    model: 'gemini-2.5-flash',
     temperature: 0.4, // Slightly higher for creative challenge-finding
     maxOutputTokens: 4096,
   })

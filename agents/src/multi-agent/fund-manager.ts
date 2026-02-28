@@ -2,7 +2,6 @@
 // Receives ALL outputs from prior teams, produces FundManagerVerdict.
 // 5-step algorithm: debate resolution → risk adjustments → calibrate dollars → recommendations → verdict
 
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai'
 import { HumanMessage } from '@langchain/core/messages'
 import type {
   FundManagerVerdict,
@@ -21,6 +20,7 @@ import type {
   DollarRange,
 } from '@prism/shared'
 import { calibrateImpact } from './calibration.js'
+import { createGeminiChatModel } from '../utils/gemini-chat-model'
 
 function extractJson(text: string): string {
   const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/)
@@ -148,8 +148,8 @@ async function generateRecommendations(params: {
     0,
   )
 
-  const model = new ChatGoogleGenerativeAI({
-    model: 'gemini-2.0-flash',
+  const model = createGeminiChatModel({
+    model: 'gemini-2.5-flash',
     temperature: 0.3,
     maxOutputTokens: 2048,
   })

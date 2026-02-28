@@ -33,39 +33,29 @@ const cache = new InMemoryCacheStore()
 
 // ── Request Schemas ─────────────────────────────────────────
 
+const SignalBodySchema = z.object({
+  id: z.string(),
+  headline: z.string(),
+  description: z.string(),
+  affectedExposures: z.array(z.string()),
+  relevanceScore: z.number(),
+  urgency: z.enum(['low', 'medium', 'high', 'critical']),
+  sentiment: z.enum(['positive', 'negative', 'mixed']),
+  temporalClassification: z.enum(['transient', 'structural', 'ambiguous']),
+  sources: z.array(z.object({ title: z.string(), url: z.string() })),
+  detectedAt: z.string(),
+  acknowledged: z.boolean(),
+})
+
 const AnalyzeRequestSchema = z.object({
   userId: z.string(),
-  signal: z.object({
-    id: z.string(),
-    headline: z.string(),
-    description: z.string(),
-    affectedExposures: z.array(z.string()),
-    relevanceScore: z.number(),
-    urgency: z.enum(['low', 'moderate', 'high']),
-    sentiment: z.enum(['positive', 'negative', 'neutral', 'mixed']),
-    temporalClassification: z.enum(['structural', 'cyclical', 'event-driven']),
-    sources: z.array(z.object({ title: z.string(), url: z.string() })),
-    detectedAt: z.string(),
-    acknowledged: z.boolean(),
-  }),
+  signal: SignalBodySchema,
   skipCheckpoints: z.boolean().optional(),
 })
 
 const PortfolioReviewRequestSchema = z.object({
   userId: z.string(),
-  signals: z.array(z.object({
-    id: z.string(),
-    headline: z.string(),
-    description: z.string(),
-    affectedExposures: z.array(z.string()),
-    relevanceScore: z.number(),
-    urgency: z.enum(['low', 'moderate', 'high']),
-    sentiment: z.enum(['positive', 'negative', 'neutral', 'mixed']),
-    temporalClassification: z.enum(['structural', 'cyclical', 'event-driven']),
-    sources: z.array(z.object({ title: z.string(), url: z.string() })),
-    detectedAt: z.string(),
-    acknowledged: z.boolean(),
-  })),
+  signals: z.array(SignalBodySchema),
 })
 
 const ResumeRequestSchema = z.object({

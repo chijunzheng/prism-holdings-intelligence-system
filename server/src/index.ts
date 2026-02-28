@@ -100,9 +100,8 @@ const TRACE_IMPACT =
   isTruthyEnv(process.env.DEBUG_IMPACT_TRACE) || isTruthyEnv(process.env.PRISM_TRACE)
 const ADK_EMPTY_SIGNAL_IS_VALID = isTruthyEnv(process.env.PRISM_ADK_EMPTY_SIGNAL_IS_VALID)
 
-const USE_ADK_ORCHESTRATION = !['0', 'false', 'no', 'off'].includes(
-  (process.env.PRISM_USE_ADK_ORCHESTRATION ?? 'true').trim().toLowerCase(),
-)
+// ADK was removed — always use manual orchestration
+const USE_ADK_ORCHESTRATION = false
 
 function traceImpact(scope: string, payload: Record<string, unknown>): void {
   if (!TRACE_IMPACT) return

@@ -67,11 +67,8 @@ export function getAllFundCompositions(): ReadonlyMap<string, FundComposition> {
 // ── User Profiles ──────────────────────────────────────────
 
 const PROFILE_FILES = [
-  'user-profiles/profile-mid-career.json',
-  'user-profiles/profile-young.json',
-  'user-profiles/profile-pre-retiree.json',
-  'user-profiles/marcus-01.json',
   'user-profiles/sarah-01.json',
+  'user-profiles/marcus-01.json',
   'user-profiles/diana-01.json',
 ] as const
 

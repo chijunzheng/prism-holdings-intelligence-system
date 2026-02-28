@@ -85,9 +85,9 @@ describe('Data Layer', () => {
   })
 
   describe('User Profiles', () => {
-    it('loads all 6 user profiles', () => {
+    it('loads all 3 user profiles', () => {
       const profiles = getUserProfiles()
-      expect(profiles).toHaveLength(6)
+      expect(profiles).toHaveLength(3)
     })
 
     it('Sarah is the primary demo user (mid-career, moderate risk)', () => {

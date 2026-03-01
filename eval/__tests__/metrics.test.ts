@@ -50,9 +50,10 @@ describe('isDirectionallyAccurate', () => {
     expect(isDirectionallyAccurate('positive', 'negative')).toBe(false)
   })
 
-  it('mixed prediction matches any actual', () => {
-    expect(isDirectionallyAccurate('mixed', 'positive')).toBe(true)
-    expect(isDirectionallyAccurate('mixed', 'negative')).toBe(true)
+  it('mixed prediction only matches neutral actual', () => {
+    expect(isDirectionallyAccurate('mixed', 'neutral')).toBe(true)
+    expect(isDirectionallyAccurate('mixed', 'positive')).toBe(false)
+    expect(isDirectionallyAccurate('mixed', 'negative')).toBe(false)
   })
 
   it('any prediction matches neutral actual', () => {
@@ -172,14 +173,14 @@ describe('computeDirectionalAccuracy', () => {
 describe('computeRangeCoverage', () => {
   it('computes coverage correctly', () => {
     // actual returns: VFV: -0.02, XIC: -0.015 → net return = -0.035
-    // dollar impact = -0.035 * 40000 = -1400
+    // dollar impact = -0.035 * 60000 = -2100
     const results = [
       makeResult({
         eventId: 'a',
         eventType: 'rate_decision',
         multiAgent: {
           direction: 'negative',
-          dollarImpactRange: { low: -2000, high: 0 }, // covers -1400
+          dollarImpactRange: { low: -3000, high: 0 }, // covers -2100
           holdingDirections: new Map(),
           qualityScore: 0.7,
         },
@@ -189,7 +190,7 @@ describe('computeRangeCoverage', () => {
         eventType: 'oil_shock',
         multiAgent: {
           direction: 'negative',
-          dollarImpactRange: { low: -500, high: -100 }, // does NOT cover -1400
+          dollarImpactRange: { low: -500, high: -100 }, // does NOT cover -2100
           holdingDirections: new Map(),
           qualityScore: 0.7,
         },

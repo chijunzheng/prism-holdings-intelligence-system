@@ -26,7 +26,7 @@ export function isDirectionallyAccurate(
   actual: 'positive' | 'negative' | 'neutral',
 ): boolean {
   if (actual === 'neutral') return true // Any prediction is "correct" for near-zero moves
-  if (predicted === 'mixed') return true // Mixed encompasses both directions
+  if (predicted === 'mixed') return actual === 'neutral' // Mixed only matches genuinely ambiguous moves
   return predicted === actual
 }
 
@@ -79,7 +79,7 @@ export function computeRangeCoverage(results: readonly EvalResult[], system: 'mu
     // Convert actual returns to approximate dollar impact using a reference portfolio value
     // We use the sum of absolute returns as a proxy
     const actualNetReturn = Object.values(actualReturns).reduce((sum, r) => sum + r, 0)
-    const referencePortfolioValue = 40000 // Sarah's portfolio
+    const referencePortfolioValue = 60000 // Eval portfolio (Sarah's diversified portfolio)
     const actualDollarImpact = actualNetReturn * referencePortfolioValue
 
     if (isWithinRange(prediction.dollarImpactRange, actualDollarImpact)) {

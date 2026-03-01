@@ -1,67 +1,68 @@
 // Evaluation harness — runs multi-agent pipeline and single-agent baseline
 // against 25 historical events with ground truth from Yahoo Finance.
 
-import { getPortfolioByUserId, getUserProfileById } from '@prism/data'
-import type { Signal, ExposureMap } from '@prism/shared'
+import { getUserProfileById } from '@prism/data'
+import type { Signal } from '@prism/shared'
 import { runMultiAgentAnalysis } from '../agents/src/multi-agent'
 import { runSingleAgentBaseline } from './baselines/single-agent'
-import { HISTORICAL_EVENTS } from './events'
+import { QA_DATASET_25 } from './qa-dataset'
+import { buildCanonicalEvalPortfolio } from './eval-portfolio'
+import { buildSimpleExposureMap } from './exposure-map'
 import {
   classifyActualDirection,
   computeSystemMetrics,
 } from './metrics'
 import { generateConsoleReport, generateMarkdownReport } from './report'
-import type { EvalReport, EvalResult, HistoricalEvent } from './types'
+import type { EvalReport, EvalResult, QaExample } from './types'
+
+// ── Sentiment Inference ──────────────────────────────────
+
+function inferSentiment(example: QaExample): 'positive' | 'negative' | 'mixed' {
+  const desc = example.eventDescription.toLowerCase()
+
+  switch (example.type) {
+    case 'rate_decision': {
+      if (/\b(hike|raises?|tighten|hawkish)\b/.test(desc)) return 'negative'
+      if (/\b(cut|pause|easing|dovish)\b/.test(desc)) return 'positive'
+      return 'negative' // Default for rate decisions
+    }
+    case 'cpi_surprise': {
+      if (/\b(hot|sticky|surge|accelerat)/i.test(desc)) return 'negative'
+      if (/\b(cool|drop|deceler|slow|eas)/i.test(desc)) return 'positive'
+      return 'negative'
+    }
+    case 'oil_shock':
+      return 'mixed' // Energy gains, equities lose (or vice versa)
+    case 'banking_stress':
+      return 'negative'
+    case 'geopolitical':
+      return 'mixed'
+    case 'currency_fx':
+      return 'mixed'
+    default:
+      return 'negative'
+  }
+}
 
 // ── Event → Signal Converter ───────────────────────────────
 
-function eventToSignal(event: HistoricalEvent): Signal {
+function eventToSignal(example: QaExample): Signal {
   return {
-    id: event.id,
-    headline: event.description.split('.')[0] ?? event.description,
-    description: event.description,
-    affectedExposures: Object.keys(event.actualReturns5d),
+    id: example.id,
+    headline: example.query,
+    description: `${example.eventDescription}\n\nQuestion: ${example.query}`,
+    affectedExposures: Object.keys(example.actualReturns5d),
     relevanceScore: 0.8,
     urgency: 'high',
-    sentiment: 'negative',
+    sentiment: inferSentiment(example),
     temporalClassification: 'near_term',
     sources: [{
-      title: event.description.split('.')[0] ?? event.description,
-      url: event.sourceUrl,
+      title: example.eventDescription.split('.')[0] ?? example.eventDescription,
+      url: example.sourceUrl,
     }],
-    detectedAt: new Date(event.date).toISOString(),
+    detectedAt: new Date(example.date).toISOString(),
     acknowledged: false,
   }
-}
-
-// ── Build Exposure Map ─────────────────────────────────────
-
-function buildSimpleExposureMap(tickers: readonly string[]): ExposureMap {
-  const exposureMap: Record<string, Array<{ ticker: string; weight: number }>> = {}
-
-  for (const ticker of tickers) {
-    const category = categorizeHolding(ticker)
-    if (!exposureMap[category]) {
-      exposureMap[category] = []
-    }
-    exposureMap[category].push({ ticker, weight: 1 / tickers.length })
-  }
-
-  return exposureMap as ExposureMap
-}
-
-function categorizeHolding(ticker: string): string {
-  const categories: Record<string, string> = {
-    VFV: 'US Equity',
-    XIC: 'Canadian Equity',
-    ZAG: 'Fixed Income',
-    ZEB: 'Canadian Banks',
-    XEG: 'Energy',
-    XGD: 'Gold/Precious Metals',
-    ZDV: 'Canadian Dividend',
-    XQQ: 'US Tech',
-  }
-  return categories[ticker] ?? 'Other'
 }
 
 // ── Main Harness ───────────────────────────────────────────
@@ -85,20 +86,19 @@ export async function runEvaluation(options: HarnessOptions = {}): Promise<EvalR
     parallel = false,
   } = options
 
-  const events = limit ? HISTORICAL_EVENTS.slice(0, limit) : HISTORICAL_EVENTS
-  const portfolio = getPortfolioByUserId('sarah-01')
+  const examples = limit ? QA_DATASET_25.slice(0, limit) : QA_DATASET_25
+  const portfolio = buildCanonicalEvalPortfolio()
   const userProfile = getUserProfileById('sarah-01')
 
-  if (!portfolio || !userProfile) {
-    throw new Error('Demo portfolio/profile sarah-01 not found')
+  if (!userProfile) {
+    throw new Error('Demo profile sarah-01 not found')
   }
 
-  const tickers = portfolio.accounts.flatMap((a) => a.holdings.map((h) => h.ticker))
-  const exposureMap = buildSimpleExposureMap(tickers)
+  const exposureMap = buildSimpleExposureMap(portfolio)
 
-  const evaluateEvent = async (event: HistoricalEvent): Promise<EvalResult> => {
-    const signal = eventToSignal(event)
-    const actualDirection = classifyActualDirection(event.actualReturns5d)
+  const evaluateEvent = async (example: QaExample): Promise<EvalResult> => {
+    const signal = eventToSignal(example)
+    const actualDirection = classifyActualDirection(example.actualReturns5d)
 
     // Run multi-agent pipeline
     let multiAgentResult: EvalResult['multiAgent']
@@ -120,10 +120,10 @@ export async function runEvaluation(options: HarnessOptions = {}): Promise<EvalR
         })
 
         const totalLow = result.verdict.holdingImpacts
-          .map((h) => h.impact['1M']?.low ?? 0)
+          .map((h) => h.impact['1W']?.low ?? 0)
           .reduce((sum, v) => sum + v, 0)
         const totalHigh = result.verdict.holdingImpacts
-          .map((h) => h.impact['1M']?.high ?? 0)
+          .map((h) => h.impact['1W']?.high ?? 0)
           .reduce((sum, v) => sum + v, 0)
 
         const holdingDirections = new Map(
@@ -137,7 +137,7 @@ export async function runEvaluation(options: HarnessOptions = {}): Promise<EvalR
           qualityScore: result.verdict.qualityScore,
         }
       } catch (error) {
-        console.error(`Multi-agent failed for ${event.id}:`, error)
+        console.error(`Multi-agent failed for ${example.id}:`, error)
         multiAgentResult = {
           direction: 'mixed',
           dollarImpactRange: { low: -1000, high: 1000 },
@@ -169,7 +169,7 @@ export async function runEvaluation(options: HarnessOptions = {}): Promise<EvalR
           holdingDirections: new Map(baseline.perHolding.map((h) => [h.ticker, h.direction])),
         }
       } catch (error) {
-        console.error(`Single-agent failed for ${event.id}:`, error)
+        console.error(`Single-agent failed for ${example.id}:`, error)
         singleAgentResult = {
           direction: 'mixed',
           dollarImpactRange: { low: -1000, high: 1000 },
@@ -179,12 +179,12 @@ export async function runEvaluation(options: HarnessOptions = {}): Promise<EvalR
     }
 
     return {
-      eventId: event.id,
-      eventType: event.type,
+      eventId: example.id,
+      eventType: example.type,
       multiAgent: multiAgentResult,
       singleAgent: singleAgentResult,
       actual: {
-        returns5d: event.actualReturns5d,
+        returns5d: example.actualReturns5d,
         netDirection: actualDirection,
       },
     }
@@ -192,12 +192,12 @@ export async function runEvaluation(options: HarnessOptions = {}): Promise<EvalR
 
   // Run evaluation
   const results = parallel
-    ? await Promise.all(events.map(evaluateEvent))
-    : await runSequential(events, evaluateEvent)
+    ? await Promise.all(examples.map(evaluateEvent))
+    : await runSequential(examples, evaluateEvent)
 
   const report: EvalReport = {
     timestamp: new Date().toISOString(),
-    eventCount: events.length,
+    eventCount: examples.length,
     multiAgent: computeSystemMetrics(results, 'multiAgent'),
     singleAgent: computeSystemMetrics(results, 'singleAgent'),
     results,
@@ -218,7 +218,7 @@ async function runSequential<T, R>(items: readonly T[], fn: (item: T) => Promise
 
 export async function main(): Promise<void> {
   console.log('Starting Prism evaluation harness...')
-  console.log(`Events: ${HISTORICAL_EVENTS.length}`)
+  console.log(`Q&A examples: ${QA_DATASET_25.length}`)
   console.log('')
 
   const report = await runEvaluation({ parallel: false })

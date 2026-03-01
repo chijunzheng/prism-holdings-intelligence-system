@@ -59,6 +59,19 @@ Complete technical documentation for Prism's AI-native portfolio intelligence sy
 
 ## 🖥️ Backend & Infrastructure
 
+### [Signal Detection & Monitoring](./SIGNAL-DETECTION-AND-MONITORING.md)
+**Learn:** How live market events are discovered in real-time
+- **Pattern:** Gemini + Google Search for exposure-scoped discovery
+- **Two phases:** Exposure scoping (deterministic) + LLM search (real-time)
+- **Caching:** 15-min TTL for signals found, 1-min for no signals
+- **Relevance filtering:** Only signals with score ≥0.3 included
+- **Deduplication:** Prevents duplicate "Oil up" / "Oil rises" signals
+- **Cache hit rate:** ~75% during business hours
+
+**When to read:** Understanding signal discovery, improving search quality, adding signal sources
+
+---
+
 ### [Server API Architecture](./SERVER-API-ARCHITECTURE.md)
 **Learn:** Endpoints, SSE streaming, session management, checkpoint resumption
 - **Main endpoint:** POST /api/v2/analyze with SSE streaming
@@ -278,13 +291,14 @@ When adding new features or major changes:
 | Computation-First Dollar Impacts | ✅ Complete | 2026-03-01 | 6-layer anchoring, formulas, examples |
 | Human-In-The-Loop Checkpoints | ✅ Complete | 2026-03-01 | Soft/hard checkpoints, resume pattern, UX flow |
 | Server API Architecture | ✅ Complete | 2026-03-01 | Endpoints, SSE streaming, checkpoint resumption |
+| Signal Detection & Monitoring | ✅ Complete | 2026-03-01 | Gemini + Google Search, exposure-scoped discovery |
 | Cross-Signal Synthesis | ✅ Complete | 2026-03-01 | Portfolio review, interaction types, net vs gross |
 | Latency Optimization | ✅ Complete | 2026-03-01 | 6 phases, bottleneck analysis, monitoring |
 | Evaluation Framework | ✅ Complete | 2026-03-01 | 25 events, metrics, failure analysis |
 | Checkpoint Visibility Hotfix | ✅ Complete | 2026-03-01 | 6 bugs fixed, auto-promotion pattern |
 
-**Total Documentation:** ~150KB across 10 comprehensive files
-**Coverage:** Core architecture, backend/frontend integration, performance, quality metrics, recent fixes
+**Total Documentation:** ~175KB across 11 comprehensive files
+**Coverage:** Core architecture, backend/frontend integration, signal detection, portfolio analysis, performance, quality metrics, recent fixes
 
 ---
 

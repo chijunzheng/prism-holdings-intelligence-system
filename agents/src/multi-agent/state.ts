@@ -33,6 +33,7 @@ export const PipelineState = Annotation.Root({
   userProfile: Annotation<UserProfile>,
   userExpectations: Annotation<UserExpectations | undefined>,
   skipCheckpoints: Annotation<boolean>,
+  pipelineMode: Annotation<'quick' | 'guided'>,
 
   // ── Stage 0: Preparation ──
   riskProfile: Annotation<InferredRiskProfile | null>,
@@ -50,6 +51,8 @@ export const PipelineState = Annotation.Root({
   // ── Human inputs (injected after interrupts) ──
   humanCorrectionAtDebate: Annotation<string | null>,
   humanScenarioPreference: Annotation<ScenarioPreference | null>,
+  humanCorrectionPreDebate: Annotation<string | null>,
+  humanRiskChallengeOverrides: Annotation<string | null>,
 
   // ── Stage 3: Risk team ──
   riskChallenge: Annotation<RiskChallenge | null>,

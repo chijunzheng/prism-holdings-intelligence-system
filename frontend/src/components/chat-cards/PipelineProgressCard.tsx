@@ -33,16 +33,31 @@ export function PipelineProgressCard({ data }: PipelineProgressCardProps) {
               {stage.status === 'active' && (
                 <span className="pipeline-progress__spinner" />
               )}
+              {stage.status === 'waiting' && (
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <circle cx="7" cy="7" r="6" stroke="var(--color-warning, #D97706)" strokeWidth="1.5" />
+                  <rect x="5" y="4" width="1.5" height="6" rx="0.75" fill="var(--color-warning, #D97706)" />
+                  <rect x="7.5" y="4" width="1.5" height="6" rx="0.75" fill="var(--color-warning, #D97706)" />
+                </svg>
+              )}
               {stage.status === 'pending' && (
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                   <circle cx="7" cy="7" r="6" stroke="var(--color-border, #E8E5E1)" strokeWidth="1.5" />
                 </svg>
               )}
             </span>
-            <span className="pipeline-progress__stage-label">{stage.label}</span>
-            {stage.status === 'complete' && stage.message && (
-              <span className="pipeline-progress__stage-detail">{stage.message}</span>
-            )}
+            <div className="pipeline-progress__stage-content">
+              <span className="pipeline-progress__stage-label">{stage.label}</span>
+              {stage.status === 'complete' && stage.message && (
+                <span className="pipeline-progress__stage-detail">{stage.message}</span>
+              )}
+              {stage.status === 'active' && stage.thinkingText && (
+                <span className="pipeline-progress__thinking-text">{stage.thinkingText}</span>
+              )}
+              {stage.status === 'waiting' && (
+                <span className="pipeline-progress__waiting-text">Waiting for your input</span>
+              )}
+            </div>
           </div>
         ))}
       </div>

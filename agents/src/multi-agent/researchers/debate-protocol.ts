@@ -11,6 +11,7 @@ import type {
   ExposureMap,
   Direction,
 } from '@prism/shared'
+import type { ThinkingCallback } from '../types.js'
 import { runBullResearcher } from './bull-researcher.js'
 import { runBearResearcher } from './bear-researcher.js'
 
@@ -199,35 +200,63 @@ export async function runDebate(params: {
   readonly analystAssessments: readonly AnalystAssessment[]
   readonly signal: Signal
   readonly exposureMap: ExposureMap
+  readonly humanCorrectionPreDebate?: string
+  readonly onThinking?: ThinkingCallback
 }): Promise<DebateResolution> {
-  const { analystAssessments, signal, exposureMap } = params
+  const { analystAssessments, signal, exposureMap, humanCorrectionPreDebate, onThinking } = params
   const bullArguments: DebateArgument[] = []
   const bearArguments: DebateArgument[] = []
 
   for (let round = 1; round <= MAX_ROUNDS; round++) {
-    // Bull goes first
-    const bullArg = await runBullResearcher({
-      round,
-      analystAssessments,
-      signal,
-      exposureMap,
-      bearArgument: bearArguments[bearArguments.length - 1],
-      ownPriorArgument: bullArguments[bullArguments.length - 1],
-    })
-    bullArguments.push(bullArg)
+    if (round === 1) {
+      // Round 1: Bull and Bear run in parallel (both start from analyst consensus)
+      onThinking?.('debate_complete', 'Bull & Bear researchers building independent cases, Round 1...')
+      const [bullArg, bearArg] = await Promise.all([
+        runBullResearcher({
+          round: 1,
+          analystAssessments,
+          signal,
+          exposureMap,
+          humanCorrection: humanCorrectionPreDebate,
+        }),
+        runBearResearcher({
+          round: 1,
+          analystAssessments,
+          signal,
+          mode: 'independent',
+          humanCorrection: humanCorrectionPreDebate,
+        }),
+      ])
+      bullArguments.push(bullArg)
+      bearArguments.push(bearArg)
+    } else {
+      // Rounds 2+: Sequential (Bear needs Bull's latest argument)
+      onThinking?.('debate_complete', `Bull researcher building case, Round ${round}...`)
+      const bullArg = await runBullResearcher({
+        round,
+        analystAssessments,
+        signal,
+        exposureMap,
+        bearArgument: bearArguments[bearArguments.length - 1],
+        ownPriorArgument: bullArguments[bullArguments.length - 1],
+      })
+      bullArguments.push(bullArg)
 
-    // Bear responds
-    const bearArg = await runBearResearcher({
-      round,
-      analystAssessments,
-      signal,
-      bullArgument: bullArg,
-      ownPriorArgument: bearArguments[bearArguments.length - 1],
-    })
-    bearArguments.push(bearArg)
+      onThinking?.('debate_complete', `Bear researcher countering, Round ${round}...`)
+      const bearArg = await runBearResearcher({
+        round,
+        analystAssessments,
+        signal,
+        bullArgument: bullArg,
+        ownPriorArgument: bearArguments[bearArguments.length - 1],
+      })
+      bearArguments.push(bearArg)
+    }
 
     // Check for convergence
+    onThinking?.('debate_complete', 'Checking convergence...')
     if (hasConverged(bullArguments, bearArguments)) {
+      onThinking?.('debate_complete', `Debate converged after ${round} round${round > 1 ? 's' : ''}`)
       break
     }
   }

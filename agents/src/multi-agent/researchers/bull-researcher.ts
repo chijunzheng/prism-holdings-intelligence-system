@@ -20,6 +20,70 @@ function extractJson(text: string): string {
   return text
 }
 
+function extractResponseText(content: unknown): string {
+  if (typeof content === 'string') return content
+
+  if (Array.isArray(content)) {
+    return content
+      .map((chunk) => {
+        if (typeof chunk !== 'object' || chunk === null || !('text' in chunk)) return ''
+        const text = (chunk as { readonly text?: unknown }).text
+        return typeof text === 'string' ? text : ''
+      })
+      .join('')
+  }
+
+  return ''
+}
+
+type DebateParseOutcome =
+  | { readonly kind: 'ok', readonly data: DebateArgument }
+  | { readonly kind: 'parse_error', readonly snippet: string }
+  | { readonly kind: 'validation_error', readonly message: string }
+
+function parseDebateArgument(responseText: string): DebateParseOutcome {
+  const jsonStr = extractJson(responseText)
+  let parsed: unknown
+
+  try {
+    parsed = JSON.parse(jsonStr)
+  } catch {
+    return { kind: 'parse_error', snippet: jsonStr.slice(0, 300) }
+  }
+
+  const result = DebateArgumentSchema.safeParse(parsed)
+  if (!result.success) {
+    return { kind: 'validation_error', message: result.error.message }
+  }
+
+  return { kind: 'ok', data: result.data }
+}
+
+function buildRetryPrompt(originalPrompt: string, failure: DebateParseOutcome): string {
+  let issue = 'Unknown failure'
+  if (failure.kind === 'parse_error') issue = `JSON parsing failed:\n${failure.snippet}`
+  if (failure.kind === 'validation_error') issue = `Schema validation failed:\n${failure.message}`
+
+  return [
+    'Your previous response could not be accepted.',
+    issue,
+    'Respond with ONLY valid JSON. No markdown, no code fences, no commentary.',
+    '',
+    `Original task:\n${originalPrompt}`,
+  ].join('\n')
+}
+
+function fallbackBullArgument(round: number, reason: string): DebateArgument {
+  return {
+    position: 'mixed',
+    round,
+    keyPoints: ['Bull argument fallback used due to JSON parsing/validation failure.'],
+    evidenceCited: ['fallback://bull-researcher-unavailable'],
+    rebuttalPoints: ['Unable to generate full rebuttal in this round.'],
+    concessions: [`Fallback applied: ${reason.slice(0, 140)}`],
+  }
+}
+
 function formatAnalystSummaries(assessments: readonly AnalystAssessment[]): string {
   return assessments
     .map((a) => [
@@ -38,8 +102,9 @@ function buildBullPrompt(params: {
   readonly exposureMap: ExposureMap
   readonly bearArgument?: DebateArgument
   readonly ownPriorArgument?: DebateArgument
+  readonly humanCorrection?: string
 }): string {
-  const { round, analystAssessments, signal, bearArgument, ownPriorArgument } = params
+  const { round, analystAssessments, signal, bearArgument, ownPriorArgument, humanCorrection } = params
 
   const sections = [
     'You are the BULL researcher in a structured financial debate.',
@@ -51,6 +116,15 @@ function buildBullPrompt(params: {
     '--- ANALYST ASSESSMENTS ---',
     formatAnalystSummaries(analystAssessments),
   ]
+
+  if (humanCorrection) {
+    sections.push(
+      '',
+      '--- USER CORRECTION ---',
+      `The user has provided this correction: "${humanCorrection}"`,
+      'Factor this into your analysis. This correction takes priority.',
+    )
+  }
 
   if (round === 1) {
     sections.push(
@@ -99,37 +173,36 @@ export async function runBullResearcher(params: {
   readonly exposureMap: ExposureMap
   readonly bearArgument?: DebateArgument
   readonly ownPriorArgument?: DebateArgument
+  readonly humanCorrection?: string
 }): Promise<DebateArgument> {
   const model = createGeminiChatModel({
     model: 'gemini-2.5-flash',
     temperature: 0.4,
     maxOutputTokens: 3072,
+    json: true,
   })
 
   const prompt = buildBullPrompt(params)
-  const response = await model.invoke([new HumanMessage(prompt)])
-  const responseText = typeof response.content === 'string'
-    ? response.content
-    : Array.isArray(response.content)
-      ? response.content.map((c) => ('text' in c ? c.text : '')).join('')
-      : ''
+  let workingPrompt = prompt
+  let lastFailure: DebateParseOutcome | null = null
 
-  const jsonStr = extractJson(responseText)
-  const parsed = JSON.parse(jsonStr)
-  const result = DebateArgumentSchema.safeParse(parsed)
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await model.invoke([new HumanMessage(workingPrompt)])
+    const parsed = parseDebateArgument(extractResponseText(response.content))
+    if (parsed.kind === 'ok') return parsed.data
 
-  if (result.success) {
-    return result.data
+    lastFailure = parsed
+    if (attempt === 0) {
+      workingPrompt = buildRetryPrompt(prompt, parsed)
+    }
   }
 
-  // Retry once
-  const retryPrompt = `Validation errors:\n${result.error.message}\n\nFix and respond with valid JSON. Task:\n${prompt}`
-  const retryResponse = await model.invoke([new HumanMessage(retryPrompt)])
-  const retryText = typeof retryResponse.content === 'string'
-    ? retryResponse.content
-    : Array.isArray(retryResponse.content)
-      ? retryResponse.content.map((c) => ('text' in c ? c.text : '')).join('')
-      : ''
+  const reason =
+    lastFailure?.kind === 'parse_error'
+      ? lastFailure.snippet
+      : lastFailure?.kind === 'validation_error'
+        ? lastFailure.message
+        : 'unknown failure'
 
-  return DebateArgumentSchema.parse(JSON.parse(extractJson(retryText)))
+  return fallbackBullArgument(params.round, reason)
 }

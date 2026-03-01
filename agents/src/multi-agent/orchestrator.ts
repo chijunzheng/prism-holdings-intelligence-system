@@ -5,6 +5,7 @@
 import { StateGraph, START, END, interrupt, MemorySaver } from '@langchain/langgraph'
 import { PipelineState } from './state.js'
 import type { ScenarioPreference } from '@prism/shared'
+import type { ThinkingCallback } from './types.js'
 import { inferRiskProfile } from './risk-profile-inference.js'
 import { getMarketDataForAnalysis } from './market-data.js'
 import { runAllAnalysts } from './analysts/index.js'
@@ -62,26 +63,32 @@ async function fetchMarketDataNode(state: State): Promise<Partial<State>> {
   return { marketData }
 }
 
-// ── Node: Run All Analysts (parallel via Promise.all) ───────
-async function runAnalystsNode(state: State): Promise<Partial<State>> {
-  const assessments = await runAllAnalysts({
-    signal: state.signal,
-    portfolio: state.portfolio,
-    exposureMap: state.exposureMap,
-    riskProfile: state.riskProfile!,
-    marketData: state.marketData ?? undefined,
-  })
-  return { analystAssessments: [...assessments] }
+// ── Node Factories (capture onThinking via closure) ─────────
+function createRunAnalystsNode(onThinking?: ThinkingCallback) {
+  return async (state: State): Promise<Partial<State>> => {
+    const assessments = await runAllAnalysts({
+      signal: state.signal,
+      portfolio: state.portfolio,
+      exposureMap: state.exposureMap,
+      riskProfile: state.riskProfile!,
+      marketData: state.marketData ?? undefined,
+      onThinking,
+    })
+    return { analystAssessments: [...assessments] }
+  }
 }
 
-// ── Node: Run Debate ────────────────────────────────────────
-async function runDebateNode(state: State): Promise<Partial<State>> {
-  const debateResolution = await runDebate({
-    analystAssessments: state.analystAssessments,
-    signal: state.signal,
-    exposureMap: state.exposureMap,
-  })
-  return { debateResolution }
+function createRunDebateNode(onThinking?: ThinkingCallback) {
+  return async (state: State): Promise<Partial<State>> => {
+    const debateResolution = await runDebate({
+      analystAssessments: state.analystAssessments,
+      signal: state.signal,
+      exposureMap: state.exposureMap,
+      humanCorrectionPreDebate: state.humanCorrectionPreDebate ?? undefined,
+      onThinking,
+    })
+    return { debateResolution }
+  }
 }
 
 // ── Node: Checkpoint 1 — After Debate ───────────────────────
@@ -102,13 +109,15 @@ async function checkpoint1Node(state: State): Promise<Partial<State>> {
   return {}
 }
 
-// ── Node: Assumptions Challenger ────────────────────────────
-async function assumptionsChallengerNode(state: State): Promise<Partial<State>> {
-  const riskChallenge = await runAssumptionsChallenger({
-    analystAssessments: state.analystAssessments,
-    humanCorrection: state.humanCorrectionAtDebate ?? undefined,
-  })
-  return { riskChallenge }
+function createAssumptionsChallengerNode(onThinking?: ThinkingCallback) {
+  return async (state: State): Promise<Partial<State>> => {
+    onThinking?.('risk_challenge', 'Challenging key assumptions from analyst consensus...')
+    const riskChallenge = await runAssumptionsChallenger({
+      analystAssessments: state.analystAssessments,
+      humanCorrection: state.humanCorrectionAtDebate ?? undefined,
+    })
+    return { riskChallenge }
+  }
 }
 
 // ── Node: Magnitude Validator ───────────────────────────────
@@ -158,44 +167,48 @@ async function checkpoint2Node(state: State): Promise<Partial<State>> {
   return {}
 }
 
-// ── Node: Fund Manager Synthesis ────────────────────────────
-async function fundManagerNode(state: State): Promise<Partial<State>> {
-  const holdingValues = getHoldingValues(state.portfolio)
-  const holdingNames = getHoldingNames(state.portfolio)
+function createFundManagerNode(onThinking?: ThinkingCallback) {
+  return async (state: State): Promise<Partial<State>> => {
+    const holdingValues = getHoldingValues(state.portfolio)
+    const holdingNames = getHoldingNames(state.portfolio)
 
-  const verdict = await runFundManager({
-    signal: state.signal,
-    debateResolution: state.debateResolution!,
-    riskChallenge: state.riskChallenge!,
-    magnitudeValidation: state.magnitudeValidation!,
-    stressTest: state.stressTest!,
-    riskProfile: state.riskProfile!,
-    marketData: state.marketData!,
-    holdingValues,
-    holdingNames,
-    userExpectations: state.userExpectations,
-    scenarioPreference: state.humanScenarioPreference ?? undefined,
-    judgeFeedback: state.judgeFeedback ?? undefined,
-  })
+    const verdict = await runFundManager({
+      signal: state.signal,
+      debateResolution: state.debateResolution!,
+      riskChallenge: state.riskChallenge!,
+      magnitudeValidation: state.magnitudeValidation!,
+      stressTest: state.stressTest!,
+      riskProfile: state.riskProfile!,
+      marketData: state.marketData!,
+      holdingValues,
+      holdingNames,
+      userExpectations: state.userExpectations,
+      scenarioPreference: state.humanScenarioPreference ?? undefined,
+      judgeFeedback: state.judgeFeedback ?? undefined,
+      onThinking,
+    })
 
-  return {
-    fundManagerVerdict: verdict,
-    synthesisRound: state.synthesisRound + 1,
+    return {
+      fundManagerVerdict: verdict,
+      synthesisRound: state.synthesisRound + 1,
+    }
   }
 }
 
-// ── Node: Judge Quality Evaluator ───────────────────────────
-async function judgeNode(state: State): Promise<Partial<State>> {
-  const judgeVerdict = await runJudge({
-    verdict: state.fundManagerVerdict!,
-    signal: state.signal,
-    analystAssessments: state.analystAssessments,
-    iteration: state.synthesisRound - 1,
-  })
+function createJudgeNode(onThinking?: ThinkingCallback) {
+  return async (state: State): Promise<Partial<State>> => {
+    onThinking?.('judge', 'Evaluating verdict quality and calibration...')
+    const judgeVerdict = await runJudge({
+      verdict: state.fundManagerVerdict!,
+      signal: state.signal,
+      analystAssessments: state.analystAssessments,
+      iteration: state.synthesisRound - 1,
+    })
 
-  return {
-    judgeVerdict,
-    judgeFeedback: judgeVerdict.convergenceReached ? null : (judgeVerdict.feedback ?? null),
+    return {
+      judgeVerdict,
+      judgeFeedback: judgeVerdict.convergenceReached ? null : (judgeVerdict.feedback ?? null),
+    }
   }
 }
 
@@ -212,63 +225,134 @@ async function generateBriefNode(state: State): Promise<Partial<State>> {
   return { researchBrief: brief }
 }
 
+// ── Soft Checkpoint: Post-Analysts ───────────────────────────
+// Auto-continue after timeout. If user intervenes, their correction
+// is passed to the debate researchers.
+async function softCheckpointPostAnalysts(state: State): Promise<Partial<State>> {
+  if (state.skipCheckpoints || state.pipelineMode === 'quick') return {}
+
+  const humanInput = interrupt({
+    stage: 'analyst_review',
+    type: 'soft',
+    analystAssessments: state.analystAssessments,
+    riskProfile: state.riskProfile,
+    prompt: 'Review analyst perspectives before debate begins.',
+  })
+
+  if (typeof humanInput === 'string' && humanInput !== 'continue') {
+    return { humanCorrectionPreDebate: humanInput }
+  }
+  return {}
+}
+
+// ── Soft Checkpoint: Post-Risk-Challenge ────────────────────
+async function softCheckpointPostRiskChallenge(state: State): Promise<Partial<State>> {
+  if (state.skipCheckpoints || state.pipelineMode === 'quick') return {}
+
+  const humanInput = interrupt({
+    stage: 'risk_challenge_review',
+    type: 'soft',
+    riskChallenge: state.riskChallenge,
+    prompt: 'Review challenged assumptions.',
+  })
+
+  if (typeof humanInput === 'string' && humanInput !== 'continue') {
+    return { humanRiskChallengeOverrides: humanInput }
+  }
+  return {}
+}
+
+// ── Soft Checkpoint: Post-Verdict ───────────────────────────
+async function softCheckpointPostVerdict(state: State): Promise<Partial<State>> {
+  if (state.skipCheckpoints || state.pipelineMode === 'quick') return {}
+  if (!state.judgeVerdict?.convergenceReached) return {}
+
+  const humanInput = interrupt({
+    stage: 'verdict_preview',
+    type: 'soft',
+    verdict: state.fundManagerVerdict,
+    qualityScore: state.judgeVerdict?.overallQualityScore,
+    prompt: 'Preview verdict before generating research brief.',
+  })
+
+  if (typeof humanInput === 'string' && humanInput !== 'continue' && humanInput !== 'accept') {
+    return { judgeFeedback: humanInput, synthesisRound: 0 }
+  }
+  return {}
+}
+
 // ── Conditional: Judge Loop ─────────────────────────────────
 function shouldLoopBackToFundManager(state: State): string {
   const converged = state.judgeVerdict?.convergenceReached ?? false
   const maxIterations = state.synthesisRound >= 2
 
-  if (converged || maxIterations) return 'generate_brief'
+  if (converged || maxIterations) return 'soft_cp_verdict'
   return 'fund_manager'
 }
 
 // ── Build Graph ─────────────────────────────────────────────
-export function buildPipelineGraph() {
+export function buildPipelineGraph(onThinking?: ThinkingCallback) {
   const graph = new StateGraph(PipelineState)
     .addNode('infer_risk_profile', inferRiskProfileNode)
     .addNode('fetch_market_data', fetchMarketDataNode)
-    .addNode('run_analysts', runAnalystsNode)
-    .addNode('run_debate', runDebateNode)
+    .addNode('run_analysts', createRunAnalystsNode(onThinking))
+    .addNode('soft_cp_analysts', softCheckpointPostAnalysts)
+    .addNode('run_debate', createRunDebateNode(onThinking))
     .addNode('checkpoint_1', checkpoint1Node)
-    .addNode('assumptions_challenger', assumptionsChallengerNode)
+    .addNode('assumptions_challenger', createAssumptionsChallengerNode(onThinking))
     .addNode('magnitude_validator', magnitudeValidatorNode)
     .addNode('portfolio_stress', portfolioStressNode)
+    .addNode('soft_cp_risk_challenge', softCheckpointPostRiskChallenge)
     .addNode('checkpoint_2', checkpoint2Node)
-    .addNode('fund_manager', fundManagerNode)
-    .addNode('judge', judgeNode)
+    .addNode('fund_manager', createFundManagerNode(onThinking))
+    .addNode('judge', createJudgeNode(onThinking))
+    .addNode('soft_cp_verdict', softCheckpointPostVerdict)
     .addNode('generate_brief', generateBriefNode)
 
-    // Linear flow: start → prep → analysts → debate → risk → synthesis → brief
+    // Parallel prep: risk profile + market data run concurrently, both fan into analysts
     .addEdge(START, 'infer_risk_profile')
-    .addEdge('infer_risk_profile', 'fetch_market_data')
+    .addEdge(START, 'fetch_market_data')
+    .addEdge('infer_risk_profile', 'run_analysts')
     .addEdge('fetch_market_data', 'run_analysts')
-    .addEdge('run_analysts', 'run_debate')
+    // Soft checkpoint: post-analysts (user can review before debate)
+    .addEdge('run_analysts', 'soft_cp_analysts')
+    .addEdge('soft_cp_analysts', 'run_debate')
     .addEdge('run_debate', 'checkpoint_1')
+    // Parallel risk team: all three read from earlier stages only, no cross-dependencies
     .addEdge('checkpoint_1', 'assumptions_challenger')
-    .addEdge('assumptions_challenger', 'magnitude_validator')
-    .addEdge('magnitude_validator', 'portfolio_stress')
-    .addEdge('portfolio_stress', 'checkpoint_2')
+    .addEdge('checkpoint_1', 'magnitude_validator')
+    .addEdge('checkpoint_1', 'portfolio_stress')
+    // Soft checkpoint: post-risk-challenge (after all three risk agents complete)
+    .addEdge('assumptions_challenger', 'soft_cp_risk_challenge')
+    .addEdge('magnitude_validator', 'soft_cp_risk_challenge')
+    .addEdge('portfolio_stress', 'soft_cp_risk_challenge')
+    .addEdge('soft_cp_risk_challenge', 'checkpoint_2')
     .addEdge('checkpoint_2', 'fund_manager')
     .addEdge('fund_manager', 'judge')
 
-    // Judge → conditional: either loop back to fund_manager or proceed to brief
+    // Judge → conditional: either loop back to fund_manager or proceed to soft verdict checkpoint
     .addConditionalEdges('judge', shouldLoopBackToFundManager, {
       fund_manager: 'fund_manager',
-      generate_brief: 'generate_brief',
+      soft_cp_verdict: 'soft_cp_verdict',
     })
+    .addEdge('soft_cp_verdict', 'generate_brief')
     .addEdge('generate_brief', END)
 
   return graph
 }
 
+// ── Shared Checkpointer ─────────────────────────────────────
+// Module-scoped so checkpoint state persists between initial request and resume.
+const sharedCheckpointer = new MemorySaver()
+
 // ── Compile with checkpointer ───────────────────────────────
-export function compilePipeline() {
-  const graph = buildPipelineGraph()
-  const checkpointer = new MemorySaver()
-  return graph.compile({ checkpointer })
+export function compilePipeline(onThinking?: ThinkingCallback) {
+  const graph = buildPipelineGraph(onThinking)
+  return graph.compile({ checkpointer: sharedCheckpointer })
 }
 
 // ── Compile without checkpoints (for eval/testing) ──────────
-export function compilePipelineNoCheckpoints() {
-  const graph = buildPipelineGraph()
+export function compilePipelineNoCheckpoints(onThinking?: ThinkingCallback) {
+  const graph = buildPipelineGraph(onThinking)
   return graph.compile()
 }

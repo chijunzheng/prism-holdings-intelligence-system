@@ -44,6 +44,47 @@ Complete technical documentation for Prism's AI-native portfolio intelligence sy
 
 ---
 
+### [Human-In-The-Loop Checkpoints](./HUMAN-IN-THE-LOOP-CHECKPOINTS.md)
+**Learn:** How users inject domain knowledge at key pipeline stages
+- **Two types:** Soft (auto-continue 60s) vs Hard (user must decide)
+- **Checkpoint 1:** After debate (user corrects assumptions)
+- **Checkpoint 2:** After stress test (user selects risk scenario)
+- **Implementation:** LangGraph `interrupt()` with `interrupt_before` edges
+- **UX:** Soft checkpoints show progress; hard checkpoints pause for user input
+- **Resume:** Frontend sends POST with `humanInput` + `inputType`
+
+**When to read:** Understanding user interaction in guided mode, implementing checkpoint UI, designing human-in-the-loop features
+
+---
+
+## 🖥️ Backend & Infrastructure
+
+### [Server API Architecture](./SERVER-API-ARCHITECTURE.md)
+**Learn:** Endpoints, SSE streaming, session management, checkpoint resumption
+- **Main endpoint:** POST /api/v2/analyze with SSE streaming
+- **Checkpoint resumption:** POST /api/v2/analyze/{threadId}/resume
+- **Portfolio review:** POST /api/v2/analyze/portfolio (multi-signal synthesis)
+- **Session CRUD:** /api/v2/sessions for conversation history
+- **Data endpoints:** /api/portfolio, /api/exposure, /api/signals
+- **Streaming:** <10ms TTFR via SSE; progress events ~1s apart
+- **Caching:** 24h TTL for verdicts + market data
+
+**When to read:** Understanding backend architecture, building frontend integrations, adding new endpoints, debugging server issues
+
+---
+
+### [Cross-Signal Synthesis: Portfolio-Level Impact](./CROSS-SIGNAL-SYNTHESIS.md)
+**Learn:** How multiple signals interact; net vs gross impact calculation
+- **Interaction types:** Independent, Offsetting (signals cancel), Compounding (signals amplify)
+- **Computation:** Aggregate per-holding impacts, classify interactions, compute portfolio net/gross
+- **LLM phase:** Generate interaction insights + holistic recommendations
+- **Example:** Rate hike -$300, oil drop -$400 separately, but offsetting RY holding means net -$480 vs gross -$600
+- **Result:** PortfolioVerdict with interaction summaries + portfolio-level recommendations
+
+**When to read:** Understanding portfolio review mode, implementing cross-signal features, analyzing interaction effects
+
+---
+
 ## 🚀 Performance & Optimization
 
 ### [Latency Optimization: 5.5s → <10ms TTFR](./LATENCY-OPTIMIZATION.md)
@@ -102,15 +143,19 @@ Complete technical documentation for Prism's AI-native portfolio intelligence sy
 3. Review [Evaluation Framework](./EVALUATION-FRAMEWORK.md) for quality metrics
 
 **Backend Engineer:**
-1. Start with [Multi-Agent Pipeline Architecture](./MULTI-AGENT-PIPELINE-ARCHITECTURE.md)
-2. Read [Computation-First Dollar Impacts](./COMPUTATION-FIRST-DOLLAR-IMPACTS.md) for calibration
-3. Review [Latency Optimization](./LATENCY-OPTIMIZATION.md) for performance patterns
-4. Check [Checkpoint Visibility Hotfix](./CHECKPOINT-VISIBILITY-HOTFIX.md) for recent changes
+1. Start with [Server API Architecture](./SERVER-API-ARCHITECTURE.md) for endpoint design
+2. Read [Multi-Agent Pipeline Architecture](./MULTI-AGENT-PIPELINE-ARCHITECTURE.md) for agent orchestration
+3. Review [Computation-First Dollar Impacts](./COMPUTATION-FIRST-DOLLAR-IMPACTS.md) for calibration logic
+4. Check [Cross-Signal Synthesis](./CROSS-SIGNAL-SYNTHESIS.md) for portfolio review mode
+5. Study [Latency Optimization](./LATENCY-OPTIMIZATION.md) for performance patterns
+6. Check [Checkpoint Visibility Hotfix](./CHECKPOINT-VISIBILITY-HOTFIX.md) for recent changes
 
 **Frontend Engineer:**
-1. Start with [Single Chat Interface — UI Architecture](./SINGLE-CHAT-INTERFACE-UI.md)
-2. Read [Checkpoint Visibility Hotfix](./CHECKPOINT-VISIBILITY-HOTFIX.md) for recent SSE handling
-3. Review [Latency Optimization](./LATENCY-OPTIMIZATION.md) for rendering performance
+1. Start with [Single Chat Interface — UI Architecture](./SINGLE-CHAT-INTERFACE-UI.md) for card design
+2. Read [Server API Architecture](./SERVER-API-ARCHITECTURE.md) for endpoint integration
+3. Study [Human-In-The-Loop Checkpoints](./HUMAN-IN-THE-LOOP-CHECKPOINTS.md) for checkpoint UI patterns
+4. Review [Checkpoint Visibility Hotfix](./CHECKPOINT-VISIBILITY-HOTFIX.md) for recent SSE handling
+5. Check [Latency Optimization](./LATENCY-OPTIMIZATION.md) for rendering performance
 
 **Data/ML Engineer:**
 1. Start with [Evaluation Framework](./EVALUATION-FRAMEWORK.md)
@@ -124,7 +169,9 @@ Complete technical documentation for Prism's AI-native portfolio intelligence sy
 ### By Topic
 
 **Understanding the core analysis engine:** Multi-Agent Pipeline Architecture
-**Understanding user experience:** Single Chat Interface — UI Architecture
+**Understanding user experience:** Single Chat Interface — UI Architecture + Human-In-The-Loop Checkpoints
+**Understanding backend architecture:** Server API Architecture
+**Understanding portfolio-level analysis:** Cross-Signal Synthesis
 **Understanding why numbers are reliable:** Computation-First Dollar Impacts
 **Understanding performance characteristics:** Latency Optimization
 **Verifying quality:** Evaluation Framework
@@ -225,14 +272,21 @@ When adding new features or major changes:
 
 | Document | Status | Last Updated | Comments |
 |----------|--------|--------------|----------|
+| INDEX (Navigation) | ✅ Complete | 2026-03-01 | Master navigation for all docs |
 | Multi-Agent Pipeline Architecture | ✅ Complete | 2026-03-01 | Comprehensive, includes all 7 stages + checkpoints |
 | Single Chat Interface UI | ✅ Complete | 2026-03-01 | 9 card types, SSE streaming, state flow |
 | Computation-First Dollar Impacts | ✅ Complete | 2026-03-01 | 6-layer anchoring, formulas, examples |
+| Human-In-The-Loop Checkpoints | ✅ Complete | 2026-03-01 | Soft/hard checkpoints, resume pattern, UX flow |
+| Server API Architecture | ✅ Complete | 2026-03-01 | Endpoints, SSE streaming, checkpoint resumption |
+| Cross-Signal Synthesis | ✅ Complete | 2026-03-01 | Portfolio review, interaction types, net vs gross |
 | Latency Optimization | ✅ Complete | 2026-03-01 | 6 phases, bottleneck analysis, monitoring |
 | Evaluation Framework | ✅ Complete | 2026-03-01 | 25 events, metrics, failure analysis |
 | Checkpoint Visibility Hotfix | ✅ Complete | 2026-03-01 | 6 bugs fixed, auto-promotion pattern |
 
+**Total Documentation:** ~150KB across 10 comprehensive files
+**Coverage:** Core architecture, backend/frontend integration, performance, quality metrics, recent fixes
+
 ---
 
 **Last Updated:** 2026-03-01
-**Version:** 1.0
+**Version:** 1.1

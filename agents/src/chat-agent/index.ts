@@ -1,6 +1,6 @@
 import type { AgentConfig } from '../types'
 import { getGeminiApiKey, getGeminiModelName } from '../utils/env'
-import { GoogleGenAI } from '@google/genai'
+import { getGeminiClient } from '../utils/gemini-client'
 
 // Direct Gemini call — replaces the old ADK runtime.
 async function runGeminiPrompt(params: {
@@ -12,7 +12,7 @@ async function runGeminiPrompt(params: {
   }
 
   try {
-    const genai = new GoogleGenAI({ apiKey })
+    const genai = getGeminiClient()
     const response = await genai.models.generateContent({
       model: getGeminiModelName(),
       contents: params.message,
@@ -165,7 +165,7 @@ export async function detectWhatIf(userMessage: string): Promise<WhatIfDetection
   }
 
   try {
-    const genai = new GoogleGenAI({ apiKey })
+    const genai = getGeminiClient()
     const modelName = getGeminiModelName()
     const response = await genai.models.generateContent({
       model: modelName,
@@ -288,6 +288,7 @@ export async function* streamGeneralChatResponse(
 
 /**
  * Streams an Ask Prism chat response using the unified context with all available layers.
+ * Uses Gemini's native streaming API for true token-level streaming.
  * Supports Portfolio, Signal Detail, and Plan pages with progressive disclosure.
  */
 export async function* streamAskPrismResponse(
@@ -295,14 +296,16 @@ export async function* streamAskPrismResponse(
   history: ReadonlyArray<ChatMessage>,
   userMessage: string,
   _sessionScope: import('@prism/shared').AskPrismSessionScope = 'global',
+  personalContextPrompt?: string,
 ): AsyncGenerator<string, void, undefined> {
-  if (!getGeminiApiKey()) {
+  const apiKey = getGeminiApiKey()
+  if (!apiKey) {
     yield 'Error: Gemini API key not configured.'
     return
   }
 
   const { buildAskPrismPrompt } = await import('./ask-prism-prompt')
-  const contextPrompt = buildAskPrismPrompt(context)
+  const contextPrompt = buildAskPrismPrompt(context, personalContextPrompt)
 
   const transcript = history
     .map((message) => `${message.role === 'assistant' ? 'Assistant' : 'User'}: ${message.content}`)
@@ -317,17 +320,21 @@ export async function* streamAskPrismResponse(
     `LATEST USER MESSAGE: ${userMessage}`,
   ].join('\n')
 
-  const result = await runGeminiPrompt({
-    message: prompt,
-  })
+  try {
+    const genai = getGeminiClient()
+    const stream = await genai.models.generateContentStream({
+      model: getGeminiModelName(),
+      contents: prompt,
+      config: { temperature: 0.7 },
+    })
 
-  if (!result.success || !result.data) {
-    yield `Error: ${result.error ?? 'Failed to generate response'}`
-    return
-  }
-
-  for (const chunk of chunkText(result.data.response)) {
-    yield chunk
+    for await (const chunk of stream) {
+      if (chunk.text) {
+        yield chunk.text
+      }
+    }
+  } catch (error) {
+    yield `Error: ${error instanceof Error ? error.message : 'Gemini streaming call failed'}`
   }
 }
 

@@ -313,26 +313,32 @@ export async function computeEventImpact(
 export async function getMarketDataForAnalysis(
   tickers: readonly string[],
 ): Promise<MarketDataBundle> {
-  const [volatilities, correlationMatrix] = await Promise.all([
-    Promise.all(
-      tickers.map(async (t) => {
-        const vol = await computeVolatility(t)
-        return [t, vol] as const
-      }),
-    ),
-    computeCorrelationMatrix(tickers),
-  ])
+  // Single fetch per ticker: 365 days (superset of 90-day volatility window).
+  // This halves Yahoo Finance API calls compared to fetching 90 + 365 separately.
+  const priceArrays = await Promise.all(
+    tickers.map(async (t) => {
+      const prices = await getHistoricalPrices(t, 365)
+      return [t, prices] as const
+    }),
+  )
 
+  // Compute volatility from the last 90 days of the 365-day dataset
   const volRecord: Record<string, VolatilityData> = {}
   let source: 'yahoo_finance' | 'fallback' = 'yahoo_finance'
 
-  for (const [ticker, vol] of volatilities) {
-    volRecord[ticker] = vol
-    // If we used fallback for any ticker, mark source as fallback
-    if (FALLBACK_VOLATILITY[ticker] === vol) {
+  for (const [ticker, prices] of priceArrays) {
+    const recent = prices.slice(-90)
+    if (recent.length >= 10) {
+      volRecord[ticker] = computeVolatilityFromPrices(recent)
+    } else {
+      volRecord[ticker] = FALLBACK_VOLATILITY[ticker] ?? { daily: 0.015, monthly: 0.032, annualized: 0.11 }
       source = 'fallback'
     }
   }
+
+  // Compute correlation from the full 365-day data
+  const returnArrays = priceArrays.map(([, prices]) => computeLogReturns(prices))
+  const correlationMatrix = computeCorrelationMatrixFromReturns(returnArrays)
 
   return {
     tickers: [...tickers],

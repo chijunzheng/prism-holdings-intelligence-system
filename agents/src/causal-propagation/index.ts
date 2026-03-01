@@ -1,9 +1,9 @@
-import { GoogleGenAI } from '@google/genai'
 import type { Signal, ExposureMap, CausalChain } from '@prism/shared'
 import type { AgentConfig, AgentResult } from '../types'
 import { buildCausalChainPrompt, buildRetryPrompt } from './prompts'
 import { validateCausalChain } from './validate'
 import { getCausalPropagationModelName, getGeminiApiKey } from '../utils/env'
+import { getGeminiClient } from '../utils/gemini-client'
 
 export const config: AgentConfig = {
   name: 'causal-propagation',
@@ -33,7 +33,7 @@ export async function propagate(
   }
 
   try {
-    const genai = new GoogleGenAI({ apiKey })
+    const genai = getGeminiClient()
     const modelName = getCausalPropagationModelName()
     const basePrompt = buildCausalChainPrompt(signal, exposureMap)
 

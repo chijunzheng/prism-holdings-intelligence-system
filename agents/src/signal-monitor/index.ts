@@ -1,10 +1,10 @@
-import { GoogleGenAI } from '@google/genai'
 import type { ExposureMap, Signal } from '@prism/shared'
 import { MAX_SIGNAL_MONITOR_RESULTS } from '@prism/shared'
 import type { AgentConfig, AgentResult } from '../types'
 import { buildSignalSearchPrompt } from './prompts'
 import { parseSignalResponseWithDiagnostics, deduplicateSignals } from './parse'
 import { getGeminiApiKey, getSignalMonitorModelName } from '../utils/env'
+import { getGeminiClient } from '../utils/gemini-client'
 
 export const config: AgentConfig = {
   name: 'signal-monitor',
@@ -84,7 +84,7 @@ export async function monitor(
   }
 
   try {
-    const genai = new GoogleGenAI({ apiKey })
+    const genai = getGeminiClient()
 
     const prompt = buildSignalSearchPrompt(exposureMap.exposures)
     const modelName = getSignalMonitorModelName()

@@ -228,7 +228,7 @@ analyzeRouter.post('/', async (req: Request, res: Response) => {
   const { userId, signal, skipCheckpoints = false, pipelineMode } = parsed.data
 
   // Determine effective mode: explicit pipelineMode takes precedence over skipCheckpoints
-  const effectiveMode = pipelineMode ?? (skipCheckpoints ? 'quick' : 'quick')
+  const effectiveMode = pipelineMode ?? (skipCheckpoints ? 'quick' : 'guided')
   const isGuided = effectiveMode === 'guided'
 
   const portfolio = getPortfolioByUserId(userId)

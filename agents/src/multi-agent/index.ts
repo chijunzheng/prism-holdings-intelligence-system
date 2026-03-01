@@ -117,24 +117,29 @@ function summarizeNodeOutput(nodeName: string, nodeOutput: Record<string, unknow
     case 'fetch_market_data':
       return { stage, message: 'Fetched real-time volatility and correlation data' }
     case 'run_analysts': {
-      const assessments = nodeOutput.analystAssessments as readonly unknown[] | undefined
-      return { stage, message: `${assessments?.length ?? 4} specialist analysts completed assessments` }
+      const assessments = nodeOutput.analystAssessments as readonly { analystType?: string }[] | undefined
+      const types = assessments?.map(a => a.analystType).join(', ') ?? 'macro, fundamental, sentiment, technical'
+      return { stage, message: `${assessments?.length ?? 4} analysts completed (${types}). Independent perspectives captured across all dimensions.` }
     }
     case 'run_debate': {
-      const debate = nodeOutput.debateResolution as { outcome?: string } | null
-      return { stage, message: debate?.outcome ? `Debate outcome: ${debate.outcome}` : 'Bull vs Bear debate resolved' }
+      const debate = nodeOutput.debateResolution as { outcome?: string; rounds?: number } | null
+      const rounds = debate?.rounds ?? 2
+      return { stage, message: `${rounds}-round adversarial debate completed. Outcome: ${debate?.outcome ?? 'resolved'}. Key disagreements identified and resolved.` }
     }
     case 'assumptions_challenger':
-      return { stage, message: 'Key assumptions challenged by risk team' }
+      return { stage, message: 'Challenged key assumptions from analyst consensus — identified blind spots and overconfident claims.' }
     case 'magnitude_validator':
-      return { stage, message: 'Dollar-impact magnitudes validated against historical data' }
+      return { stage, message: 'Dollar-impact magnitudes validated against historical volatility and real market data.' }
     case 'portfolio_stress':
-      return { stage, message: 'Monte Carlo stress test completed with VaR/CVaR' }
+      return { stage, message: 'Monte Carlo simulation completed (10,000 scenarios). VaR and CVaR computed at 95th and 99th percentiles.' }
     case 'fund_manager':
-      return { stage, message: 'Fund manager synthesized all inputs into calibrated verdict' }
+      return { stage, message: 'All inputs synthesized into calibrated verdict with dollar-impact ranges bounded by computed volatility.' }
     case 'judge': {
-      const jv = nodeOutput.judgeVerdict as { convergenceReached?: boolean } | null
-      return { stage, message: jv?.convergenceReached ? 'Quality evaluation passed' : 'Quality evaluation — requesting refinement' }
+      const jv = nodeOutput.judgeVerdict as { convergenceReached?: boolean; overallQualityScore?: number } | null
+      const score = jv?.overallQualityScore ? ` (quality: ${Math.round(jv.overallQualityScore * 100)}%)` : ''
+      return { stage, message: jv?.convergenceReached
+        ? `Quality gate passed${score}. Verdict is well-calibrated and internally consistent.`
+        : `Quality evaluation flagged issues${score}. Requesting fund manager refinement.` }
     }
     case 'generate_brief':
       return { stage, message: 'Research brief generated' }

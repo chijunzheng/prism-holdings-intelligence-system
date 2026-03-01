@@ -51,7 +51,7 @@ export function PipelineProgressCard({ data }: PipelineProgressCardProps) {
               {stage.status === 'complete' && stage.message && (
                 <span className="pipeline-progress__stage-detail">{stage.message}</span>
               )}
-              {stage.status === 'active' && stage.thinkingText && (
+              {(stage.status === 'active' || stage.status === 'pending') && stage.thinkingText && (
                 <span className="pipeline-progress__thinking-text">{stage.thinkingText}</span>
               )}
               {stage.status === 'waiting' && (

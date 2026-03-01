@@ -210,7 +210,7 @@ export async function runDebate(params: {
   for (let round = 1; round <= MAX_ROUNDS; round++) {
     if (round === 1) {
       // Round 1: Bull and Bear run in parallel (both start from analyst consensus)
-      onThinking?.('debate_complete', 'Bull & Bear researchers building independent cases, Round 1...')
+      onThinking?.('debate_complete', 'Round 1: Bull & Bear researchers building independent cases from analyst consensus...')
       const [bullArg, bearArg] = await Promise.all([
         runBullResearcher({
           round: 1,
@@ -231,7 +231,7 @@ export async function runDebate(params: {
       bearArguments.push(bearArg)
     } else {
       // Rounds 2+: Sequential (Bear needs Bull's latest argument)
-      onThinking?.('debate_complete', `Bull researcher building case, Round ${round}...`)
+      onThinking?.('debate_complete', `Round ${round}: Bull researcher countering Bear's arguments with new evidence...`)
       const bullArg = await runBullResearcher({
         round,
         analystAssessments,
@@ -242,7 +242,7 @@ export async function runDebate(params: {
       })
       bullArguments.push(bullArg)
 
-      onThinking?.('debate_complete', `Bear researcher countering, Round ${round}...`)
+      onThinking?.('debate_complete', `Round ${round}: Bear researcher challenging Bull's position with counter-evidence...`)
       const bearArg = await runBearResearcher({
         round,
         analystAssessments,
@@ -254,9 +254,9 @@ export async function runDebate(params: {
     }
 
     // Check for convergence
-    onThinking?.('debate_complete', 'Checking convergence...')
+    onThinking?.('debate_complete', 'Evaluating whether Bull and Bear positions have converged...')
     if (hasConverged(bullArguments, bearArguments)) {
-      onThinking?.('debate_complete', `Debate converged after ${round} round${round > 1 ? 's' : ''}`)
+      onThinking?.('debate_complete', `Debate converged after ${round} round${round > 1 ? 's' : ''} — direction agreement or mutual concessions reached`)
       break
     }
   }

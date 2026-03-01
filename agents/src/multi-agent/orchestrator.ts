@@ -111,7 +111,7 @@ async function checkpoint1Node(state: State): Promise<Partial<State>> {
 
 function createAssumptionsChallengerNode(onThinking?: ThinkingCallback) {
   return async (state: State): Promise<Partial<State>> => {
-    onThinking?.('risk_challenge', 'Challenging key assumptions from analyst consensus...')
+    onThinking?.('risk_challenge', 'Stress-testing analyst assumptions — identifying blind spots and biases in the consensus view...')
     const riskChallenge = await runAssumptionsChallenger({
       analystAssessments: state.analystAssessments,
       humanCorrection: state.humanCorrectionAtDebate ?? undefined,
@@ -172,6 +172,7 @@ function createFundManagerNode(onThinking?: ThinkingCallback) {
     const holdingValues = getHoldingValues(state.portfolio)
     const holdingNames = getHoldingNames(state.portfolio)
 
+    onThinking?.('verdict', 'Synthesizing all inputs — balancing debate outcome, risk challenges, and stress scenarios into calibrated dollar-impact ranges...')
     const verdict = await runFundManager({
       signal: state.signal,
       debateResolution: state.debateResolution!,
@@ -197,7 +198,7 @@ function createFundManagerNode(onThinking?: ThinkingCallback) {
 
 function createJudgeNode(onThinking?: ThinkingCallback) {
   return async (state: State): Promise<Partial<State>> => {
-    onThinking?.('judge', 'Evaluating verdict quality and calibration...')
+    onThinking?.('judge', 'Evaluating verdict quality — checking calibration, internal consistency, and whether recommendations are actionable...')
     const judgeVerdict = await runJudge({
       verdict: state.fundManagerVerdict!,
       signal: state.signal,

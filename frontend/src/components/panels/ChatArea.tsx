@@ -211,6 +211,12 @@ const PIPELINE_STAGES: readonly { id: string; label: string }[] = [
   { id: 'brief', label: 'Generating research brief' },
 ]
 
+// Stages that produce substantive output worth showing as ThinkingCards in the chat stream
+const THINKING_CARD_STAGES = new Set([
+  'analyst_complete', 'debate_complete', 'risk_challenge',
+  'magnitude_validation', 'stress_complete', 'verdict', 'judge',
+])
+
 function buildInitialStages(): PipelineStageInfo[] {
   return PIPELINE_STAGES.map((s, i) => ({
     ...s,
@@ -270,9 +276,18 @@ function updateThinkingText(
     : stages.findIndex((s) => s.status === 'active')
   if (targetIdx === -1) return [...stages]
 
-  return stages.map((s, i) =>
-    i === targetIdx ? { ...s, thinkingText: text } : s,
-  )
+  return stages.map((s, i) => {
+    if (i === targetIdx) {
+      // Auto-promote pending → active when we receive thinking text
+      const newStatus = s.status === 'pending' ? 'active' as const : s.status
+      return { ...s, thinkingText: text, status: newStatus }
+    }
+    // Mark prior pending stages as complete (node is running, so predecessors must be done)
+    if (i < targetIdx && s.status === 'pending') {
+      return { ...s, status: 'complete' as const }
+    }
+    return s
+  })
 }
 
 function buildPipelineProgressCard(
@@ -728,16 +743,33 @@ export function ChatArea({
               // Progress event — advance the pipeline progress card
               const eventData = sseEvent.data as { stage?: string; message?: string }
               const stageId = eventData.stage ?? sseEvent.event
-              const nextStages = advanceStages(currentStages, stageId, eventData.message)
+              const message = eventData.message
+              const nextStages = advanceStages(currentStages, stageId, message)
               currentStages = nextStages
 
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === progressId
-                    ? { ...m, card: buildPipelineProgressCard(nextStages) }
-                    : m,
-                ),
-              )
+              if (THINKING_CARD_STAGES.has(stageId) && message) {
+                // Insert ThinkingCard AND update progress bar
+                setMessages((prev) => [
+                  ...prev.map((m) =>
+                    m.id === progressId ? { ...m, card: buildPipelineProgressCard(nextStages) } : m,
+                  ),
+                  {
+                    id: uid('thinking'),
+                    role: 'assistant' as const,
+                    content: '',
+                    card: { type: 'thinking' as const, data: { stage: stageId, message, isComplete: true } },
+                  },
+                ])
+              } else {
+                // Just update progress bar for non-substantive stages
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === progressId
+                      ? { ...m, card: buildPipelineProgressCard(nextStages) }
+                      : m,
+                  ),
+                )
+              }
             }
           }
         } else {
@@ -1096,16 +1128,31 @@ export function ChatArea({
             // Progress events from resume stream
             const eventData = sseEvent.data as { stage?: string; message?: string }
             const stageId = eventData.stage ?? sseEvent.event
-            const nextStages = advanceStages(currentStagesRef.current, stageId, eventData.message)
+            const message = eventData.message
+            const nextStages = advanceStages(currentStagesRef.current, stageId, message)
             currentStagesRef.current = nextStages
 
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === pId
-                  ? { ...m, card: buildPipelineProgressCard(nextStages) }
-                  : m,
-              ),
-            )
+            if (THINKING_CARD_STAGES.has(stageId) && message) {
+              setMessages((prev) => [
+                ...prev.map((m) =>
+                  m.id === pId ? { ...m, card: buildPipelineProgressCard(nextStages) } : m,
+                ),
+                {
+                  id: uid('thinking'),
+                  role: 'assistant' as const,
+                  content: '',
+                  card: { type: 'thinking' as const, data: { stage: stageId, message, isComplete: true } },
+                },
+              ])
+            } else {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === pId
+                    ? { ...m, card: buildPipelineProgressCard(nextStages) }
+                    : m,
+                ),
+              )
+            }
           }
         }
       } catch (error) {
@@ -1236,7 +1283,18 @@ export function ChatArea({
         },
 
         onChatChunk: (data: ChatChunkData) => {
-          if (data.suggestions) {
+          // replaceText: server sends cleaned text (without >> suggestion lines) after streaming
+          if (data.replaceText !== undefined) {
+            chatAccumulated = data.replaceText
+            const snapshot = chatAccumulated
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId
+                  ? { ...m, content: snapshot, ...(data.suggestions ? { suggestedFollowUps: data.suggestions } : {}) }
+                  : m,
+              ),
+            )
+          } else if (data.suggestions) {
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === assistantId
@@ -1286,13 +1344,29 @@ export function ChatArea({
         onPipelineProgress: (stage, data) => {
           const eventData = data as { stage?: string; message?: string }
           const stageId = eventData.stage ?? stage
-          const nextStages = advanceStages(currentStages, stageId, eventData.message)
+          const message = eventData.message
+          const nextStages = advanceStages(currentStages, stageId, message)
           currentStages = nextStages
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === progressId ? { ...m, card: buildPipelineProgressCard(nextStages) } : m,
-            ),
-          )
+
+          if (THINKING_CARD_STAGES.has(stageId) && message) {
+            setMessages((prev) => [
+              ...prev.map((m) =>
+                m.id === progressId ? { ...m, card: buildPipelineProgressCard(nextStages) } : m,
+              ),
+              {
+                id: uid('thinking'),
+                role: 'assistant' as const,
+                content: '',
+                card: { type: 'thinking' as const, data: { stage: stageId, message, isComplete: true } },
+              },
+            ])
+          } else {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === progressId ? { ...m, card: buildPipelineProgressCard(nextStages) } : m,
+              ),
+            )
+          }
         },
 
         onAgentThinking: (data) => {

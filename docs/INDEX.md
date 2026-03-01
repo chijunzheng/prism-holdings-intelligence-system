@@ -86,6 +86,19 @@ Complete technical documentation for Prism's AI-native portfolio intelligence sy
 
 ---
 
+### [Risk Management Team](./RISK-MANAGEMENT-TEAM.md)
+**Learn:** How assumptions are challenged and estimates are validated
+- **3-agent structure:** Assumptions Challenger (devil's advocate) + Magnitude Validator (volatility bounds) + Stress Tester (Monte Carlo)
+- **Parallel execution:** All 3 run simultaneously → 1.5s wall-clock vs 2.8s sequential
+- **Assumptions Challenger:** Finds counter-evidence, applies confidence haircut (-10% to -50%)
+- **Magnitude Validator:** Flags estimates >2x historical volatility, clamps to realistic bounds
+- **Stress Tester:** Computes VaR/CVaR across base, downside, tail risk scenarios
+- **Soft Checkpoint 1.5:** Shows challenges found; user can continue or override
+
+**When to read:** Understanding risk validation, preventing analyst groupthink, understanding stress testing
+
+---
+
 ### [Cross-Signal Synthesis: Portfolio-Level Impact](./CROSS-SIGNAL-SYNTHESIS.md)
 **Learn:** How multiple signals interact; net vs gross impact calculation
 - **Interaction types:** Independent, Offsetting (signals cancel), Compounding (signals amplify)
@@ -158,10 +171,11 @@ Complete technical documentation for Prism's AI-native portfolio intelligence sy
 **Backend Engineer:**
 1. Start with [Server API Architecture](./SERVER-API-ARCHITECTURE.md) for endpoint design
 2. Read [Multi-Agent Pipeline Architecture](./MULTI-AGENT-PIPELINE-ARCHITECTURE.md) for agent orchestration
-3. Review [Computation-First Dollar Impacts](./COMPUTATION-FIRST-DOLLAR-IMPACTS.md) for calibration logic
-4. Check [Cross-Signal Synthesis](./CROSS-SIGNAL-SYNTHESIS.md) for portfolio review mode
-5. Study [Latency Optimization](./LATENCY-OPTIMIZATION.md) for performance patterns
-6. Check [Checkpoint Visibility Hotfix](./CHECKPOINT-VISIBILITY-HOTFIX.md) for recent changes
+3. Study [Risk Management Team](./RISK-MANAGEMENT-TEAM.md) for validation layer
+4. Review [Computation-First Dollar Impacts](./COMPUTATION-FIRST-DOLLAR-IMPACTS.md) for calibration logic
+5. Check [Cross-Signal Synthesis](./CROSS-SIGNAL-SYNTHESIS.md) for portfolio review mode
+6. Study [Latency Optimization](./LATENCY-OPTIMIZATION.md) for performance patterns
+7. Check [Checkpoint Visibility Hotfix](./CHECKPOINT-VISIBILITY-HOTFIX.md) for recent changes
 
 **Frontend Engineer:**
 1. Start with [Single Chat Interface — UI Architecture](./SINGLE-CHAT-INTERFACE-UI.md) for card design
@@ -292,13 +306,25 @@ When adding new features or major changes:
 | Human-In-The-Loop Checkpoints | ✅ Complete | 2026-03-01 | Soft/hard checkpoints, resume pattern, UX flow |
 | Server API Architecture | ✅ Complete | 2026-03-01 | Endpoints, SSE streaming, checkpoint resumption |
 | Signal Detection & Monitoring | ✅ Complete | 2026-03-01 | Gemini + Google Search, exposure-scoped discovery |
+| Risk Management Team | ✅ Complete | 2026-03-01 | 3-agent validation: assumptions, magnitude, stress |
 | Cross-Signal Synthesis | ✅ Complete | 2026-03-01 | Portfolio review, interaction types, net vs gross |
 | Latency Optimization | ✅ Complete | 2026-03-01 | 6 phases, bottleneck analysis, monitoring |
 | Evaluation Framework | ✅ Complete | 2026-03-01 | 25 events, metrics, failure analysis |
 | Checkpoint Visibility Hotfix | ✅ Complete | 2026-03-01 | 6 bugs fixed, auto-promotion pattern |
 
-**Total Documentation:** ~175KB across 11 comprehensive files
-**Coverage:** Core architecture, backend/frontend integration, signal detection, portfolio analysis, performance, quality metrics, recent fixes
+**Total Documentation:** ~200KB across 12 comprehensive files
+**Coverage:** Core architecture, signal detection, risk validation, backend/frontend integration, portfolio analysis, performance, quality metrics, recent fixes
+
+### Documentation Highlights This Session
+
+**New docs created:**
+- Human-In-The-Loop Checkpoints (450 lines)
+- Cross-Signal Synthesis (545 lines)
+- Server API Architecture (718 lines)
+- Signal Detection & Monitoring (543 lines)
+- Risk Management Team (510 lines)
+
+**Total new content:** ~2,700 lines (~50KB) covering 5 major feature areas
 
 ---
 

@@ -12,6 +12,7 @@ interface ThinkingCardProps {
 }
 
 const STAGE_ICONS: Record<string, string> = {
+  routing: 'Thinking',
   thinking: 'Thinking',
   risk_profile: 'Inferring risk profile',
   market_data: 'Fetching market data',

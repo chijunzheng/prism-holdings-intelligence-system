@@ -23,7 +23,11 @@ interface UseSessionsReturn {
     title: string
     signalId?: string
   }) => Promise<string>
-  readonly selectSession: (sessionId: string) => void
+  readonly updateSession: (sessionId: string, params: {
+    title?: string
+    status?: SessionSummary['status']
+  }) => void
+  readonly selectSession: (sessionId: string | null) => void
   readonly deleteSession: (sessionId: string) => Promise<void>
 }
 
@@ -73,7 +77,30 @@ export function useSessions(userId: string): UseSessionsReturn {
     [userId],
   )
 
-  const selectSession = useCallback((sessionId: string) => {
+  const updateSession = useCallback(
+    (sessionId: string, params: { title?: string; status?: SessionSummary['status'] }) => {
+      // Optimistic local update
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === sessionId
+            ? { ...s, ...(params.title ? { title: params.title } : {}), ...(params.status ? { status: params.status } : {}) }
+            : s,
+        ),
+      )
+
+      // Fire-and-forget PATCH to server
+      fetch(`/api/v2/sessions/${userId}/${sessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      }).catch(() => {
+        // Silently ignore — optimistic update already applied
+      })
+    },
+    [userId],
+  )
+
+  const selectSession = useCallback((sessionId: string | null) => {
     setActiveSessionId(sessionId)
   }, [])
 
@@ -88,5 +115,5 @@ export function useSessions(userId: string): UseSessionsReturn {
     [activeSessionId, userId],
   )
 
-  return { sessions, activeSessionId, isLoading, createSession, selectSession, deleteSession }
+  return { sessions, activeSessionId, isLoading, createSession, updateSession, selectSession, deleteSession }
 }

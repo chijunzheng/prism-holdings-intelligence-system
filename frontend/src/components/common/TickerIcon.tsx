@@ -22,103 +22,92 @@ function initialsForTicker(ticker: string): string {
   return ticker.slice(0, 2).toUpperCase()
 }
 
-const BASE_URL = 'https://api.elbstream.com/logos/symbol'
-const FAILED_SYMBOL_STORAGE_KEY = 'prism.logo.failedSymbols.v1'
-const KNOWN_UNAVAILABLE_SYMBOLS = new Set<string>([
-  'CASH',
-])
+// ── Logo Sources ──────────────────────────────────────────
 
-// Module-level cache: ticker → resolved image URL or null (failed)
+const ELBSTREAM_BASE = 'https://api.elbstream.com/logos/symbol'
+
+// Map tickers to fund provider domains (ETFs don't have their own logos)
+const TICKER_DOMAINS: Readonly<Record<string, string>> = {
+  VFV: 'vanguard.ca',
+  VCN: 'vanguard.ca',
+  VAB: 'vanguard.ca',
+  VEQT: 'vanguard.ca',
+  VGRO: 'vanguard.ca',
+  VBAL: 'vanguard.ca',
+  XIC: 'blackrock.com',
+  XEG: 'blackrock.com',
+  XGD: 'blackrock.com',
+  XQQ: 'blackrock.com',
+  XIU: 'blackrock.com',
+  XBB: 'blackrock.com',
+  XSP: 'blackrock.com',
+  ZAG: 'bmo.com',
+  ZEB: 'bmo.com',
+  ZDV: 'bmo.com',
+  ZSP: 'bmo.com',
+  SHOP: 'shopify.com',
+  NVDA: 'nvidia.com',
+  TSLA: 'tesla.com',
+  AAPL: 'apple.com',
+  MSFT: 'microsoft.com',
+  GOOG: 'google.com',
+  GOOGL: 'google.com',
+  AMZN: 'amazon.com',
+  META: 'meta.com',
+  RY: 'rbc.com',
+  TD: 'td.com',
+  BNS: 'scotiabank.com',
+  BMO: 'bmo.com',
+  CM: 'cibc.com',
+  ENB: 'enbridge.com',
+  CNR: 'cn.ca',
+  'BTCX.B': 'bitcoin.org',
+}
+
+/**
+ * Build ordered list of logo URLs to try for a given ticker.
+ * Order: elbstream (ticker) → elbstream (.TO variant) → Clearbit (domain) → Google Favicon (domain)
+ */
+function buildCandidateUrls(ticker: string): readonly string[] {
+  const urls: string[] = []
+
+  // 1. elbstream by ticker symbol
+  urls.push(`${ELBSTREAM_BASE}/${encodeURIComponent(ticker)}?format=png`)
+
+  // 2. elbstream with/without .TO suffix (Canadian exchange variant)
+  if (ticker.endsWith('.TO')) {
+    const withoutSuffix = ticker.slice(0, -3)
+    if (withoutSuffix) {
+      urls.push(`${ELBSTREAM_BASE}/${encodeURIComponent(withoutSuffix)}?format=png`)
+    }
+  } else {
+    urls.push(`${ELBSTREAM_BASE}/${encodeURIComponent(ticker + '.TO')}?format=png`)
+  }
+
+  // 3–4. Domain-based logos for known fund providers
+  const domain = TICKER_DOMAINS[ticker]
+  if (domain) {
+    urls.push(`https://logo.clearbit.com/${domain}?size=80`)
+    urls.push(`https://www.google.com/s2/favicons?domain=${domain}&sz=128`)
+  }
+
+  return urls
+}
+
+// ── Module-level Cache ────────────────────────────────────
+
+// ticker → resolved image URL (string) or null (all sources failed)
 const logoCache = new Map<string, string | null>()
-const failedSymbolCache = new Set<string>()
-let failedSymbolsHydrated = false
 
 function normalizeTicker(ticker: string): string {
   return ticker.trim().toUpperCase()
 }
 
-function hydrateFailedSymbols(): void {
-  if (failedSymbolsHydrated) return
-  failedSymbolsHydrated = true
-
-  // Clear stale v1 cache that incorrectly blocked Canadian ETF symbols
-  if (typeof window !== 'undefined') {
-    window.localStorage.removeItem(FAILED_SYMBOL_STORAGE_KEY)
-  }
-
-  for (const symbol of KNOWN_UNAVAILABLE_SYMBOLS) {
-    failedSymbolCache.add(symbol)
-  }
-
-  if (typeof window === 'undefined') return
-  const raw = window.localStorage.getItem(FAILED_SYMBOL_STORAGE_KEY)
-  if (!raw) return
-
-  try {
-    const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) return
-    for (const entry of parsed) {
-      if (typeof entry !== 'string') continue
-      const symbol = normalizeTicker(entry)
-      if (symbol) failedSymbolCache.add(symbol)
-    }
-  } catch {
-    // Ignore malformed localStorage values.
-  }
-}
-
-function persistFailedSymbols(): void {
-  if (typeof window === 'undefined') return
-  try {
-    window.localStorage.setItem(FAILED_SYMBOL_STORAGE_KEY, JSON.stringify(Array.from(failedSymbolCache)))
-  } catch {
-    // Ignore storage quota/access issues.
-  }
-}
-
-function markSymbolFailed(symbol: string): void {
-  const normalized = normalizeTicker(symbol)
-  if (!normalized) return
-  hydrateFailedSymbols()
-  if (failedSymbolCache.has(normalized)) return
-  failedSymbolCache.add(normalized)
-  persistFailedSymbols()
-}
-
-function isSymbolBlocked(symbol: string): boolean {
-  const normalized = normalizeTicker(symbol)
-  if (!normalized) return true
-  hydrateFailedSymbols()
-  return failedSymbolCache.has(normalized)
-}
-
-/**
- * Builds candidate symbols in lookup order.
- * Example: "XIC" => ["XIC", "XIC.TO"], "XIC.TO" => ["XIC.TO", "XIC"]
- */
-function buildCandidateSymbols(ticker: string): ReadonlyArray<string> {
-  if (!ticker) return []
-
-  const symbols = new Set<string>()
-  symbols.add(ticker)
-
-  if (ticker.endsWith('.TO')) {
-    const withoutSuffix = ticker.slice(0, -3)
-    if (withoutSuffix) symbols.add(withoutSuffix)
-  } else {
-    symbols.add(`${ticker}.TO`)
-  }
-
-  return Array.from(symbols).filter((symbol) => !isSymbolBlocked(symbol))
-}
-
-function toLogoUrl(symbol: string): string {
-  return `${BASE_URL}/${encodeURIComponent(symbol)}?format=png`
-}
+// ── Component ─────────────────────────────────────────────
 
 export function TickerIcon({ ticker, size = 32 }: TickerIconProps) {
   const normalizedTicker = useMemo(() => normalizeTicker(ticker), [ticker])
-  const candidates = useMemo(() => buildCandidateSymbols(normalizedTicker), [normalizedTicker])
+  const candidateUrls = useMemo(() => buildCandidateUrls(normalizedTicker), [normalizedTicker])
 
   const [logoUrl, setLogoUrl] = useState<string | null>(
     logoCache.get(normalizedTicker) ?? null,
@@ -126,6 +115,7 @@ export function TickerIcon({ ticker, size = 32 }: TickerIconProps) {
   const [resolved, setResolved] = useState(logoCache.has(normalizedTicker))
   const [attemptIndex, setAttemptIndex] = useState(0)
 
+  // Reset state when ticker changes
   useEffect(() => {
     if (logoCache.has(normalizedTicker)) {
       setLogoUrl(logoCache.get(normalizedTicker) ?? null)
@@ -134,8 +124,8 @@ export function TickerIcon({ ticker, size = 32 }: TickerIconProps) {
       return
     }
 
-    if (candidates.length === 0) {
-      if (normalizedTicker) logoCache.set(normalizedTicker, null)
+    if (candidateUrls.length === 0) {
+      logoCache.set(normalizedTicker, null)
       setLogoUrl(null)
       setAttemptIndex(0)
       setResolved(true)
@@ -145,42 +135,38 @@ export function TickerIcon({ ticker, size = 32 }: TickerIconProps) {
     setLogoUrl(null)
     setAttemptIndex(0)
     setResolved(false)
-  }, [candidates.length, normalizedTicker])
+  }, [candidateUrls.length, normalizedTicker])
 
-  const activeSymbol = !resolved ? candidates[attemptIndex] ?? null : null
-  const activeUrl = logoUrl ?? (activeSymbol ? toLogoUrl(activeSymbol) : null)
-
-  const markFallback = useCallback(() => {
-    if (normalizedTicker) logoCache.set(normalizedTicker, null)
-    setLogoUrl(null)
-    setResolved(true)
-  }, [normalizedTicker])
+  const activeUrl = resolved
+    ? logoUrl
+    : (candidateUrls[attemptIndex] ?? null)
 
   const handleLoad = useCallback(() => {
     if (!activeUrl) return
-    if (normalizedTicker) logoCache.set(normalizedTicker, activeUrl)
+    logoCache.set(normalizedTicker, activeUrl)
     setLogoUrl(activeUrl)
     setResolved(true)
   }, [activeUrl, normalizedTicker])
 
   const handleError = useCallback(() => {
-    if (activeSymbol) {
-      markSymbolFailed(activeSymbol)
-    }
-
     if (resolved) {
-      markFallback()
+      // Cached URL stopped working — clear and fall back
+      logoCache.set(normalizedTicker, null)
+      setLogoUrl(null)
       return
     }
 
     const nextAttempt = attemptIndex + 1
-    if (nextAttempt < candidates.length) {
+    if (nextAttempt < candidateUrls.length) {
       setAttemptIndex(nextAttempt)
       return
     }
 
-    markFallback()
-  }, [activeSymbol, attemptIndex, candidates.length, markFallback, resolved])
+    // All sources exhausted
+    logoCache.set(normalizedTicker, null)
+    setLogoUrl(null)
+    setResolved(true)
+  }, [attemptIndex, candidateUrls.length, normalizedTicker, resolved])
 
   const bg = colorForTicker(normalizedTicker || ticker)
   const initials = initialsForTicker(normalizedTicker || ticker)
@@ -208,6 +194,7 @@ export function TickerIcon({ ticker, size = 32 }: TickerIconProps) {
         }}
         aria-hidden="true"
       >
+        {/* Initials show behind the image as fallback during load */}
         <span
           style={{
             position: 'absolute',

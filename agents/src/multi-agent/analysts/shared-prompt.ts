@@ -148,30 +148,46 @@ function formatHoldingsList(portfolio: Portfolio): string {
     .join(', ')
 }
 
-// ── Main Prompt Builder ─────────────────────────────────────
-export function buildAnalystPrompt(params: {
-  readonly analystType: AnalystType
+// ── Shared Context Builder (computed once, reused by all analysts) ──
+export function buildSharedAnalystContext(params: {
   readonly signal: Signal
   readonly portfolio: Portfolio
   readonly exposureMap: ExposureMap
   readonly riskProfile: InferredRiskProfile
   readonly marketData?: MarketDataBundle
 }): string {
-  const { analystType, signal, portfolio, exposureMap, riskProfile, marketData } = params
-  const mandate = ANALYST_MANDATES[analystType]
+  const { signal, portfolio, exposureMap, riskProfile, marketData } = params
 
   const sections = [
-    `You are a ${mandate.title}. Your SPECIFIC mandate is:\n${mandate.mandate}`,
     `\n--- SIGNAL ---\n${formatSignalContext(signal)}`,
     `\n--- PORTFOLIO ---\n${formatPortfolioContext(portfolio)}`,
     `\n--- EXPOSURE MAP ---\n${formatExposureContext(exposureMap)}`,
     `\n--- RISK PROFILE ---\n${formatRiskProfileContext(riskProfile)}`,
   ]
 
-  // Technical analyst gets real market data
-  if (analystType === 'technical' && marketData) {
+  if (marketData) {
     sections.push(`\n--- MARKET DATA (REAL — use these numbers, do not guess) ---\n${formatMarketDataContext(marketData)}`)
   }
+
+  return sections.join('\n')
+}
+
+// ── Analyst-Specific Prompt Builder (uses pre-built shared context) ──
+export function buildAnalystSpecificPrompt(
+  sharedContext: string,
+  analystType: AnalystType,
+  portfolio: Portfolio,
+  _marketData?: MarketDataBundle,
+): string {
+  const mandate = ANALYST_MANDATES[analystType]
+
+  const sections = [
+    `You are a ${mandate.title}. Your SPECIFIC mandate is:\n${mandate.mandate}`,
+    sharedContext,
+  ]
+
+  // Only include market data context for technical analyst if not already in shared
+  // (shared context includes it when available, so just note the mandate)
 
   sections.push(`
 --- YOUR TASK ---
@@ -212,4 +228,17 @@ Respond with valid JSON matching this structure:
 }`)
 
   return sections.join('\n')
+}
+
+// ── Legacy Prompt Builder (backwards-compatible) ─────────────
+export function buildAnalystPrompt(params: {
+  readonly analystType: AnalystType
+  readonly signal: Signal
+  readonly portfolio: Portfolio
+  readonly exposureMap: ExposureMap
+  readonly riskProfile: InferredRiskProfile
+  readonly marketData?: MarketDataBundle
+}): string {
+  const sharedContext = buildSharedAnalystContext(params)
+  return buildAnalystSpecificPrompt(sharedContext, params.analystType, params.portfolio, params.marketData)
 }

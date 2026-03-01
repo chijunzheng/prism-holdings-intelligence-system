@@ -13,6 +13,7 @@ interface SessionListProps {
     signalId?: string
   }) => Promise<string>
   readonly onDelete: (sessionId: string) => Promise<void>
+  readonly showHeader?: boolean
 }
 
 const STATUS_LABELS: Record<SessionSummary['status'], string> = {
@@ -37,6 +38,7 @@ export function SessionList({
   onSelect,
   onCreate,
   onDelete,
+  showHeader = true,
 }: SessionListProps) {
   function handleNewSession() {
     onCreate({ type: 'general', title: 'New conversation' })
@@ -44,16 +46,18 @@ export function SessionList({
 
   return (
     <div className="session-list">
-      <div className="session-list__header">
-        <h3 className="session-list__title">Sessions</h3>
-        <button
-          className="session-list__new-btn"
-          onClick={handleNewSession}
-          aria-label="New session"
-        >
-          +
-        </button>
-      </div>
+      {showHeader && (
+        <div className="session-list__header">
+          <h3 className="session-list__title">Sessions</h3>
+          <button
+            className="session-list__new-btn"
+            onClick={handleNewSession}
+            aria-label="New session"
+          >
+            +
+          </button>
+        </div>
+      )}
       <ul className="session-list__items">
         {sessions.length === 0 && (
           <li className="session-list__empty">

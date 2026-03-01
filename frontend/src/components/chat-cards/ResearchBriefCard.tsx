@@ -1,12 +1,13 @@
-// ResearchBriefCard — expandable research brief preview.
-// Collapsed: signal name, quality score, impact range
-// Expanded: full 10-section brief rendered inline
+// ResearchBriefCard — compact chip with View and Download actions.
+// Full brief rendering moved to Action Center.
 
-import { useState } from 'react'
 import type { ResearchBrief } from '@prism/shared'
+import type { ActionCenterMode } from './types'
+import { downloadBrief } from '../../utils/download-brief'
 
 interface ResearchBriefCardProps {
   readonly data: unknown
+  readonly onActionCenterMode?: (mode: ActionCenterMode) => void
 }
 
 function formatDollar(n: number): string {
@@ -14,46 +15,44 @@ function formatDollar(n: number): string {
   return `${sign}$${Math.abs(n).toLocaleString()}`
 }
 
-export function ResearchBriefCard({ data }: ResearchBriefCardProps) {
+export function ResearchBriefCard({ data, onActionCenterMode }: ResearchBriefCardProps) {
   const brief = data as ResearchBrief
-  const [expanded, setExpanded] = useState(false)
+
+  function handleView() {
+    onActionCenterMode?.({ mode: 'research_brief', brief })
+  }
+
+  function handleDownload() {
+    downloadBrief(brief)
+  }
 
   return (
-    <div className="chat-card chat-card--research-brief">
-      <button
-        className="chat-card__expand-trigger"
-        onClick={() => setExpanded((prev) => !prev)}
-        aria-expanded={expanded}
-      >
-        <div className="chat-card__brief-preview">
-          <span className="chat-card__brief-title">Research Brief</span>
-          <span className="chat-card__quality-badge">
-            Quality: {(brief.qualityScore * 100).toFixed(0)}%
-          </span>
-        </div>
-        <div className="chat-card__brief-impact">
-          <span>
-            Impact: {formatDollar(brief.impactRange.low)} to {formatDollar(brief.impactRange.high)}
-          </span>
-          <span className="chat-card__chevron">{expanded ? '\u25B2' : '\u25BC'}</span>
-        </div>
-      </button>
-
-      {expanded && (
-        <div className="chat-card__brief-full">
-          {brief.sections.map((section, i) => (
-            <div key={i} className="chat-card__brief-section">
-              <h5>{section.title}</h5>
-              <div className="chat-card__brief-content">
-                {section.content.split('\n').map((line, j) => (
-                  <p key={j}>{line}</p>
-                ))}
-              </div>
-            </div>
-          ))}
-          <div className="chat-card__disclaimer">{brief.disclaimer}</div>
-        </div>
-      )}
+    <div className="chat-card chat-card--compact research-brief-chip">
+      <span className="research-brief-chip__icon" aria-hidden="true">&#128196;</span>
+      <span className="research-brief-chip__title">Research Brief</span>
+      <div className="research-brief-chip__meta">
+        <span>Quality: {(brief.qualityScore * 100).toFixed(0)}%</span>
+        <span className="research-brief-chip__meta-divider">|</span>
+        <span>
+          Impact: {formatDollar(brief.impactRange.low)} to {formatDollar(brief.impactRange.high)}
+        </span>
+      </div>
+      <div className="research-brief-chip__actions">
+        <button
+          type="button"
+          className="research-brief-chip__btn"
+          onClick={handleView}
+        >
+          View
+        </button>
+        <button
+          type="button"
+          className="research-brief-chip__btn"
+          onClick={handleDownload}
+        >
+          Download &darr;
+        </button>
+      </div>
     </div>
   )
 }

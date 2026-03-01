@@ -13,12 +13,16 @@ import type {
   MarketDataBundle,
   CalibratedHoldingImpact,
   Recommendation,
+  RecommendationAction,
   HoldingImpactEstimate,
   ScenarioPreference,
   UserExpectations,
   Signal,
   DollarRange,
 } from '@prism/shared'
+import type { ThinkingCallback } from './types.js'
+import { RecommendationActionSchema } from '@prism/shared'
+import { z } from 'zod'
 import { calibrateImpact } from './calibration.js'
 import { createGeminiChatModel } from '../utils/gemini-chat-model'
 
@@ -154,6 +158,10 @@ async function generateRecommendations(params: {
     maxOutputTokens: 2048,
   })
 
+  const holdingSummary = calibratedImpacts
+    .map((h) => `${h.ticker} (${h.name}): $${h.holdingValueCad.toLocaleString()}, 1M impact: $${h.impact['1M']?.mid ?? 0}`)
+    .join('\n  ')
+
   const prompt = `You are a Fund Manager generating recommendation options for a portfolio.
 
 SIGNAL: ${signal.headline}
@@ -162,21 +170,27 @@ TOTAL 1-MONTH IMPACT: $${totalMid.toLocaleString()} CAD
 STRESS TEST: Base: $${stressTest.baseCase.mid}, Downside: $${stressTest.downside.mid}, Tail: $${stressTest.tailRisk.mid}
 RISK TOLERANCE: ${riskProfile.riskTolerance} (score: ${riskProfile.riskScore}/100)
 
+HOLDINGS:
+  ${holdingSummary}
+
 Generate exactly 3 recommendation options as JSON array:
-1. "Do nothing" — accept the risk. Cost: $0. Show the estimated cost of inaction.
+1. "Do nothing" — accept the risk. Cost: $0. Show the estimated cost of inaction. No actions array.
 2. Light protection — minimal intervention appropriate for this risk level.
 3. Balanced response — moderate protection.
 
 For ${riskProfile.riskTolerance} risk tolerance, ${riskProfile.riskTolerance === 'high' ? 'be more relaxed about smaller risks' : riskProfile.riskTolerance === 'low' ? 'emphasize protection even for moderate risks' : 'balance cost and protection'}.
 
 Each option needs: id, title, description, estimatedCost, riskReduction, tradeoffs[], isDoNothing.
-Use plain English. Dollar amounts, not percentages.
+For non-do-nothing options, also include an "actions" array with specific ticker-level adjustments:
+  { "ticker": "VFV", "name": "Vanguard S&P 500", "action": "reduce"|"increase"|"hold"|"add_new"|"remove", "currentValueCad": 7000, "suggestedChangePct": -20, "suggestedChangeCad": -1400, "rationale": "Reduce US large-cap concentration" }
+
+Use plain English. Dollar amounts, not percentages (except suggestedChangePct).
 
 Respond with a JSON array:
 [
   { "id": "do-nothing", "title": "Do nothing", "description": "...", "estimatedCost": "$0", "riskReduction": "None — accept ~$${Math.abs(totalMid)} risk", "tradeoffs": ["..."], "isDoNothing": true },
-  { "id": "light", "title": "...", "description": "...", "estimatedCost": "...", "riskReduction": "...", "tradeoffs": ["..."], "isDoNothing": false },
-  { "id": "balanced", "title": "...", "description": "...", "estimatedCost": "...", "riskReduction": "...", "tradeoffs": ["..."], "isDoNothing": false }
+  { "id": "light", "title": "...", "description": "...", "estimatedCost": "...", "riskReduction": "...", "tradeoffs": ["..."], "isDoNothing": false, "actions": [...] },
+  { "id": "balanced", "title": "...", "description": "...", "estimatedCost": "...", "riskReduction": "...", "tradeoffs": ["..."], "isDoNothing": false, "actions": [...] }
 ]`
 
   const response = await model.invoke([new HumanMessage(prompt)])
@@ -187,7 +201,22 @@ Respond with a JSON array:
       : ''
 
   try {
-    const parsed = JSON.parse(extractJson(responseText)) as Recommendation[]
+    const raw = JSON.parse(extractJson(responseText)) as Record<string, unknown>[]
+    const actionsArraySchema = z.array(RecommendationActionSchema)
+
+    const parsed: Recommendation[] = raw.map((rec) => {
+      const actionsResult = actionsArraySchema.safeParse(rec.actions)
+      return {
+        id: String(rec.id ?? ''),
+        title: String(rec.title ?? ''),
+        description: String(rec.description ?? ''),
+        estimatedCost: String(rec.estimatedCost ?? '$0'),
+        riskReduction: String(rec.riskReduction ?? ''),
+        tradeoffs: Array.isArray(rec.tradeoffs) ? rec.tradeoffs.map(String) : [],
+        isDoNothing: Boolean(rec.isDoNothing),
+        ...(actionsResult.success ? { actions: actionsResult.data } : {}),
+      }
+    })
     return parsed
   } catch {
     // Fallback recommendations if LLM fails
@@ -237,6 +266,7 @@ export async function runFundManager(params: {
   readonly userExpectations?: UserExpectations
   readonly scenarioPreference?: ScenarioPreference
   readonly judgeFeedback?: string
+  readonly onThinking?: ThinkingCallback
 }): Promise<FundManagerVerdict> {
   const {
     signal,
@@ -250,9 +280,11 @@ export async function runFundManager(params: {
     holdingNames,
     userExpectations,
     scenarioPreference,
+    onThinking,
   } = params
 
   // Steps 1-3: Calibrate all holding impacts
+  onThinking?.('verdict', 'Calibrating dollar impacts across all holdings...')
   const calibratedImpacts = calibrateHoldings({
     debateResolution,
     riskChallenge,
@@ -265,6 +297,7 @@ export async function runFundManager(params: {
   })
 
   // Step 4: Generate recommendations
+  onThinking?.('verdict', 'Generating recommendation options...')
   const recommendations = await generateRecommendations({
     calibratedImpacts,
     riskProfile,

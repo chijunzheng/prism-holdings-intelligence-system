@@ -140,6 +140,18 @@ export const JudgeVerdictSchema = z.object({
 })
 export type JudgeVerdict = z.infer<typeof JudgeVerdictSchema>
 
+// ── Recommendation Action (ticker-level adjustments) ─────────
+export const RecommendationActionSchema = z.object({
+  ticker: z.string(),
+  name: z.string(),
+  action: z.enum(['reduce', 'increase', 'hold', 'add_new', 'remove']),
+  currentValueCad: z.number().optional(),
+  suggestedChangePct: z.number().optional(),
+  suggestedChangeCad: z.number().optional(),
+  rationale: z.string(),
+})
+export type RecommendationAction = z.infer<typeof RecommendationActionSchema>
+
 // ── Recommendation ───────────────────────────────────────────
 export const RecommendationSchema = z.object({
   id: z.string(),
@@ -149,6 +161,7 @@ export const RecommendationSchema = z.object({
   riskReduction: z.string(),
   tradeoffs: z.array(z.string()),
   isDoNothing: z.boolean(),
+  actions: z.array(RecommendationActionSchema).optional(),
 })
 export type Recommendation = z.infer<typeof RecommendationSchema>
 

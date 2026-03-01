@@ -20,11 +20,8 @@ function loadJson<T>(path: string, parser: { parse: (data: unknown) => T }): T {
 // ── Portfolios ─────────────────────────────────────────────
 
 const PORTFOLIO_FILES = [
-  'portfolios/demo-primary.json',
-  'portfolios/demo-young-investor.json',
-  'portfolios/demo-pre-retiree.json',
-  'portfolios/marcus-01.json',
   'portfolios/sarah-01.json',
+  'portfolios/marcus-01.json',
   'portfolios/diana-01.json',
 ] as const
 

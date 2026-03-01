@@ -18,6 +18,67 @@ function extractJson(text: string): string {
   return text
 }
 
+function extractResponseText(content: unknown): string {
+  if (typeof content === 'string') return content
+
+  if (Array.isArray(content)) {
+    return content
+      .map((chunk) => {
+        if (typeof chunk !== 'object' || chunk === null || !('text' in chunk)) return ''
+        const text = (chunk as { readonly text?: unknown }).text
+        return typeof text === 'string' ? text : ''
+      })
+      .join('')
+  }
+
+  return ''
+}
+
+type RiskChallengeParseOutcome =
+  | { readonly kind: 'ok', readonly data: RiskChallenge }
+  | { readonly kind: 'parse_error', readonly snippet: string }
+  | { readonly kind: 'validation_error', readonly message: string }
+
+function parseRiskChallenge(responseText: string): RiskChallengeParseOutcome {
+  const jsonStr = extractJson(responseText)
+  let parsed: unknown
+
+  try {
+    parsed = JSON.parse(jsonStr)
+  } catch {
+    return { kind: 'parse_error', snippet: jsonStr.slice(0, 300) }
+  }
+
+  const result = RiskChallengeSchema.safeParse(parsed)
+  if (!result.success) {
+    return { kind: 'validation_error', message: result.error.message }
+  }
+
+  return { kind: 'ok', data: result.data }
+}
+
+function buildRetryPrompt(originalPrompt: string, failure: RiskChallengeParseOutcome): string {
+  let issue = 'Unknown failure'
+  if (failure.kind === 'parse_error') issue = `JSON parsing failed:\n${failure.snippet}`
+  if (failure.kind === 'validation_error') issue = `Schema validation failed:\n${failure.message}`
+
+  return [
+    'Your previous response could not be accepted.',
+    issue,
+    'Respond with ONLY valid JSON. No markdown, no code fences, no commentary.',
+    '',
+    `Original task:\n${originalPrompt}`,
+  ].join('\n')
+}
+
+function fallbackRiskChallenge(reason: string): RiskChallenge {
+  return {
+    challengedAssumptions: [],
+    recommendedConfidenceAdjustment: -0.1,
+    overallAssessment: `Fallback risk challenge used due to JSON parsing/validation failure: ${reason.slice(0, 220)}`,
+  }
+}
+
 function buildChallengerPrompt(params: {
   readonly analystAssessments: readonly AnalystAssessment[]
   readonly humanCorrection?: string
@@ -86,43 +147,30 @@ export async function runAssumptionsChallenger(params: {
     model: 'gemini-2.5-flash',
     temperature: 0.4, // Slightly higher for creative challenge-finding
     maxOutputTokens: 4096,
+    json: true,
   })
 
   const prompt = buildChallengerPrompt(params)
-  const response = await model.invoke([new HumanMessage(prompt)])
-  const responseText = typeof response.content === 'string'
-    ? response.content
-    : Array.isArray(response.content)
-      ? response.content.map((c) => ('text' in c ? c.text : '')).join('')
-      : ''
+  let workingPrompt = prompt
+  let lastFailure: RiskChallengeParseOutcome | null = null
 
-  const jsonStr = extractJson(responseText)
-  const parsed = JSON.parse(jsonStr)
-  const result = RiskChallengeSchema.safeParse(parsed)
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await model.invoke([new HumanMessage(workingPrompt)])
+    const parsed = parseRiskChallenge(extractResponseText(response.content))
+    if (parsed.kind === 'ok') return parsed.data
 
-  if (result.success) {
-    return result.data
+    lastFailure = parsed
+    if (attempt === 0) {
+      workingPrompt = buildRetryPrompt(prompt, parsed)
+    }
   }
 
-  // Retry once
-  const retryPrompt =
-    `Your response had validation errors:\n${result.error.message}\n\n` +
-    `Fix and respond with valid JSON. Original task:\n${prompt}`
+  const reason =
+    lastFailure?.kind === 'parse_error'
+      ? lastFailure.snippet
+      : lastFailure?.kind === 'validation_error'
+        ? lastFailure.message
+        : 'unknown failure'
 
-  const retryResponse = await model.invoke([new HumanMessage(retryPrompt)])
-  const retryText = typeof retryResponse.content === 'string'
-    ? retryResponse.content
-    : Array.isArray(retryResponse.content)
-      ? retryResponse.content.map((c) => ('text' in c ? c.text : '')).join('')
-      : ''
-
-  const retryJson = extractJson(retryText)
-  const retryParsed = JSON.parse(retryJson)
-  const retryResult = RiskChallengeSchema.safeParse(retryParsed)
-
-  if (retryResult.success) {
-    return retryResult.data
-  }
-
-  throw new Error(`Assumptions Challenger failed validation after retry: ${retryResult.error.message}`)
+  return fallbackRiskChallenge(reason)
 }

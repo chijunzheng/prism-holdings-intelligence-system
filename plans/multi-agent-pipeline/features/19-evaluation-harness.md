@@ -1,7 +1,7 @@
 # Feature: Evaluation Harness
 
 **ID:** 19
-**Status:** ⬜ Not Started
+**Status:** 🔄 In Progress
 **Priority:** Medium
 **Estimated Complexity:** High
 **Dependencies:** 13 (Pipeline Orchestrator)
@@ -13,8 +13,9 @@ Build a benchmarking tool that runs the multi-agent pipeline against 25 real his
 
 ## Acceptance Criteria
 
-- [ ] 25 historical events curated with dates, descriptions, and source URLs
-- [ ] Ground truth: actual 5-day returns for all 6 ETFs from Yahoo Finance
+- [x] 25 historical events curated with dates, descriptions, and source URLs
+- [x] Ground truth: actual 5-day returns for all 6 ETFs from Yahoo Finance
+- [x] 25-item Q&A dataset with grounded answers (overall + per-ticker direction)
 - [ ] Runs multi-agent pipeline against each event (skipCheckpoints: true)
 - [ ] Runs single-agent baseline (existing single Gemini call) against each event
 - [ ] Computes directional accuracy per system
@@ -159,6 +160,8 @@ Categories:
 ## Implementation Checklist
 
 - [ ] Curate 25 events with dates and descriptions
+- [x] Create 25 Q&A prompts from historical events
+- [x] Create grounded-answer key (overall + per-ticker direction)
 - [ ] Fetch and cache historical prices from Yahoo Finance
 - [ ] Compute actual 5-day returns (CAR) for each event
 - [ ] Implement evaluation harness

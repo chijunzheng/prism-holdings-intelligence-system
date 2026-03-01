@@ -1,7 +1,10 @@
 import type { SignalImpactDeltaData } from './types'
+import type { ActionCenterMode } from './types'
 
 interface SignalImpactDeltaCardProps {
   readonly data: SignalImpactDeltaData
+  readonly onFollowUp?: (query: string) => void
+  readonly onActionCenterMode?: (mode: ActionCenterMode) => void
 }
 
 function formatCad(value: number): string {
@@ -10,7 +13,14 @@ function formatCad(value: number): string {
   return `${prefix}$${rounded.toLocaleString()}`
 }
 
-export function SignalImpactDeltaCard({ data }: SignalImpactDeltaCardProps) {
+export function SignalImpactDeltaCard({ data, onFollowUp, onActionCenterMode }: SignalImpactDeltaCardProps) {
+  function handleHoldingClick(holding: SignalImpactDeltaData['affectedHoldings'][number]) {
+    if (onActionCenterMode) {
+      onActionCenterMode({ mode: 'holding_detail', ticker: holding.ticker, holdingData: holding })
+    }
+    onFollowUp?.(`How exactly does this affect my ${holding.ticker}?`)
+  }
+
   return (
     <div className="chat-card chat-card--impact-delta">
       <div className="chat-card__impact-header">
@@ -22,7 +32,14 @@ export function SignalImpactDeltaCard({ data }: SignalImpactDeltaCardProps) {
       <p className="chat-card__description">{data.summary}</p>
       <div className="chat-card__impact-list">
         {data.affectedHoldings.map((holding) => (
-          <div key={holding.ticker} className="chat-card__impact-row">
+          <div
+            key={holding.ticker}
+            className="chat-card__impact-row chat-card__impact-row--clickable"
+            role="button"
+            tabIndex={0}
+            onClick={() => handleHoldingClick(holding)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleHoldingClick(holding) }}
+          >
             <div className="chat-card__impact-holding">
               <span className="chat-card__impact-ticker">{holding.ticker}</span>
               <span className="chat-card__impact-name">{holding.name}</span>

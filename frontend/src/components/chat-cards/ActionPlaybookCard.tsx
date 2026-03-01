@@ -1,16 +1,29 @@
 import { useEffect, useState } from 'react'
+import type { RecommendationAction } from '@prism/shared'
 import type { ActionPlaybookData } from './types'
+import { TickerIcon } from '../common/TickerIcon'
 
 interface ActionPlaybookCardProps {
   readonly data: ActionPlaybookData
   readonly onSelect?: (id: string) => void
+  readonly onSavePlan?: (id: string) => void
 }
 
-export function ActionPlaybookCard({ data, onSelect }: ActionPlaybookCardProps) {
+const ACTION_LABELS: Record<RecommendationAction['action'], string> = {
+  reduce: 'Reduce',
+  increase: 'Increase',
+  hold: 'Hold',
+  add_new: 'Add',
+  remove: 'Remove',
+}
+
+export function ActionPlaybookCard({ data, onSelect, onSavePlan }: ActionPlaybookCardProps) {
   const [doneSteps, setDoneSteps] = useState<readonly string[]>([])
+  const [isSaved, setIsSaved] = useState(false)
 
   useEffect(() => {
     setDoneSteps([])
+    setIsSaved(false)
   }, [data.recommendationId])
 
   const completedCount = doneSteps.length
@@ -62,6 +75,40 @@ export function ActionPlaybookCard({ data, onSelect }: ActionPlaybookCardProps) 
           )
         })}
       </div>
+
+      {data.actions && data.actions.length > 0 && (
+        <div className="chat-card__playbook-actions">
+          <h5 className="chat-card__playbook-actions-title">Ticker Adjustments</h5>
+          {data.actions.map((action) => (
+            <div key={action.ticker} className="chat-card__action-item">
+              <TickerIcon ticker={action.ticker} size={20} />
+              <span className={`chat-card__action-verb chat-card__action-verb--${action.action}`}>
+                {ACTION_LABELS[action.action]}
+              </span>
+              <span className="chat-card__action-ticker">{action.ticker}</span>
+              {action.suggestedChangeCad !== undefined && (
+                <span className="chat-card__action-amount">
+                  {action.suggestedChangeCad >= 0 ? '+' : ''}${Math.abs(action.suggestedChangeCad).toLocaleString()}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {onSavePlan && data.actions && data.actions.length > 0 && (
+        <button
+          type="button"
+          className={`chat-card__save-plan-btn ${isSaved ? 'chat-card__save-plan-btn--saved' : ''}`}
+          onClick={() => {
+            onSavePlan(data.recommendationId)
+            setIsSaved(true)
+          }}
+          disabled={isSaved}
+        >
+          {isSaved ? 'Saved to Watchlist' : 'Save to Watchlist'}
+        </button>
+      )}
 
       {data.alternatives.length > 0 && (
         <div className="chat-card__playbook-alternatives">

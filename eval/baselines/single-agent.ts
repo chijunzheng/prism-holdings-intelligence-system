@@ -4,6 +4,7 @@
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai'
 import { z } from 'zod'
 import type { Signal, Portfolio, ExposureMap } from '@prism/shared'
+import { formatExposureSummary } from './exposure-summary'
 
 const SingleAgentResponseSchema = z.object({
   direction: z.enum(['positive', 'negative', 'mixed']),
@@ -47,9 +48,7 @@ export async function runSingleAgentBaseline(params: {
     .map((h) => `${h.ticker}: $${h.valueCad.toLocaleString()}`)
     .join('\n')
 
-  const exposureSummary = Object.entries(exposureMap)
-    .map(([category, holdings]) => `${category}: ${holdings.map((h) => h.ticker).join(', ')}`)
-    .join('\n')
+  const exposureSummary = formatExposureSummary(exposureMap)
 
   const prompt = `Signal: ${signal.headline}
 Description: ${signal.description}

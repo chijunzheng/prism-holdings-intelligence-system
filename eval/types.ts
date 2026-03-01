@@ -30,6 +30,25 @@ export interface HistoricalEvent {
   readonly actualReturns5d: Readonly<Record<string, number>>
 }
 
+// ── Q&A Ground Truth Dataset ───────────────────────────────
+export interface GroundTruthAnswer {
+  readonly overallDirection: 'positive' | 'negative' | 'neutral'
+  readonly perTickerDirection: Readonly<Record<string, 'positive' | 'negative' | 'neutral'>>
+  readonly rationale: string
+  readonly sourceUrl: string
+}
+
+export interface QaExample {
+  readonly id: string
+  readonly type: EventType
+  readonly date: string // YYYY-MM-DD
+  readonly query: string
+  readonly eventDescription: string
+  readonly sourceUrl: string
+  readonly actualReturns5d: Readonly<Record<string, number>>
+  readonly groundedAnswer: GroundTruthAnswer
+}
+
 // ── Per-Event Evaluation Result ────────────────────────────
 export interface EvalResult {
   readonly eventId: string

@@ -41,6 +41,7 @@ import {
 } from './background-signal-checker'
 // strategy-service, plan-copilot-service, workspace-session-service removed — legacy routes deleted
 import type { ChatMessage as AgentChatMessage } from '@prism/agents/src/chat-agent/types'
+import { parseStructuredResponse } from './structured-response-parser'
 // ADK imports removed — adk directory no longer exists
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -207,8 +208,12 @@ app.use('/api/:resource/:userId', (req, _res, next) => {
 // ── v2 Routes (multi-agent pipeline) ──────────────────────
 import { analyzeRouter } from './routes/analyze'
 import { sessionsRouter } from './routes/sessions'
+import { candidatesRouter } from './routes/candidates'
+import { chatRouter } from './routes/chat-router'
 app.use('/api/v2/analyze', analyzeRouter)
 app.use('/api/v2/sessions', sessionsRouter)
+app.use('/api/v2/candidates', candidatesRouter)
+app.use('/api/v2/chat', chatRouter)
 
 // Health check
 app.get('/api/health', (_req, res) => {
@@ -1396,8 +1401,28 @@ app.post('/api/chat/:userId/ask-prism', async (req, res) => {
 
     const history = normalizeAskPrismHistory(body.history)
 
+    // Collect full response to parse suggestions before streaming
+    let fullText = ''
     for await (const chunk of streamAskPrismResponse(context, history, body.message, sessionScope)) {
-      res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`)
+      fullText += chunk
+    }
+
+    // Try structured JSON parse; fall back to text + suggestion extraction
+    const parsed = parseStructuredResponse(fullText)
+
+    if (parsed.kind === 'structured') {
+      res.write(`data: ${JSON.stringify({ structured: parsed.data })}\n\n`)
+    } else {
+      // Stream the clean text in chunks
+      const CHUNK_SIZE = 96
+      for (let i = 0; i < parsed.text.length; i += CHUNK_SIZE) {
+        res.write(`data: ${JSON.stringify({ text: parsed.text.slice(i, i + CHUNK_SIZE) })}\n\n`)
+      }
+
+      // Send suggestions as a separate SSE event
+      if (parsed.suggestions.length > 0) {
+        res.write(`data: ${JSON.stringify({ suggestions: [...parsed.suggestions] })}\n\n`)
+      }
     }
 
     res.write('data: [DONE]\n\n')

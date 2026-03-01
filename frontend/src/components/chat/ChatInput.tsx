@@ -12,8 +12,8 @@ export function ChatInput({
   onSend,
   disabled = false,
   initialValue,
-  placeholder = 'Ask Prism about your portfolio and signals...',
-  minRows = 2,
+  placeholder = 'How can I help you today?',
+  minRows = 1,
 }: ChatInputProps) {
   const [value, setValue] = useState('')
 

@@ -10,6 +10,10 @@ export * from './types/notification'
 export * from './types/strategy'
 export * from './types/ask-prism'
 export * from './types/multi-agent'
+export * from './types/candidate'
+export * from './types/structured-response'
+export * from './types/router'
+export * from './types/personal-context'
 
 // Constants
 export * from './constants/temporal'

@@ -1,13 +1,25 @@
-// DebateSummaryCard — shows Bull/Bear debate outcome with agreements and disagreements.
+// DebateSummaryCard — shows Bull/Bear debate outcome with clickable disagreements.
+// "View Full Debate" opens transcript in Action Center.
 
 import type { DebateResolution } from '@prism/shared'
+import type { ActionCenterMode } from './types'
 
 interface DebateSummaryCardProps {
   readonly data: unknown
+  readonly onFollowUp?: (query: string) => void
+  readonly onActionCenterMode?: (mode: ActionCenterMode) => void
 }
 
-export function DebateSummaryCard({ data }: DebateSummaryCardProps) {
+export function DebateSummaryCard({ data, onFollowUp, onActionCenterMode }: DebateSummaryCardProps) {
   const debate = data as DebateResolution
+
+  function handleDisagreementClick(disagreement: string) {
+    onFollowUp?.(`Tell me more about: ${disagreement}`)
+  }
+
+  function handleViewTranscript() {
+    onActionCenterMode?.({ mode: 'debate_transcript', debate })
+  }
 
   return (
     <div className="chat-card chat-card--debate">
@@ -45,10 +57,31 @@ export function DebateSummaryCard({ data }: DebateSummaryCardProps) {
         <div className="chat-card__unresolved">
           <h5>Unresolved</h5>
           <ul>
-            {debate.unresolvedDisagreements.map((d, i) => <li key={i}>{d}</li>)}
+            {debate.unresolvedDisagreements.map((d, i) => (
+              <li
+                key={i}
+                className="chat-card__unresolved-item"
+                role="button"
+                tabIndex={0}
+                onClick={() => handleDisagreementClick(d)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleDisagreementClick(d) }}
+              >
+                {d}
+              </li>
+            ))}
           </ul>
         </div>
       )}
+
+      <div className="chat-card__debate-footer">
+        <button
+          type="button"
+          className="chat-card__btn chat-card__btn--secondary"
+          onClick={handleViewTranscript}
+        >
+          View Full Debate
+        </button>
+      </div>
     </div>
   )
 }

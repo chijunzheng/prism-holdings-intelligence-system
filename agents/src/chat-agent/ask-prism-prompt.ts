@@ -1,12 +1,29 @@
 import type { AskPrismContext } from '@prism/shared'
 import { buildSystemPrompt } from './prompts'
 
+// ── Token Budget (1 token ≈ 4 chars) ─────────────────────────
+const SECTION_BUDGETS = {
+  portfolioHoldings: 500,  // Top 8 holdings by value
+  exposureBreakdown: 400,  // Top 6 exposures
+  activeSignals: 300,      // Top 3 signals
+  signalDetail: 600,       // Optional
+  planContext: 500,        // Optional
+  personalContext: 500,    // Already budgeted
+} as const
+
+function truncateToTokenBudget(text: string, budgetTokens: number): string {
+  const maxChars = budgetTokens * 4
+  if (text.length <= maxChars) return text
+  return text.slice(0, maxChars - 3) + '...'
+}
+
 /**
  * Builds the unified Ask Prism prompt with all available context layers.
  * Formats holdings, exposures, signals, and optional signal/plan details
  * into a comprehensive, human-readable context block.
+ * Applies token budgets per section to prevent unbounded growth.
  */
-export function buildAskPrismPrompt(context: AskPrismContext): string {
+export function buildAskPrismPrompt(context: AskPrismContext, personalContextPrompt?: string): string {
   const sections: string[] = [buildSystemPrompt(context.profile), '']
 
   sections.push('## SESSION CONTEXT')
@@ -38,21 +55,31 @@ export function buildAskPrismPrompt(context: AskPrismContext): string {
   sections.push('## PORTFOLIO CONTEXT')
   sections.push('')
 
-  // All holdings with weights
+  // Top holdings by value (budgeted)
   sections.push('### Holdings')
   const totalPortfolioValue = context.holdings.reduce((sum, h) => sum + h.valueCad, 0)
-  const holdingsList = context.holdings
+  const sortedHoldings = [...context.holdings].sort((a, b) => b.valueCad - a.valueCad).slice(0, 8)
+  const holdingsList = sortedHoldings
     .map((h) => {
       const weight = totalPortfolioValue > 0 ? (h.valueCad / totalPortfolioValue) * 100 : 0
       return `- ${h.ticker} (${h.name}): $${h.valueCad.toLocaleString('en-CA', { maximumFractionDigits: 0 })} (${weight.toFixed(1)}%)`
     })
     .join('\n')
-  sections.push(holdingsList || '(no holdings)')
+  const holdingsText = holdingsList || '(no holdings)'
+  sections.push(truncateToTokenBudget(
+    context.holdings.length > 8
+      ? `${holdingsText}\n(+${context.holdings.length - 8} more holdings)`
+      : holdingsText,
+    SECTION_BUDGETS.portfolioHoldings,
+  ))
   sections.push('')
 
-  // Complete exposure breakdown
+  // Top exposures (budgeted)
   sections.push('### Exposure Breakdown')
-  const exposureList = context.exposureMap.exposures
+  const topExposures = [...context.exposureMap.exposures]
+    .sort((a, b) => b.percentage - a.percentage)
+    .slice(0, 6)
+  const exposureList = topExposures
     .map((e) => {
       const contributors = e.contributingHoldings
         .map((ch) => `${ch.ticker} (${ch.contribution.toFixed(1)}%)`)
@@ -60,7 +87,7 @@ export function buildAskPrismPrompt(context: AskPrismContext): string {
       return `- **${e.category}**: ${e.percentage.toFixed(1)}% ($${e.valueCad.toLocaleString('en-CA', { maximumFractionDigits: 0 })}) — via ${contributors}`
     })
     .join('\n')
-  sections.push(exposureList || '(no exposures)')
+  sections.push(truncateToTokenBudget(exposureList || '(no exposures)', SECTION_BUDGETS.exposureBreakdown))
   sections.push('')
 
   // Concentration warnings
@@ -83,16 +110,20 @@ export function buildAskPrismPrompt(context: AskPrismContext): string {
     sections.push('')
   }
 
-  // Active signals summary
+  // Active signals summary (budgeted, top 3)
   if (context.activeSignals.length > 0) {
     sections.push('### Active Market Signals')
-    const signalsList = context.activeSignals
+    const topSignals = context.activeSignals.slice(0, 3)
+    const signalsList = topSignals
       .map((s) => {
         const affectedExps = s.affectedExposures.join(', ')
         return `- **${s.headline}** (${s.urgency}, ${s.sentiment}): Affects ${affectedExps}`
       })
       .join('\n')
-    sections.push(signalsList)
+    const signalsText = context.activeSignals.length > 3
+      ? `${signalsList}\n(+${context.activeSignals.length - 3} more signals)`
+      : signalsList
+    sections.push(truncateToTokenBudget(signalsText, SECTION_BUDGETS.activeSignals))
     sections.push('')
   }
 
@@ -272,10 +303,64 @@ export function buildAskPrismPrompt(context: AskPrismContext): string {
     }
   }
 
-  sections.push('TASK:')
-  sections.push("Answer the user's question using the context above. Keep responses concise and practical.")
-  sections.push('Reference specific holdings, exposures, or plan details when relevant.')
-  sections.push('Avoid markdown headings.')
+  // Personal context (corrections, analysis memory, assertions)
+  if (personalContextPrompt) {
+    sections.push(personalContextPrompt)
+    sections.push('')
+  }
+
+  sections.push('RESPONSE FORMAT:')
+  sections.push('If the question is about the user\'s portfolio, holdings, signals, exposure, risk, or market impact — respond with JSON inside ```json fences.')
+  sections.push('If the question is general knowledge or conversational — respond in plain text with >> follow-up suggestions as before.')
+  sections.push('')
+  sections.push('PLAIN TEXT FALLBACK:')
+  sections.push('For general/conversational questions only. Keep responses concise. Avoid markdown headings.')
+  sections.push('After your main response, include 2-3 follow-up suggestions prefixed with ">> ".')
+  sections.push('')
+  sections.push('JSON SCHEMA:')
+  sections.push('{ "sections": [...], "followUps": [...] }')
+  sections.push('')
+  sections.push('SECTION TYPES:')
+  sections.push('- summary: { type: "summary", sentiment: "positive"|"negative"|"mixed"|"neutral", headline: string, body?: string, stats?: [{ label, value, sentiment? }] }')
+  sections.push('- signal_item: { type: "signal_item", sentiment, headline, body, tickers?: string[], exposureAmount?: string, signalId?: string, sourceTitle?: string, sourceUrl?: string }')
+  sections.push('- holding_item: { type: "holding_item", ticker, name, value, detail?: string, relatedSignals?: string[] }')
+  sections.push('- text: { type: "text", body: string } (markdown paragraph)')
+  sections.push('- insight: { type: "insight", icon: "tip"|"warning"|"info"|"positive", title?: string, body, actionLabel?: string, actionPrompt?: string }')
+  sections.push('- metric_row: { type: "metric_row", metrics: [{ label, value, sentiment? }] }')
+  sections.push('- group: { type: "group", title, defaultOpen: boolean, sections: [...nested sections] }')
+  sections.push('')
+  sections.push('followUps: [{ text: string, priority: "primary"|"secondary" }]')
+  sections.push('')
+  sections.push('GUIDELINES:')
+  sections.push('- Always start with a "summary" section answering "am I okay?" in one line')
+  sections.push('- Use signal_item for each market signal — include signalId from context if available')
+  sections.push('- Use holding_item when discussing specific holdings — use dollar amounts')
+  sections.push('- Use insight for key personalized takeaways or warnings')
+  sections.push('- Use group to organize signals by theme (e.g. "Tailwinds" / "Headwinds" / "Watch closely")')
+  sections.push('- Use text sparingly for connecting narrative between structured sections')
+  sections.push('- 2-3 followUps, mark the most actionable as "primary"')
+  sections.push('- Keep all text concise, plain English, dollar amounts over percentages')
+  sections.push('- Reference specific holdings, exposures, or plan details when relevant')
+  sections.push('')
+  sections.push('EXAMPLE (signals overview):')
+  sections.push('```json')
+  sections.push(JSON.stringify({
+    sections: [
+      { type: 'summary', sentiment: 'mixed', headline: 'Your portfolio has some headwinds, but nothing urgent', stats: [{ label: 'Net impact (1M)', value: '-$180' }, { label: 'Active signals', value: '3' }] },
+      { type: 'group', title: 'Headwinds', defaultOpen: true, sections: [
+        { type: 'signal_item', sentiment: 'negative', headline: 'Bank of Canada rate decision', body: 'A 25bps hike could pressure your bank holdings short-term.', tickers: ['ZEB'], exposureAmount: '$4,200' },
+      ] },
+      { type: 'group', title: 'Tailwinds', defaultOpen: true, sections: [
+        { type: 'signal_item', sentiment: 'positive', headline: 'US tech earnings beat expectations', body: 'Strong results from mega-caps support your VFV position.', tickers: ['VFV'], exposureAmount: '$12,500' },
+      ] },
+      { type: 'insight', icon: 'tip', title: 'Net effect is smaller than it looks', body: 'The rate hike headwind and tech tailwind partially offset each other across your portfolio.' },
+    ],
+    followUps: [
+      { text: 'Run a full portfolio review', priority: 'primary' },
+      { text: 'How does the rate decision affect my banks?', priority: 'secondary' },
+    ],
+  }, null, 2))
+  sections.push('```')
 
   return sections.join('\n')
 }

@@ -10,6 +10,8 @@ import type {
   ResearchBrief,
   PortfolioVerdict,
 } from '@prism/shared'
+import { createGeminiChatModel } from '@prism/agents/src/utils/gemini-chat-model'
+import { getGeminiFastModelName } from '@prism/agents/src/utils/env'
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -207,6 +209,57 @@ sessionsRouter.post('/:userId/:sessionId/messages', (req: Request, res: Response
 
   sessions.set(sessionId, updated)
   res.status(201).json({ success: true, data: message })
+})
+
+// POST /api/v2/sessions/:userId/:sessionId/generate-title — LLM-generated session title
+const GenerateTitleSchema = z.object({
+  message: z.string().min(1).max(2000),
+})
+
+sessionsRouter.post('/:userId/:sessionId/generate-title', async (req: Request, res: Response) => {
+  const { sessionId } = req.params
+  const session = sessions.get(sessionId)
+
+  if (!session) {
+    res.status(404).json({ success: false, error: 'Session not found' })
+    return
+  }
+
+  const parsed = GenerateTitleSchema.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ success: false, error: parsed.error.message })
+    return
+  }
+
+  try {
+    const model = createGeminiChatModel({
+      model: getGeminiFastModelName(),
+      temperature: 0.3,
+      maxOutputTokens: 30,
+    })
+
+    const response = await model.invoke([
+      {
+        role: 'user',
+        content: `Generate a short 3-6 word title for a financial analysis conversation that starts with this message: "${parsed.data.message}". Return only the title, no quotes or punctuation at the end.`,
+      },
+    ])
+
+    const raw = String(response.content ?? '').trim().replace(/^["']|["']$/g, '')
+    const title = raw.length > 0 ? raw.slice(0, 200) : session.title
+
+    const updated: AnalysisSession = {
+      ...session,
+      title,
+      updatedAt: new Date().toISOString(),
+    }
+    sessions.set(sessionId, updated)
+
+    res.json({ success: true, data: { title } })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Title generation failed'
+    res.status(500).json({ success: false, error: message })
+  }
 })
 
 // DELETE /api/v2/sessions/:userId/:sessionId — delete session

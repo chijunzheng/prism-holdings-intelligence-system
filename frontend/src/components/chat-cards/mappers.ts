@@ -33,7 +33,7 @@ function pickRecommendedRecommendation(
   })[0]
 }
 
-function buildPlaybookSteps(rec: Recommendation): ActionPlaybookData['steps'] {
+export function buildPlaybookSteps(rec: Recommendation): ActionPlaybookData['steps'] {
   const steps = [
     {
       id: 'confirm-scope',
@@ -100,6 +100,7 @@ export function mapActionPlaybookData(
     tradeoffs: recommended.tradeoffs,
     steps: buildPlaybookSteps(recommended),
     alternatives: verdict.recommendations.filter((rec) => rec.id !== recommended.id),
+    ...(recommended.actions ? { actions: recommended.actions } : {}),
   }
 }
 

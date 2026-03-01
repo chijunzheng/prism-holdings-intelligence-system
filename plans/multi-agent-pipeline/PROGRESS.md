@@ -1,6 +1,6 @@
 # Multi-Agent Pipeline — Progress Tracker
 
-**Last Updated:** 2026-02-28
+**Last Updated:** 2026-03-01 (Checkpoint & Thinking Visibility fixes)
 
 ## Phase 0: Project Setup + Plan Persistence
 - [x] Plan saved to `plans/multi-agent-pipeline/` (original plan in context)
@@ -133,6 +133,55 @@
 - [ ] Redis cache
 - [ ] Deploy to Cloud Run
 - [ ] Share URL
+
+## Hotfix: Checkpoint & Thinking Visibility (2026-03-01)
+**Issue:** User reported seeing nothing during pipeline execution — no checkpoints, no agent reasoning.
+**Root Cause:** 5 compounding bugs in event timing, message enrichment, and UI rendering.
+**Commit:** `b279ab3` — `fix: make checkpoints and agent thinking visible in pipeline UI`
+
+### Bugs Fixed
+1. **effectiveMode defaulting bug** (server/src/routes/analyze.ts:231)
+   - Both ternary branches returned `'quick'` instead of `'quick'` and `'guided'`
+   - Fix: `'quick' : 'guided'`
+
+2. **Thinking text invisible due to timing** (frontend/src/components/panels/ChatArea.tsx)
+   - SSE `agent_thinking` events arrive while target stage is still `pending`
+   - PipelineProgressCard only renders thinking on `active` stages
+   - Fix: Auto-promote `pending` → `active` in `updateThinkingText()` when thinking arrives
+   - Also show thinking on both `active` AND `pending` in PipelineProgressCard
+
+3. **No visible trail of agent reasoning** (frontend/src/components/panels/ChatArea.tsx)
+   - No ThinkingCard display on stage completion
+   - Fix: Insert ThinkingCard messages on substantive stage completion (analyst, debate, risk, verdict, judge)
+   - Define `THINKING_CARD_STAGES` set; filter progress events; insert chat message when substantive
+
+4. **onThinking messages too brief** (agents/src/**/*.ts)
+   - "macro analyst analyzing..." vs "macro analyst: evaluating signal impact on your holdings..."
+   - Fix: Enrich messages in run-analyst.ts, orchestrator.ts, debate-protocol.ts
+   - Pattern: `<agent>: <what they're doing> — <why it matters>`
+
+5. **summarizeNodeOutput messages generic** (agents/src/multi-agent/index.ts)
+   - "4 specialist analysts completed assessments" → "4 analysts (macro, fundamental, sentiment, technical). Independent perspectives across all dimensions."
+   - Fix: Add detail to all 8 node summaries (scale, key output, metrics)
+
+6. **ThinkingCard CSS not prominent** (frontend/src/styles/chat-view.css)
+   - Bland border design, hard to distinguish from chat
+   - Fix: 3px left border (blue active, green complete), elevated background, better typography
+
+### Files Changed
+- `server/src/routes/analyze.ts` (1 line)
+- `frontend/src/components/panels/ChatArea.tsx` (3 SSE handlers updated)
+- `frontend/src/components/chat-cards/PipelineProgressCard.tsx` (1 line)
+- `agents/src/multi-agent/index.ts` (enriched summarizeNodeOutput)
+- `agents/src/multi-agent/analysts/run-analyst.ts` (enriched thinking messages)
+- `agents/src/multi-agent/orchestrator.ts` (enriched thinking messages)
+- `agents/src/multi-agent/researchers/debate-protocol.ts` (enriched debate messages)
+- `frontend/src/styles/chat-view.css` (redesigned ThinkingCard)
+
+### Verification
+- ✅ `pnpm -w build` passes (frontend + shared clean)
+- ✅ No new type errors in agents/server
+- ✅ All 8 files type-check correctly
 
 ---
 

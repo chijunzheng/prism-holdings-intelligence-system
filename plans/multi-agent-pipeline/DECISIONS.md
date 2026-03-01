@@ -47,3 +47,35 @@
 **Decision:** Reordered phases so Final Codebase Cleanup (Phase 9) runs before GCP Deployment (Phase 10). Feature 21 (cleanup) depends on 00-19; Feature 20 (deployment) depends on 17 + 21.
 **Rationale:** Deploying dead code to production wastes resources and increases attack surface. Cleaning up first ensures we deploy a lean, audited codebase. Also easier to debug deployment issues when the codebase is clean.
 **Trade-offs:** None — strictly better ordering.
+
+## Decision 9: Event-Driven Thinking Visibility (Auto-Promotion Pattern)
+**Date:** 2026-03-01
+**Decision:** When SSE thinking events arrive async to pending stages, auto-promote pending→active and mark predecessors complete.
+**Rationale:** Pipeline stages emit thinking text while still executing (before completion event). Pending stages don't render thinking in UI. Auto-promotion infers state from data flow: "if stage is receiving events, it must be running".
+**Evidence:** Root cause of "user sees nothing during analysis" bug. Pattern works because stages can't run unless predecessors finished (DAG topology).
+**Trade-offs:** None — more accurate than relying on explicit completion events.
+
+## Decision 10: ThinkingCard Insertion on Substantive Stages Only
+**Date:** 2026-03-01
+**Decision:** Define `THINKING_CARD_STAGES` set (analyst_complete, debate_complete, risk_challenge, magnitude_validation, stress_complete, verdict, judge). Only these stages produce chat-visible ThinkingCards.
+**Rationale:** Prep stages (risk_profile, market_data) emit events but don't have meaningful reasoning to show. Filtering prevents chat spam; keeps focus on analytical output.
+**Implementation:** Set defined in ChatArea.tsx; checked in 3 SSE handlers (initial, resume, unified chat).
+**Trade-offs:** Adding new substantive stages requires set update (low friction).
+
+## Decision 11: Message Enrichment: Three Levels
+**Date:** 2026-03-01
+**Decision:** Separate thinking into 3 levels of detail:
+- **onThinking callbacks:** Real-time agent status ("analyst: evaluating signal impact...")
+- **summarizeNodeOutput:** Completion summary with metrics ("4 analysts, independent perspectives across dimensions")
+- **ThinkingCard message:** Combines both for user-facing chat visibility
+
+**Rationale:** Real-time status signals agent is working. Summary conveys what was accomplished. Separation allows backend + frontend to evolve independently.
+**Evidence:** Without enrichment, users see generic messages ("completed") and don't understand what analysis occurred.
+**Trade-offs:** Requires updates in 7 files (analyst runner, orchestrator, debate protocol, index.ts). Slight redundancy (status + summary), but necessary for visibility.
+
+## Decision 12: ThinkingCard CSS: Left Border Color Coding
+**Date:** 2026-03-01
+**Decision:** ThinkingCards use 3px left border: blue (#2563EB) for active, green (#16A34A) for complete. Elevated background (#F8F7F5).
+**Rationale:** Color-coding makes completion state immediately visible (no need to read text). Elevated background separates from chat content. Left border is Wealthsimple pattern (used in blockquotes).
+**Visual Hierarchy:** ThinkingCard > chat text > progress bar (background + border + spacing).
+**Trade-offs:** None — pure UX improvement.

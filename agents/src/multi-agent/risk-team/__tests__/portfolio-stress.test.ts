@@ -165,6 +165,23 @@ describe('runPortfolioStressTest', () => {
     expect(result.holdingBreakdown[1].ticker).toBe('XIC')
   })
 
+  it('guarantees low <= mid <= high for all scenarios', () => {
+    const holdings = [
+      { ticker: 'ZAG', holdingValueCad: 7600, expectedReturn: -0.02, volatility: 0.018 },
+      { ticker: 'XIC', holdingValueCad: 8200, expectedReturn: -0.01, volatility: 0.023 },
+    ]
+    const result = runPortfolioStressTest({
+      holdings,
+      correlationMatrix: [[1.0, 0.31], [0.31, 1.0]],
+      numSimulations: 5000,
+    })
+
+    for (const scenario of [result.baseCase, result.downside, result.tailRisk]) {
+      expect(scenario.low).toBeLessThanOrEqual(scenario.mid)
+      expect(scenario.mid).toBeLessThanOrEqual(scenario.high)
+    }
+  })
+
   it('base case is between downside and tail risk', () => {
     const holdings = [
       { ticker: 'VFV', holdingValueCad: 12400, expectedReturn: -0.015, volatility: 0.025 },

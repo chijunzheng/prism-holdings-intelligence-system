@@ -28,10 +28,10 @@ describe('runMagnitudeValidator', () => {
     expect(result.outOfBoundsFlags).toHaveLength(0)
   })
 
-  it('flags and clamps estimates exceeding 2x monthly volatility', () => {
+  it('flags and clamps estimates exceeding 3x monthly volatility', () => {
     const highMagnitude: HoldingImpactEstimate = {
       ...baseImpact,
-      magnitudeScore: 0.10, // 10% — exceeds 2 * 1.8% = 3.6%
+      magnitudeScore: 0.10, // 10% — exceeds 3 * 1.8% = 5.4%
     }
 
     const result = runMagnitudeValidator({
@@ -40,7 +40,7 @@ describe('runMagnitudeValidator', () => {
     })
 
     expect(result.holdingValidations[0].outOfBounds).toBe(true)
-    expect(result.holdingValidations[0].calibratedMagnitude).toBeCloseTo(0.036, 3)
+    expect(result.holdingValidations[0].calibratedMagnitude).toBeCloseTo(0.054, 3) // 3 * 0.018
     expect(result.outOfBoundsFlags).toHaveLength(1)
     expect(result.outOfBoundsFlags[0]).toContain('ZAG')
   })
@@ -53,14 +53,14 @@ describe('runMagnitudeValidator', () => {
 
     // ZAG is classified as fixed_income, fallback monthly vol = 2%
     expect(result.holdingValidations[0].historicalVolatility).toBe(0.02)
-    expect(result.holdingValidations[0].outOfBounds).toBe(false) // 3% < 4%
+    expect(result.holdingValidations[0].outOfBounds).toBe(false) // 3% < 6% (3x bound)
   })
 
   it('classifies bond tickers correctly', () => {
     const bondImpact: HoldingImpactEstimate = {
       ...baseImpact,
       ticker: 'ZAG',
-      magnitudeScore: 0.05, // 5% — exceeds 2 * 2% = 4% for bonds
+      magnitudeScore: 0.07, // 7% — exceeds 3 * 2% = 6% for bonds
     }
 
     const result = runMagnitudeValidator({
@@ -69,7 +69,7 @@ describe('runMagnitudeValidator', () => {
     })
 
     // ZAG is classified as fixed_income, fallback monthly vol = 2%
-    // 2x bound = 4%, estimate = 5% → out of bounds
+    // 3x bound = 6%, estimate = 7% → out of bounds
     expect(result.holdingValidations[0].historicalVolatility).toBe(0.02)
     expect(result.holdingValidations[0].outOfBounds).toBe(true)
   })
@@ -93,7 +93,7 @@ describe('runMagnitudeValidator', () => {
     })
 
     expect(result.holdingValidations).toHaveLength(3)
-    // VFV: 15% exceeds 2 * 2.5% = 5%
+    // VFV: 15% exceeds 3 * 2.5% = 7.5%
     expect(result.holdingValidations[2].outOfBounds).toBe(true)
     expect(result.outOfBoundsFlags).toHaveLength(1)
   })

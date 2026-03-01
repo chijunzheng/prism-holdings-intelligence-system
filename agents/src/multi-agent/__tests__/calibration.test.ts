@@ -18,6 +18,21 @@ describe('calibrateImpact', () => {
     expect(result.high).toBeLessThan(0)
   })
 
+  it('should guarantee low <= high for negative impacts', () => {
+    const result = calibrateImpact(baseParams)
+    expect(result.low).toBeLessThanOrEqual(result.mid)
+    expect(result.mid).toBeLessThanOrEqual(result.high)
+  })
+
+  it('should guarantee low <= high for positive impacts', () => {
+    const result = calibrateImpact({
+      ...baseParams,
+      analystDirectionConsensus: 1,
+    })
+    expect(result.low).toBeLessThanOrEqual(result.mid)
+    expect(result.mid).toBeLessThanOrEqual(result.high)
+  })
+
   it('should produce positive impact for bullish direction', () => {
     const result = calibrateImpact({
       ...baseParams,
@@ -36,13 +51,15 @@ describe('calibrateImpact', () => {
     expect(result.high).toBeCloseTo(0, 10)
   })
 
-  it('should cap impact at 2x monthly volatility * holding value', () => {
+  it('should compute impact from magnitude without double-capping', () => {
+    // Volatility capping is handled upstream by magnitude validator.
+    // calibrateImpact should pass through the magnitude directly.
     const result = calibrateImpact({
       ...baseParams,
       analystMagnitudeConsensus: 1.0, // Max magnitude
     })
-    const maxMove = 2 * 0.02 * 10000 // 2 * vol * value = $400
-    expect(Math.abs(result.mid)).toBeLessThanOrEqual(maxMove)
+    // Expected: 10000 * 1.0 * -1 * 1.0 = -10000, clamped to holding value
+    expect(result.mid).toBe(-10000)
   })
 
   it('should never exceed holding value', () => {
@@ -57,12 +74,9 @@ describe('calibrateImpact', () => {
   })
 
   it('should apply risk challenge haircut', () => {
-    // Use magnitude low enough that raw estimate stays within volatility cap
-    // Cap = 2 * 0.02 * 10000 = $400, so magnitude must be < 0.04
-    const lowMagParams = { ...baseParams, analystMagnitudeConsensus: 0.03 }
-    const noHaircut = calibrateImpact(lowMagParams)
+    const noHaircut = calibrateImpact(baseParams)
     const withHaircut = calibrateImpact({
-      ...lowMagParams,
+      ...baseParams,
       riskChallengeHaircut: -0.2, // 20% reduction
     })
     // Haircut reduces magnitude, so absolute impact should be smaller
@@ -114,10 +128,10 @@ describe('calibrateImpact', () => {
 })
 
 describe('getTimeMultiplier', () => {
-  it('should return correct multipliers', () => {
-    expect(getTimeMultiplier('1W')).toBe(0.25)
+  it('should return sqrt-of-time multipliers', () => {
+    expect(getTimeMultiplier('1W')).toBeCloseTo(Math.sqrt(5 / 21), 6) // ~0.49
     expect(getTimeMultiplier('1M')).toBe(1.0)
-    expect(getTimeMultiplier('6M')).toBe(2.5)
+    expect(getTimeMultiplier('6M')).toBeCloseTo(Math.sqrt(6), 6) // ~2.45
   })
 
   it('should default to 1.0 for unknown horizons', () => {

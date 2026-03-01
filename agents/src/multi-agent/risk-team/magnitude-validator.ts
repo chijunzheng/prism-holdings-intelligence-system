@@ -36,7 +36,8 @@ function validateHolding(params: {
   const { impact, volatility } = params
 
   const monthlyVol = volatility?.monthly ?? FALLBACK_MONTHLY_VOL[classifyAsset(impact.ticker)] ?? 0.05
-  const maxReasonableMove = 2 * monthlyVol // 2x monthly vol as bound
+  // 3x monthly vol covers fat-tailed events (~99.7%) appropriate for event-driven analysis
+  const maxReasonableMove = 3 * monthlyVol
   const estimatedMagnitude = impact.magnitudeScore
 
   const outOfBounds = estimatedMagnitude > maxReasonableMove
@@ -70,7 +71,7 @@ export function runMagnitudeValidator(params: {
     .filter((v) => v.outOfBounds)
     .map((v) =>
       `${v.ticker}: estimated magnitude ${(v.estimatedMagnitude * 100).toFixed(1)}% exceeds ` +
-      `2x historical volatility bound ${(v.maxReasonableMove * 100).toFixed(1)}%. ` +
+      `3x historical volatility bound ${(v.maxReasonableMove * 100).toFixed(1)}%. ` +
       `Clamped to ${(v.calibratedMagnitude * 100).toFixed(1)}%.`,
     )
 

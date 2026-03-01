@@ -132,10 +132,13 @@ function getPercentile(sortedValues: readonly number[], percentile: number): num
 function makeRange(sortedValues: readonly number[], percentile: number): DollarRange {
   const mid = getPercentile(sortedValues, percentile)
   // Range: ±20% around the percentile value
+  // Use Math.min/max to guarantee low <= high regardless of sign
+  const a = mid * 0.8
+  const b = mid * 1.2
   return {
-    low: Math.round(mid * 1.2),  // More negative = worse
+    low: Math.round(Math.min(a, b)),
     mid: Math.round(mid),
-    high: Math.round(mid * 0.8), // Less negative = better
+    high: Math.round(Math.max(a, b)),
   }
 }
 

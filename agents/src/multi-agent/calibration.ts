@@ -6,10 +6,13 @@
 import type { DollarRange, VolatilityData } from '@prism/shared'
 
 // ── Time Horizon Multipliers ─────────────────────────────────
+// Square-root-of-time rule: volatility scales with sqrt(T)
+// 1W = sqrt(5/21) ≈ 0.49 (5 trading days / 21 per month)
+// 6M = sqrt(6) ≈ 2.45
 const TIME_MULTIPLIERS: Record<string, number> = {
-  '1W': 0.25,
+  '1W': Math.sqrt(5 / 21),
   '1M': 1.0,
-  '6M': 2.5,
+  '6M': Math.sqrt(6),
 }
 
 export function getTimeMultiplier(horizon: string): number {
@@ -62,11 +65,9 @@ export function calibrateImpact(params: {
   const adjustedMagnitude = analystMagnitudeConsensus * (1 + riskChallengeHaircut)
   const clampedMagnitude = Math.max(0, Math.min(1, adjustedMagnitude))
 
-  // Step 2: Compute volatility-based maximum move
-  const maxMovePercent = 2 * computedVolatility * timeMultiplier
-  const maxMoveDollar = maxMovePercent * holdingValueCad
-
-  // Step 3: Compute raw impact
+  // Step 2: Compute raw impact
+  // Note: volatility capping is handled upstream by the magnitude validator.
+  // No double-cap here — the validator already bounds magnitudeScore.
   let midEstimate: number
 
   // Anchor to historical event impact if available and sample size is sufficient
@@ -82,12 +83,14 @@ export function calibrateImpact(params: {
       holdingValueCad * clampedMagnitude * analystDirectionConsensus * timeMultiplier
   }
 
-  // Step 4: Clamp to volatility bounds
-  const clampedMid = Math.max(-maxMoveDollar, Math.min(maxMoveDollar, midEstimate))
+  const clampedMid = midEstimate
 
   // Step 5: Compute range (low = conservative, high = upper bound)
-  const low = clampedMid * 0.5
-  const high = clampedMid * 1.8
+  // Use Math.min/max to guarantee low <= high regardless of sign
+  const a = clampedMid * 0.5
+  const b = clampedMid * 1.8
+  const low = Math.min(a, b)
+  const high = Math.max(a, b)
 
   // Step 6: Hard ceiling — can't exceed holding value
   return clampToHoldingValue({ low, mid: clampedMid, high }, holdingValueCad)

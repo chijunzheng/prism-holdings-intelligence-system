@@ -1,0 +1,1218 @@
+{
+  "timestamp": "2026-03-01T05:47:38.212Z",
+  "eventCount": 25,
+  "multiAgent": {
+    "directionalAccuracy": 0.84,
+    "rangeCoverage": 0,
+    "evidenceGrounding": 0,
+    "perEventType": {
+      "rate_decision": {
+        "accuracy": 0.875,
+        "coverage": 0
+      },
+      "cpi_surprise": {
+        "accuracy": 1,
+        "coverage": 0
+      },
+      "oil_shock": {
+        "accuracy": 1,
+        "coverage": 0
+      },
+      "banking_stress": {
+        "accuracy": 0.6666666666666666,
+        "coverage": 0
+      },
+      "geopolitical": {
+        "accuracy": 0.6666666666666666,
+        "coverage": 0
+      },
+      "currency_fx": {
+        "accuracy": 0.6666666666666666,
+        "coverage": 0
+      }
+    }
+  },
+  "singleAgent": {
+    "directionalAccuracy": 0.72,
+    "rangeCoverage": 0.08,
+    "evidenceGrounding": 0,
+    "perEventType": {
+      "rate_decision": {
+        "accuracy": 0.875,
+        "coverage": 0
+      },
+      "cpi_surprise": {
+        "accuracy": 1,
+        "coverage": 0.25
+      },
+      "oil_shock": {
+        "accuracy": 0.75,
+        "coverage": 0
+      },
+      "banking_stress": {
+        "accuracy": 0.3333333333333333,
+        "coverage": 0
+      },
+      "geopolitical": {
+        "accuracy": 0.6666666666666666,
+        "coverage": 0.3333333333333333
+      },
+      "currency_fx": {
+        "accuracy": 0.3333333333333333,
+        "coverage": 0
+      }
+    }
+  },
+  "results": [
+    {
+      "eventId": "fed-75bps-2022-06",
+      "eventType": "rate_decision",
+      "multiAgent": {
+        "direction": "negative",
+        "dollarImpactRange": {
+          "low": -431.3840066395844,
+          "high": -1552.982423902504
+        },
+        "holdingDirections": {
+          "VFV": -0.8000000000000002,
+          "XIC": -0.6999999999999998,
+          "ZAG": -0.9742424242424242,
+          "ZEB": 0.19696969696969693,
+          "XEG": -0.49696969696969695,
+          "XGD": -0.7515151515151515
+        },
+        "qualityScore": 0.8350000000000001
+      },
+      "singleAgent": {
+        "direction": "negative",
+        "dollarImpactRange": {
+          "low": -1200,
+          "high": -300
+        },
+        "holdingDirections": {
+          "VFV": -1,
+          "XIC": -1,
+          "ZAG": -1,
+          "ZEB": 0.5,
+          "XEG": -0.5,
+          "XGD": -1
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": -0.058,
+          "XIC": -0.042,
+          "ZAG": -0.015,
+          "ZEB": -0.035,
+          "XEG": -0.095,
+          "XGD": -0.012
+        },
+        "netDirection": "negative"
+      }
+    },
+    {
+      "eventId": "fed-75bps-2022-09",
+      "eventType": "rate_decision",
+      "multiAgent": {
+        "direction": "negative",
+        "dollarImpactRange": {
+          "low": -553.7804682019668,
+          "high": -1993.6096855270807
+        },
+        "holdingDirections": {
+          "VFV": -0.8746478873239438,
+          "XIC": -0.7746478873239437,
+          "ZAG": -0.9746478873239437,
+          "ZEB": -0.5985915492957746,
+          "XEG": -0.6,
+          "XGD": -0.8253521126760565
+        },
+        "qualityScore": 0.9275
+      },
+      "singleAgent": {
+        "direction": "negative",
+        "dollarImpactRange": {
+          "low": -2400,
+          "high": -800
+        },
+        "holdingDirections": {
+          "VFV": -1,
+          "XIC": -1,
+          "ZAG": -1,
+          "ZEB": -0.75,
+          "XEG": -0.75,
+          "XGD": -1
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": -0.041,
+          "XIC": -0.032,
+          "ZAG": -0.012,
+          "ZEB": -0.028,
+          "XEG": -0.065,
+          "XGD": -0.035
+        },
+        "netDirection": "negative"
+      }
+    },
+    {
+      "eventId": "fed-pause-2023-06",
+      "eventType": "rate_decision",
+      "multiAgent": {
+        "direction": "negative",
+        "dollarImpactRange": {
+          "low": -223.89587543267905,
+          "high": -806.0251515576446
+        },
+        "holdingDirections": {
+          "VFV": -0.10535714285714282,
+          "XIC": -0.12499999999999999,
+          "ZAG": -0.36250000000000004,
+          "ZEB": -0.2607142857142858,
+          "XEG": -0.2214285714285714,
+          "XGD": -0.45178571428571435
+        },
+        "qualityScore": 0.6799999999999999
+      },
+      "singleAgent": {
+        "direction": "positive",
+        "dollarImpactRange": {
+          "low": 150,
+          "high": 390
+        },
+        "holdingDirections": {
+          "VFV": 1,
+          "XIC": 1,
+          "ZAG": 1,
+          "ZEB": 0,
+          "XEG": 1,
+          "XGD": 1
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": 0.022,
+          "XIC": 0.015,
+          "ZAG": 0.003,
+          "ZEB": 0.012,
+          "XEG": 0.028,
+          "XGD": -0.008
+        },
+        "netDirection": "positive"
+      }
+    },
+    {
+      "eventId": "fed-cut-50bps-2024-09",
+      "eventType": "rate_decision",
+      "multiAgent": {
+        "direction": "positive",
+        "dollarImpactRange": {
+          "low": 488.8772879893228,
+          "high": 1759.9582367615621
+        },
+        "holdingDirections": {
+          "VFV": 0.8000000000000002,
+          "XIC": 0.7,
+          "ZAG": 0.9744744744744744,
+          "ZEB": -0.24264264264264265,
+          "XEG": 0.6,
+          "XGD": 0.9000000000000001
+        },
+        "qualityScore": 0.8725
+      },
+      "singleAgent": {
+        "direction": "mixed",
+        "dollarImpactRange": {
+          "low": 225,
+          "high": 800
+        },
+        "holdingDirections": {
+          "VFV": 1,
+          "XIC": 1,
+          "ZAG": 1,
+          "ZEB": -1,
+          "XEG": 1,
+          "XGD": 1
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": 0.018,
+          "XIC": 0.021,
+          "ZAG": 0.008,
+          "ZEB": 0.025,
+          "XEG": 0.015,
+          "XGD": 0.032
+        },
+        "netDirection": "positive"
+      }
+    },
+    {
+      "eventId": "boc-100bps-2022-07",
+      "eventType": "rate_decision",
+      "multiAgent": {
+        "direction": "negative",
+        "dollarImpactRange": {
+          "low": -387.2301114659681,
+          "high": -1394.028401277485
+        },
+        "holdingDirections": {
+          "VFV": -0.6768115942028985,
+          "XIC": -0.8246376811594203,
+          "ZAG": -0.9507246376811594,
+          "ZEB": -0.25507246376811593,
+          "XEG": -0.6507246376811593,
+          "XGD": -0.7507246376811595
+        },
+        "qualityScore": 0.9025000000000001
+      },
+      "singleAgent": {
+        "direction": "negative",
+        "dollarImpactRange": {
+          "low": -1900,
+          "high": -850
+        },
+        "holdingDirections": {
+          "VFV": -1,
+          "XIC": -1,
+          "ZAG": -1,
+          "ZEB": -1,
+          "XEG": -1,
+          "XGD": -1
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": 0.012,
+          "XIC": -0.018,
+          "ZAG": -0.008,
+          "ZEB": -0.022,
+          "XEG": -0.035,
+          "XGD": -0.015
+        },
+        "netDirection": "negative"
+      }
+    },
+    {
+      "eventId": "boc-pause-2023-01",
+      "eventType": "rate_decision",
+      "multiAgent": {
+        "direction": "positive",
+        "dollarImpactRange": {
+          "low": 279.81181247341647,
+          "high": 1007.3225249042995
+        },
+        "holdingDirections": {
+          "VFV": 0.5112903225806452,
+          "XIC": 0.7145161290322583,
+          "ZAG": 0.85,
+          "ZEB": 0.18870967741935485,
+          "XEG": 0.3370967741935484,
+          "XGD": 0.6451612903225806
+        },
+        "qualityScore": 0.7549999999999999
+      },
+      "singleAgent": {
+        "direction": "positive",
+        "dollarImpactRange": {
+          "low": 300,
+          "high": 900
+        },
+        "holdingDirections": {
+          "VFV": 0.5,
+          "XIC": 1,
+          "ZAG": 1,
+          "ZEB": -0.5,
+          "XEG": 0.5,
+          "XGD": 1
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": 0.015,
+          "XIC": 0.022,
+          "ZAG": 0.005,
+          "ZEB": 0.018,
+          "XEG": 0.012,
+          "XGD": 0.008
+        },
+        "netDirection": "positive"
+      }
+    },
+    {
+      "eventId": "boc-surprise-hike-2023-06",
+      "eventType": "rate_decision",
+      "multiAgent": {
+        "direction": "negative",
+        "dollarImpactRange": {
+          "low": -471.89227169124297,
+          "high": -1698.8121780884746
+        },
+        "holdingDirections": {
+          "VFV": -0.6246153846153846,
+          "XIC": -0.7738461538461541,
+          "ZAG": -0.9492307692307692,
+          "ZEB": -0.1630769230769231,
+          "XEG": -0.5953846153846153,
+          "XGD": -0.7476923076923077
+        },
+        "qualityScore": 0.8525
+      },
+      "singleAgent": {
+        "direction": "negative",
+        "dollarImpactRange": {
+          "low": -900,
+          "high": -250
+        },
+        "holdingDirections": {
+          "VFV": -1,
+          "XIC": -1,
+          "ZAG": -1,
+          "ZEB": 1,
+          "XEG": -1,
+          "XGD": -1
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": 0.008,
+          "XIC": -0.012,
+          "ZAG": -0.006,
+          "ZEB": -0.015,
+          "XEG": -0.008,
+          "XGD": -0.018
+        },
+        "netDirection": "negative"
+      }
+    },
+    {
+      "eventId": "fed-hold-hawkish-2024-01",
+      "eventType": "rate_decision",
+      "multiAgent": {
+        "direction": "negative",
+        "dollarImpactRange": {
+          "low": -325.9536064882685,
+          "high": -1173.4329833577667
+        },
+        "holdingDirections": {
+          "VFV": -0.6225806451612902,
+          "XIC": -0.4709677419354838,
+          "ZAG": -0.8516129032258065,
+          "ZEB": 0.4967741935483871,
+          "XEG": -0.07741935483870967,
+          "XGD": -0.8225806451612903
+        },
+        "qualityScore": 0.7550000000000001
+      },
+      "singleAgent": {
+        "direction": "negative",
+        "dollarImpactRange": {
+          "low": -900,
+          "high": -300
+        },
+        "holdingDirections": {
+          "VFV": -1,
+          "XIC": -1,
+          "ZAG": -1,
+          "ZEB": 0,
+          "XEG": 0,
+          "XGD": -1
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": 0.012,
+          "XIC": 0.008,
+          "ZAG": -0.004,
+          "ZEB": 0.006,
+          "XEG": 0.015,
+          "XGD": -0.022
+        },
+        "netDirection": "neutral"
+      }
+    },
+    {
+      "eventId": "us-cpi-hot-2022-06",
+      "eventType": "cpi_surprise",
+      "multiAgent": {
+        "direction": "negative",
+        "dollarImpactRange": {
+          "low": -478.64760555724,
+          "high": -1723.131380006064
+        },
+        "holdingDirections": {
+          "VFV": -0.925,
+          "XIC": -0.7750000000000001,
+          "ZAG": -1,
+          "ZEB": -0.575,
+          "XEG": -0.4,
+          "XGD": -0.675
+        },
+        "qualityScore": 0.88
+      },
+      "singleAgent": {
+        "direction": "negative",
+        "dollarImpactRange": {
+          "low": -1200,
+          "high": -550
+        },
+        "holdingDirections": {
+          "VFV": -1,
+          "XIC": -1,
+          "ZAG": -1,
+          "ZEB": -1,
+          "XEG": 1,
+          "XGD": -1
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": -0.072,
+          "XIC": -0.048,
+          "ZAG": -0.018,
+          "ZEB": -0.038,
+          "XEG": -0.082,
+          "XGD": -0.025
+        },
+        "netDirection": "negative"
+      }
+    },
+    {
+      "eventId": "us-cpi-cooling-2022-11",
+      "eventType": "cpi_surprise",
+      "multiAgent": {
+        "direction": "positive",
+        "dollarImpactRange": {
+          "low": 459.7666168951506,
+          "high": 1655.1598208225423
+        },
+        "holdingDirections": {
+          "VFV": 0.9246376811594204,
+          "XIC": 0.8,
+          "ZAG": 0.9,
+          "ZEB": 0.5768115942028985,
+          "XEG": 0.45217391304347826,
+          "XGD": 0.773913043478261
+        },
+        "qualityScore": 0.8025
+      },
+      "singleAgent": {
+        "direction": "positive",
+        "dollarImpactRange": {
+          "low": 1650,
+          "high": 3250
+        },
+        "holdingDirections": {
+          "VFV": 1,
+          "XIC": 1,
+          "ZAG": 1,
+          "ZEB": 1,
+          "XEG": 1,
+          "XGD": 1
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": 0.035,
+          "XIC": 0.028,
+          "ZAG": 0.012,
+          "ZEB": 0.025,
+          "XEG": 0.018,
+          "XGD": 0.042
+        },
+        "netDirection": "positive"
+      }
+    },
+    {
+      "eventId": "canada-cpi-drop-2023-06",
+      "eventType": "cpi_surprise",
+      "multiAgent": {
+        "direction": "positive",
+        "dollarImpactRange": {
+          "low": 362.83013272144916,
+          "high": 1306.1884777972168
+        },
+        "holdingDirections": {
+          "VFV": 0.3553846153846154,
+          "XIC": 0.7292307692307692,
+          "ZAG": 0.9000000000000001,
+          "ZEB": 0.39384615384615385,
+          "XEG": 0.04923076923076924,
+          "XGD": 0.6753846153846154
+        },
+        "qualityScore": 0.7825
+      },
+      "singleAgent": {
+        "direction": "positive",
+        "dollarImpactRange": {
+          "low": 150,
+          "high": 750
+        },
+        "holdingDirections": {
+          "VFV": 0,
+          "XIC": 1,
+          "ZAG": 1,
+          "ZEB": 0.5,
+          "XEG": -0.5,
+          "XGD": 1
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": 0.008,
+          "XIC": 0.018,
+          "ZAG": 0.006,
+          "ZEB": 0.015,
+          "XEG": 0.005,
+          "XGD": 0.012
+        },
+        "netDirection": "positive"
+      }
+    },
+    {
+      "eventId": "us-cpi-sticky-2024-01",
+      "eventType": "cpi_surprise",
+      "multiAgent": {
+        "direction": "negative",
+        "dollarImpactRange": {
+          "low": -257.4990720061182,
+          "high": -926.9966592220254
+        },
+        "holdingDirections": {
+          "VFV": -0.8000000000000002,
+          "XIC": -0.7,
+          "ZAG": -0.9253731343283582,
+          "ZEB": -0.3582089552238806,
+          "XEG": 0.0417910447761194,
+          "XGD": -0.2970149253731343
+        },
+        "qualityScore": 0.8475
+      },
+      "singleAgent": {
+        "direction": "negative",
+        "dollarImpactRange": {
+          "low": -750,
+          "high": -250
+        },
+        "holdingDirections": {
+          "VFV": -1,
+          "XIC": -1,
+          "ZAG": -1,
+          "ZEB": 0.5,
+          "XEG": 0.5,
+          "XGD": -1
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": 0.005,
+          "XIC": 0.002,
+          "ZAG": -0.008,
+          "ZEB": -0.005,
+          "XEG": 0.012,
+          "XGD": -0.018
+        },
+        "netDirection": "neutral"
+      }
+    },
+    {
+      "eventId": "opec-cut-2022-10",
+      "eventType": "oil_shock",
+      "multiAgent": {
+        "direction": "positive",
+        "dollarImpactRange": {
+          "low": 121.82062533601705,
+          "high": 438.5542512096614
+        },
+        "holdingDirections": {
+          "VFV": -0.4614035087719298,
+          "XIC": 0.2649122807017543,
+          "ZAG": -0.8017543859649123,
+          "ZEB": 0.1473684210526316,
+          "XEG": 0.9228070175438597,
+          "XGD": 0.12982456140350876
+        },
+        "qualityScore": 0.7525
+      },
+      "singleAgent": {
+        "direction": "positive",
+        "dollarImpactRange": {
+          "low": 270,
+          "high": 1200
+        },
+        "holdingDirections": {
+          "VFV": -1,
+          "XIC": 1,
+          "ZAG": -1,
+          "ZEB": 1,
+          "XEG": 1,
+          "XGD": 1
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": -0.015,
+          "XIC": 0.008,
+          "ZAG": -0.003,
+          "ZEB": -0.005,
+          "XEG": 0.065,
+          "XGD": -0.008
+        },
+        "netDirection": "positive"
+      }
+    },
+    {
+      "eventId": "oil-price-collapse-2023-03",
+      "eventType": "oil_shock",
+      "multiAgent": {
+        "direction": "negative",
+        "dollarImpactRange": {
+          "low": -61.76872387227144,
+          "high": -222.36740594017715
+        },
+        "holdingDirections": {
+          "VFV": -0.7000000000000001,
+          "XIC": -0.7499999999999999,
+          "ZAG": 0.7203124999999999,
+          "ZEB": -0.9,
+          "XEG": -0.98671875,
+          "XGD": 0.8000000000000002
+        },
+        "qualityScore": 0.8400000000000001
+      },
+      "singleAgent": {
+        "direction": "mixed",
+        "dollarImpactRange": {
+          "low": -1650,
+          "high": -100
+        },
+        "holdingDirections": {
+          "VFV": -1,
+          "XIC": -1,
+          "ZAG": 1,
+          "ZEB": -1,
+          "XEG": -1,
+          "XGD": 1
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": 0.018,
+          "XIC": -0.008,
+          "ZAG": 0.012,
+          "ZEB": -0.025,
+          "XEG": -0.075,
+          "XGD": 0.035
+        },
+        "netDirection": "negative"
+      }
+    },
+    {
+      "eventId": "opec-voluntary-cut-2023-11",
+      "eventType": "oil_shock",
+      "multiAgent": {
+        "direction": "negative",
+        "dollarImpactRange": {
+          "low": -92.65841590988762,
+          "high": -333.5702972755955
+        },
+        "holdingDirections": {
+          "VFV": 0.042372881355932195,
+          "XIC": -0.4677966101694915,
+          "ZAG": 0.4186440677966101,
+          "ZEB": -0.31525423728813556,
+          "XEG": -0.9525423728813558,
+          "XGD": 0.3627118644067796
+        },
+        "qualityScore": 0.7775000000000001
+      },
+      "singleAgent": {
+        "direction": "negative",
+        "dollarImpactRange": {
+          "low": -1270,
+          "high": -340
+        },
+        "holdingDirections": {
+          "VFV": -0.2,
+          "XIC": -0.7,
+          "ZAG": 0.5,
+          "ZEB": -0.6,
+          "XEG": -1,
+          "XGD": 0.3
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": 0.012,
+          "XIC": 0.005,
+          "ZAG": 0.008,
+          "ZEB": 0.008,
+          "XEG": -0.032,
+          "XGD": 0.005
+        },
+        "netDirection": "neutral"
+      }
+    },
+    {
+      "eventId": "oil-mideast-spike-2024-04",
+      "eventType": "oil_shock",
+      "multiAgent": {
+        "direction": "positive",
+        "dollarImpactRange": {
+          "low": 262.6459614273438,
+          "high": 945.5254611384378
+        },
+        "holdingDirections": {
+          "VFV": -0.7000000000000001,
+          "XIC": -0.16785714285714287,
+          "ZAG": 0.4000000000000001,
+          "ZEB": -0.5607142857142858,
+          "XEG": 0.9232142857142858,
+          "XGD": 0.9017857142857143
+        },
+        "qualityScore": 0.71
+      },
+      "singleAgent": {
+        "direction": "mixed",
+        "dollarImpactRange": {
+          "low": -30,
+          "high": 840
+        },
+        "holdingDirections": {
+          "VFV": -1,
+          "XIC": -1,
+          "ZAG": 1,
+          "ZEB": -1,
+          "XEG": 1,
+          "XGD": 1
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": -0.025,
+          "XIC": -0.012,
+          "ZAG": -0.005,
+          "ZEB": -0.008,
+          "XEG": 0.035,
+          "XGD": 0.042
+        },
+        "netDirection": "neutral"
+      }
+    },
+    {
+      "eventId": "svb-collapse-2023-03",
+      "eventType": "banking_stress",
+      "multiAgent": {
+        "direction": "negative",
+        "dollarImpactRange": {
+          "low": -20.899310387923094,
+          "high": -75.23751739652312
+        },
+        "holdingDirections": {
+          "VFV": -0.8000000000000002,
+          "XIC": -0.6746268656716418,
+          "ZAG": 0.744776119402985,
+          "ZEB": -0.973134328358209,
+          "XEG": -0.6731343283582089,
+          "XGD": 0.873134328358209
+        },
+        "qualityScore": 0.8475
+      },
+      "singleAgent": {
+        "direction": "mixed",
+        "dollarImpactRange": {
+          "low": -2050,
+          "high": -100
+        },
+        "holdingDirections": {
+          "VFV": -1,
+          "XIC": -1,
+          "ZAG": 1,
+          "ZEB": -1,
+          "XEG": -1,
+          "XGD": 1
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": -0.028,
+          "XIC": -0.032,
+          "ZAG": 0.015,
+          "ZEB": -0.065,
+          "XEG": -0.045,
+          "XGD": 0.055
+        },
+        "netDirection": "negative"
+      }
+    },
+    {
+      "eventId": "credit-suisse-2023-03",
+      "eventType": "banking_stress",
+      "multiAgent": {
+        "direction": "negative",
+        "dollarImpactRange": {
+          "low": -4.326946375641768,
+          "high": -15.577006952310512
+        },
+        "holdingDirections": {
+          "VFV": -0.75,
+          "XIC": -0.675,
+          "ZAG": 0.8250000000000001,
+          "ZEB": -0.9500000000000001,
+          "XEG": -0.625,
+          "XGD": 0.875
+        },
+        "qualityScore": 0.8899999999999999
+      },
+      "singleAgent": {
+        "direction": "mixed",
+        "dollarImpactRange": {
+          "low": -1050,
+          "high": -200
+        },
+        "holdingDirections": {
+          "VFV": -1,
+          "XIC": -1,
+          "ZAG": 1,
+          "ZEB": -1,
+          "XEG": -1,
+          "XGD": 1
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": 0.008,
+          "XIC": -0.012,
+          "ZAG": 0.01,
+          "ZEB": -0.042,
+          "XEG": -0.025,
+          "XGD": 0.038
+        },
+        "netDirection": "neutral"
+      }
+    },
+    {
+      "eventId": "first-republic-2023-05",
+      "eventType": "banking_stress",
+      "multiAgent": {
+        "direction": "positive",
+        "dollarImpactRange": {
+          "low": 19.149985078589566,
+          "high": 68.9399462829225
+        },
+        "holdingDirections": {
+          "VFV": -0.6968749999999999,
+          "XIC": -0.546875,
+          "ZAG": 0.7296874999999999,
+          "ZEB": -0.8234375,
+          "XEG": -0.6265624999999999,
+          "XGD": 0.8765625
+        },
+        "qualityScore": 0.8400000000000001
+      },
+      "singleAgent": {
+        "direction": "mixed",
+        "dollarImpactRange": {
+          "low": -800,
+          "high": -300
+        },
+        "holdingDirections": {
+          "VFV": -1,
+          "XIC": -1,
+          "ZAG": 1,
+          "ZEB": -1,
+          "XEG": -1,
+          "XGD": 1
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": -0.005,
+          "XIC": -0.008,
+          "ZAG": 0.005,
+          "ZEB": -0.018,
+          "XEG": -0.022,
+          "XGD": 0.015
+        },
+        "netDirection": "negative"
+      }
+    },
+    {
+      "eventId": "china-balloon-2023-02",
+      "eventType": "geopolitical",
+      "multiAgent": {
+        "direction": "positive",
+        "dollarImpactRange": {
+          "low": 135.2130361857826,
+          "high": 486.76693026881753
+        },
+        "holdingDirections": {
+          "VFV": -0.6999999999999998,
+          "XIC": -0.5222222222222221,
+          "ZAG": 0.719047619047619,
+          "ZEB": -0.6222222222222221,
+          "XEG": 0.060317460317460346,
+          "XGD": 0.8460317460317459
+        },
+        "qualityScore": 0.7975000000000001
+      },
+      "singleAgent": {
+        "direction": "mixed",
+        "dollarImpactRange": {
+          "low": -600,
+          "high": 200
+        },
+        "holdingDirections": {
+          "VFV": -1,
+          "XIC": -1,
+          "ZAG": 1,
+          "ZEB": -1,
+          "XEG": -1,
+          "XGD": 1
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": -0.012,
+          "XIC": -0.005,
+          "ZAG": 0.002,
+          "ZEB": -0.003,
+          "XEG": 0.008,
+          "XGD": 0.012
+        },
+        "netDirection": "neutral"
+      }
+    },
+    {
+      "eventId": "us-china-chips-2022-10",
+      "eventType": "geopolitical",
+      "multiAgent": {
+        "direction": "positive",
+        "dollarImpactRange": {
+          "low": 40.64853129171527,
+          "high": 146.334712650175
+        },
+        "holdingDirections": {
+          "VFV": -0.7758620689655172,
+          "XIC": -0.4241379310344828,
+          "ZAG": 0.5448275862068965,
+          "ZEB": -0.546551724137931,
+          "XEG": -0.4775862068965517,
+          "XGD": 0.8241379310344826
+        },
+        "qualityScore": 0.735
+      },
+      "singleAgent": {
+        "direction": "mixed",
+        "dollarImpactRange": {
+          "low": -760,
+          "high": -70
+        },
+        "holdingDirections": {
+          "VFV": -1,
+          "XIC": -1,
+          "ZAG": 1,
+          "ZEB": -1,
+          "XEG": -1,
+          "XGD": 1
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": -0.032,
+          "XIC": -0.018,
+          "ZAG": -0.005,
+          "ZEB": -0.008,
+          "XEG": -0.015,
+          "XGD": 0.005
+        },
+        "netDirection": "negative"
+      }
+    },
+    {
+      "eventId": "us-tariff-escalation-2024-05",
+      "eventType": "geopolitical",
+      "multiAgent": {
+        "direction": "positive",
+        "dollarImpactRange": {
+          "low": 83.8257927694232,
+          "high": 301.7728539699236
+        },
+        "holdingDirections": {
+          "VFV": -0.09074074074074075,
+          "XIC": -0.2907407407407407,
+          "ZAG": -0.13518518518518519,
+          "ZEB": -0.3851851851851852,
+          "XEG": -0.18703703703703697,
+          "XGD": 0.7296296296296296
+        },
+        "qualityScore": 0.7150000000000001
+      },
+      "singleAgent": {
+        "direction": "mixed",
+        "dollarImpactRange": {
+          "low": -780,
+          "high": -30
+        },
+        "holdingDirections": {
+          "VFV": -1,
+          "XIC": -1,
+          "ZAG": 1,
+          "ZEB": -1,
+          "XEG": -1,
+          "XGD": 1
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": 0.008,
+          "XIC": 0.005,
+          "ZAG": 0.002,
+          "ZEB": 0.003,
+          "XEG": 0.005,
+          "XGD": -0.005
+        },
+        "netDirection": "neutral"
+      }
+    },
+    {
+      "eventId": "dxy-peak-2022-09",
+      "eventType": "currency_fx",
+      "multiAgent": {
+        "direction": "positive",
+        "dollarImpactRange": {
+          "low": 31.57889752432166,
+          "high": 113.684031087558
+        },
+        "holdingDirections": {
+          "VFV": -0.14603174603174607,
+          "XIC": -0.27460317460317457,
+          "ZAG": -0.7587301587301587,
+          "ZEB": -0.465079365079365,
+          "XEG": 0.1904761904761905,
+          "XGD": 0.3142857142857142
+        },
+        "qualityScore": 0.8275000000000001
+      },
+      "singleAgent": {
+        "direction": "mixed",
+        "dollarImpactRange": {
+          "low": -250,
+          "high": 850
+        },
+        "holdingDirections": {
+          "VFV": 1,
+          "XIC": -1,
+          "ZAG": -1,
+          "ZEB": -1,
+          "XEG": 1,
+          "XGD": 1
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": -0.025,
+          "XIC": -0.015,
+          "ZAG": -0.008,
+          "ZEB": -0.012,
+          "XEG": -0.035,
+          "XGD": -0.045
+        },
+        "netDirection": "negative"
+      }
+    },
+    {
+      "eventId": "yen-intervention-2022-10",
+      "eventType": "currency_fx",
+      "multiAgent": {
+        "direction": "positive",
+        "dollarImpactRange": {
+          "low": 118.6971733128098,
+          "high": 427.3098239261153
+        },
+        "holdingDirections": {
+          "VFV": -0.14716981132075474,
+          "XIC": -0.1,
+          "ZAG": 0.22264150943396227,
+          "ZEB": -0.35471698113207545,
+          "XEG": -0.14150943396226415,
+          "XGD": 0.7528301886792452
+        },
+        "qualityScore": 0.7024999999999999
+      },
+      "singleAgent": {
+        "direction": "mixed",
+        "dollarImpactRange": {
+          "low": -80,
+          "high": 100
+        },
+        "holdingDirections": {
+          "VFV": -0.1,
+          "XIC": 0,
+          "ZAG": 0.1,
+          "ZEB": -0.1,
+          "XEG": -0.2,
+          "XGD": 0.5
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": 0.025,
+          "XIC": 0.018,
+          "ZAG": 0.005,
+          "ZEB": 0.012,
+          "XEG": 0.022,
+          "XGD": 0.015
+        },
+        "netDirection": "positive"
+      }
+    },
+    {
+      "eventId": "cad-slide-2024-06",
+      "eventType": "currency_fx",
+      "multiAgent": {
+        "direction": "positive",
+        "dollarImpactRange": {
+          "low": 430.645117495906,
+          "high": 1550.3224229852617
+        },
+        "holdingDirections": {
+          "VFV": 0.83,
+          "XIC": 0.2899999999999999,
+          "ZAG": 0.7533333333333333,
+          "ZEB": -0.6966666666666667,
+          "XEG": 0.8500000000000001,
+          "XGD": 0.8500000000000001
+        },
+        "qualityScore": 0.73
+      },
+      "singleAgent": {
+        "direction": "positive",
+        "dollarImpactRange": {
+          "low": 150,
+          "high": 750
+        },
+        "holdingDirections": {
+          "VFV": 1,
+          "XIC": 0.5,
+          "ZAG": 1,
+          "ZEB": -1,
+          "XEG": 1,
+          "XGD": 1
+        }
+      },
+      "actual": {
+        "returns5d": {
+          "VFV": 0.015,
+          "XIC": -0.005,
+          "ZAG": 0.003,
+          "ZEB": -0.008,
+          "XEG": -0.012,
+          "XGD": 0.008
+        },
+        "netDirection": "neutral"
+      }
+    }
+  ]
+}

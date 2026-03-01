@@ -96,7 +96,14 @@ export async function runEvaluation(options: HarnessOptions = {}): Promise<EvalR
 
   const exposureMap = buildSimpleExposureMap(portfolio)
 
+  let eventIndex = 0
+  const totalEvents = examples.length
+
   const evaluateEvent = async (example: QaExample): Promise<EvalResult> => {
+    eventIndex++
+    const startTime = Date.now()
+    console.log(`[${eventIndex}/${totalEvents}] ${example.id} — starting...`)
+
     const signal = eventToSignal(example)
     const actualDirection = classifyActualDirection(example.actualReturns5d)
 
@@ -178,6 +185,9 @@ export async function runEvaluation(options: HarnessOptions = {}): Promise<EvalR
       }
     }
 
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
+    console.log(`[${eventIndex}/${totalEvents}] ${example.id} — done (${elapsed}s) MA=${multiAgentResult.direction} SA=${singleAgentResult.direction} actual=${actualDirection}`)
+
     return {
       eventId: example.id,
       eventType: example.type,
@@ -225,9 +235,31 @@ export async function main(): Promise<void> {
 
   console.log(generateConsoleReport(report))
 
+  const fs = await import('node:fs/promises')
+
+  // Write JSON results
+  const jsonPath = `eval/results-qa-${report.timestamp.replace(/:/g, '-')}.json`
+  const serializable = {
+    ...report,
+    multiAgent: {
+      ...report.multiAgent,
+      perEventType: Object.fromEntries(report.multiAgent.perEventType),
+    },
+    singleAgent: {
+      ...report.singleAgent,
+      perEventType: Object.fromEntries(report.singleAgent.perEventType),
+    },
+    results: report.results.map((r) => ({
+      ...r,
+      multiAgent: { ...r.multiAgent, holdingDirections: Object.fromEntries(r.multiAgent.holdingDirections) },
+      singleAgent: { ...r.singleAgent, holdingDirections: Object.fromEntries(r.singleAgent.holdingDirections) },
+    })),
+  }
+  await fs.writeFile(jsonPath, JSON.stringify(serializable, null, 2), 'utf-8')
+  console.log(`\nJSON results written to ${jsonPath}`)
+
   // Write markdown report
   const markdownReport = generateMarkdownReport(report)
-  const fs = await import('node:fs/promises')
   await fs.writeFile('eval/REPORT.md', markdownReport, 'utf-8')
-  console.log('\nMarkdown report written to eval/REPORT.md')
+  console.log('Markdown report written to eval/REPORT.md')
 }

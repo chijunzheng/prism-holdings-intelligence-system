@@ -7,3 +7,7 @@ dist/
 *.tsbuildinfo
 .vite/
 coverage/
+
+# Application materials (private)
+DEMO-SCRIPT.md
+APPLICATION-WRITEUP.md

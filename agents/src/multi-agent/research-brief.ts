@@ -224,27 +224,43 @@ function buildRiskAdjustments(verdict: FundManagerVerdict): ResearchBriefSection
 
 // ── Collect All Sources ─────────────────────────────────────
 function collectSources(
+  signal: Signal,
   debate: DebateResolution,
   risk: RiskChallenge,
-): { index: number; description: string }[] {
-  const allSources = new Set<string>()
+): { index: number; description: string; url?: string }[] {
+  const result: { index: number; description: string; url?: string }[] = []
+  const seen = new Set<string>()
 
-  // From debate transcript
+  // Signal sources have real URLs from Gemini Search grounding — add first
+  for (const src of signal.sources) {
+    const key = src.title.toLowerCase()
+    if (!seen.has(key)) {
+      seen.add(key)
+      result.push({ index: result.length + 1, description: src.title, url: src.url })
+    }
+  }
+
+  // From debate transcript (text-only evidence citations)
   for (const arg of debate.debateTranscript) {
     for (const ev of arg.evidenceCited) {
-      allSources.add(ev)
+      const key = ev.toLowerCase()
+      if (!seen.has(key)) {
+        seen.add(key)
+        result.push({ index: result.length + 1, description: ev })
+      }
     }
   }
 
   // From risk challenge
   for (const challenged of risk.challengedAssumptions) {
-    allSources.add(challenged.counterEvidence)
+    const key = challenged.counterEvidence.toLowerCase()
+    if (!seen.has(key)) {
+      seen.add(key)
+      result.push({ index: result.length + 1, description: challenged.counterEvidence })
+    }
   }
 
-  return [...allSources].map((desc, i) => ({
-    index: i + 1,
-    description: desc,
-  }))
+  return result
 }
 
 // ── Main: Generate Research Brief ───────────────────────────
@@ -269,8 +285,8 @@ export function generateResearchBrief(params: {
     buildPerspectives(verdict),
     buildRecommendations(verdict),
     buildQualityAssessment(judgeVerdict),
-    { title: 'Sources', content: collectSources(debateResolution, riskChallenge)
-      .map((s) => `[${s.index}] ${s.description}`)
+    { title: 'Sources', content: collectSources(signal, debateResolution, riskChallenge)
+      .map((s) => s.url ? `[${s.index}] [${s.description}](${s.url})` : `[${s.index}] ${s.description}`)
       .join('\n') || 'No sources cited.' },
   ]
 
@@ -291,7 +307,7 @@ export function generateResearchBrief(params: {
       }
     : { low: 0, mid: 0, high: 0 }
 
-  const sources = collectSources(debateResolution, riskChallenge)
+  const sources = collectSources(signal, debateResolution, riskChallenge)
 
   return {
     signalId: signal.id,

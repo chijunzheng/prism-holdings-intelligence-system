@@ -20,7 +20,6 @@ import type {
   DollarRange,
 } from '@prism/shared'
 import type { ThinkingCallback } from './types.js'
-import { RecommendationActionSchema } from '@prism/shared'
 import { z } from 'zod'
 import { calibrateImpact } from './calibration.js'
 import { createGeminiChatModel } from '../utils/gemini-chat-model'
@@ -157,43 +156,79 @@ async function generateRecommendations(params: {
   const model = createGeminiChatModel({
     model: 'gemini-3-flash-preview',
     temperature: 0.3,
-    maxOutputTokens: 2048,
+    maxOutputTokens: 4096,
   })
 
   const holdingSummary = calibratedImpacts
-    .map((h) => `${h.ticker} (${h.name}): $${h.holdingValueCad.toLocaleString()}, 1M impact: $${h.impact['1M']?.mid ?? 0}`)
+    .map((h) => `${h.ticker} (${h.name}): value $${h.holdingValueCad.toLocaleString()}, 1M impact: $${h.impact['1M']?.mid ?? 0}`)
     .join('\n  ')
 
-  const prompt = `You are a Fund Manager generating recommendation options for a portfolio.
+  // Sort by impact magnitude for concrete examples in prompt
+  const sorted = [...calibratedImpacts].sort((a, b) =>
+    Math.abs(b.impact['1M']?.mid ?? 0) - Math.abs(a.impact['1M']?.mid ?? 0),
+  )
+  const topNeg = sorted.filter((h) => (h.impact['1M']?.mid ?? 0) < 0)
+  const topPos = sorted.filter((h) => (h.impact['1M']?.mid ?? 0) >= 0)
 
-SIGNAL: ${signal.headline}
+  // Build concrete action examples from the actual holdings
+  const exampleLight = topNeg.slice(0, 1).map((h) => {
+    const reducePct = 15
+    const reduceCad = Math.round(h.holdingValueCad * reducePct / 100)
+    return `{ "ticker": "${h.ticker}", "name": "${h.name}", "action": "reduce", "currentValueCad": ${h.holdingValueCad}, "suggestedChangePct": -${reducePct}, "suggestedChangeCad": -${reduceCad}, "rationale": "Trim most exposed position to limit downside" }`
+  }).join(',\n      ')
+
+  // Detect whether this is a user question about a specific action (e.g. "should I buy NVDA?")
+  // vs a market event they want protection from (e.g. "Fed raises rates 50bps")
+  const isUserQuery = signal.headline.startsWith('User scenario:')
+  const signalText = isUserQuery
+    ? signal.headline.replace('User scenario: ', '')
+    : signal.headline
+
+  const queryGuidance = isUserQuery
+    ? `The user asked: "${signalText}"
+Your recommendations MUST directly answer this question. Do NOT default to generic hedging/diversification.
+- If they ask "should I buy X?", options should be about buying/not buying X at different sizes.
+- If they ask "should I sell X?", options should be about selling/not selling X.
+- If they ask about a scenario, options should address that specific scenario.
+- Always ground recommendations in the debate outcome and calibrated impacts above.
+
+Option 1 — "Do nothing": Keep current portfolio unchanged. isDoNothing: true. No actions array. Describe what happens if they don't act.
+Option 2 — Conservative approach: A cautious version of the action the user is considering (e.g. small position, partial sell). 2-3 trades.
+Option 3 — Conviction approach: A bolder version based on the analysis outcome (e.g. larger position, full rebalancing around the thesis). 4-6 trades.`
+    : `This is a market event signal. Generate protective recommendations.
+
+Option 1 — "Do nothing": accept the estimated impact. isDoNothing: true. No actions array.
+Option 2 — Light protection: 2-3 trades — trim the most exposed holdings AND add at least 1 defensive position (gold ETF like CGL.C, bond ETF like XBB, or high-interest savings ETF like CASH.TO).
+Option 3 — Balanced response: 4-6 trades — reduce exposed positions, increase any positively impacted holdings, and add 2-3 defensive instruments (mix of bonds, gold, cash, or inverse ETFs).`
+
+  const prompt = `You are a Fund Manager generating recommendation options for a retail portfolio.
+
+SIGNAL: ${signalText}
 DEBATE OUTCOME: ${debateResolution.consensusDirection} (confidence: ${debateResolution.consensusConfidence.toFixed(2)})
 TOTAL 1-MONTH IMPACT: $${totalMid.toLocaleString()} CAD
 STRESS TEST: Base: $${stressTest.baseCase.mid}, Downside: $${stressTest.downside.mid}, Tail: $${stressTest.tailRisk.mid}
 RISK TOLERANCE: ${riskProfile.riskTolerance} (score: ${riskProfile.riskScore}/100)
 
-HOLDINGS:
+HOLDINGS (current portfolio):
   ${holdingSummary}
 
-Generate exactly 3 recommendation options as JSON array:
-1. "Do nothing" — accept the risk. Cost: $0. Show the estimated cost of inaction. No actions array.
-2. Light protection — minimal intervention appropriate for this risk level.
-3. Balanced response — moderate protection.
+Generate exactly 3 JSON recommendation objects. CRITICAL: options 2 and 3 MUST include an "actions" array with specific ticker-level trades.
 
-For ${riskProfile.riskTolerance} risk tolerance, ${riskProfile.riskTolerance === 'high' ? 'be more relaxed about smaller risks' : riskProfile.riskTolerance === 'low' ? 'emphasize protection even for moderate risks' : 'balance cost and protection'}.
+${queryGuidance}
 
-Each option needs: id, title, description, estimatedCost, riskReduction, tradeoffs[], isDoNothing.
-For non-do-nothing options, also include an "actions" array with specific ticker-level adjustments:
-  { "ticker": "VFV", "name": "Vanguard S&P 500", "action": "reduce"|"increase"|"hold"|"add_new"|"remove", "currentValueCad": 7000, "suggestedChangePct": -20, "suggestedChangeCad": -1400, "rationale": "Reduce US large-cap concentration" }
+For ${riskProfile.riskTolerance} risk tolerance, ${riskProfile.riskTolerance === 'high' ? 'lean into conviction when analysis supports it' : riskProfile.riskTolerance === 'low' ? 'emphasize capital preservation in all options' : 'balance opportunity and protection'}.
 
-Use plain English. Dollar amounts, not percentages (except suggestedChangePct).
+REQUIRED FIELDS per recommendation: id, title, description, estimatedCost (string like "~$500"), riskReduction (string), tradeoffs (string[]), isDoNothing (boolean).
+REQUIRED FIELDS per action (in "actions" array): ticker (string), name (string), action ("reduce"|"increase"|"hold"|"add_new"|"remove"), currentValueCad (number, current holding value or 0 for new), suggestedChangePct (number, e.g. -20 for 20% reduction), suggestedChangeCad (number, dollar amount of change), rationale (string, 1 sentence why).
 
-Respond with a JSON array:
-[
-  { "id": "do-nothing", "title": "Do nothing", "description": "...", "estimatedCost": "$0", "riskReduction": "None — accept ~$${Math.abs(totalMid)} risk", "tradeoffs": ["..."], "isDoNothing": true },
-  { "id": "light", "title": "...", "description": "...", "estimatedCost": "...", "riskReduction": "...", "tradeoffs": ["..."], "isDoNothing": false, "actions": [...] },
-  { "id": "balanced", "title": "...", "description": "...", "estimatedCost": "...", "riskReduction": "...", "tradeoffs": ["..."], "isDoNothing": false, "actions": [...] }
-]`
+EXAMPLE — actions format:
+  [
+      ${exampleLight}
+  ]
+
+${topPos.length > 0 ? `Note: ${topPos.map((h) => h.ticker).join(', ')} ${topPos.length === 1 ? 'is' : 'are'} positively impacted by this signal.` : ''}
+
+Respond ONLY with a JSON array of 3 objects. No markdown, no explanation. The "actions" array is MANDATORY for options 2 and 3.`
 
   try {
     const response = await model.invoke([new HumanMessage(prompt)])
@@ -203,11 +238,28 @@ Respond with a JSON array:
         ? response.content.map((c) => ('text' in c ? c.text : '')).join('')
         : ''
 
-    const raw = parseJsonSafe(responseText) as Record<string, unknown>[]
-    const actionsArraySchema = z.array(RecommendationActionSchema)
+    if (!responseText.trim()) {
+      throw new Error('Empty response from Gemini')
+    }
+
+    const rawParsed = parseJsonSafe(responseText)
+    // Guard: if LLM returned a single object, wrap in array
+    const raw: Record<string, unknown>[] = Array.isArray(rawParsed) ? rawParsed : [rawParsed]
+
+    // Lenient action parsing: fill missing optional fields instead of dropping entire array
+    const lenientActionSchema = z.object({
+      ticker: z.string(),
+      name: z.string().default(''),
+      action: z.enum(['reduce', 'increase', 'hold', 'add_new', 'remove']),
+      currentValueCad: z.number().optional(),
+      suggestedChangePct: z.number().optional(),
+      suggestedChangeCad: z.number().optional(),
+      rationale: z.string().default('See recommendation description'),
+    })
+    const lenientActionsSchema = z.array(lenientActionSchema)
 
     const parsed: Recommendation[] = raw.map((rec) => {
-      const actionsResult = actionsArraySchema.safeParse(rec.actions)
+      const actionsResult = lenientActionsSchema.safeParse(rec.actions)
       return {
         id: String(rec.id ?? ''),
         title: String(rec.title ?? ''),
@@ -216,40 +268,187 @@ Respond with a JSON array:
         riskReduction: String(rec.riskReduction ?? ''),
         tradeoffs: Array.isArray(rec.tradeoffs) ? rec.tradeoffs.map(String) : [],
         isDoNothing: Boolean(rec.isDoNothing),
-        ...(actionsResult.success ? { actions: actionsResult.data } : {}),
+        ...(actionsResult.success && actionsResult.data.length > 0 ? { actions: actionsResult.data } : {}),
       }
     })
+
+    if (parsed.length === 0) {
+      throw new Error('Parsed 0 recommendations from LLM response')
+    }
+
     return parsed
   } catch (error) {
-    // Fallback recommendations if LLM call or JSON parsing fails
-    console.error('[FundManager] generateRecommendations failed:', error instanceof Error ? error.message : error)
+    // Fallback recommendations with derived actions from calibrated impacts
+    console.error('[FundManager] generateRecommendations failed, using computed fallback:', error instanceof Error ? error.message : error)
+
+    const negHoldings = [...calibratedImpacts]
+      .filter((h) => (h.impact['1M']?.mid ?? 0) < 0)
+      .sort((a, b) => (a.impact['1M']?.mid ?? 0) - (b.impact['1M']?.mid ?? 0))
+    const posHoldings = [...calibratedImpacts]
+      .filter((h) => (h.impact['1M']?.mid ?? 0) > 0)
+      .sort((a, b) => (b.impact['1M']?.mid ?? 0) - (a.impact['1M']?.mid ?? 0))
+
+    // For user queries, generate query-relevant fallback options
+    if (isUserQuery) {
+      // Find the most impacted holding (likely the one the user is asking about)
+      const allSorted = [...calibratedImpacts].sort(
+        (a, b) => Math.abs(b.impact['1M']?.mid ?? 0) - Math.abs(a.impact['1M']?.mid ?? 0),
+      )
+      const focusTicker = posHoldings[0] ?? allSorted[0]
+      const isBullish = debateResolution.consensusDirection === 'positive' || debateResolution.consensusDirection === 'mixed'
+
+      if (focusTicker) {
+        const smallSize = Math.round(focusTicker.holdingValueCad * 0.05) || 500
+        const largerSize = Math.round(focusTicker.holdingValueCad * 0.15) || 1500
+        const existsInPortfolio = focusTicker.holdingValueCad > 0
+
+        const conservativeAction = existsInPortfolio
+          ? { ticker: focusTicker.ticker, name: focusTicker.name, action: 'increase' as const, currentValueCad: focusTicker.holdingValueCad, suggestedChangePct: 5, suggestedChangeCad: smallSize, rationale: `Small increase based on ${isBullish ? 'positive' : 'mixed'} analysis — limits downside while capturing upside` }
+          : { ticker: focusTicker.ticker, name: focusTicker.name, action: 'add_new' as const, currentValueCad: 0, suggestedChangeCad: smallSize, rationale: `Starter position based on ${isBullish ? 'positive' : 'mixed'} analysis — small size to manage risk` }
+
+        const convictionAction = existsInPortfolio
+          ? { ticker: focusTicker.ticker, name: focusTicker.name, action: 'increase' as const, currentValueCad: focusTicker.holdingValueCad, suggestedChangePct: 15, suggestedChangeCad: largerSize, rationale: `Larger position increase — analysis supports ${isBullish ? 'upside' : 'the thesis'} with calibrated impact of $${Math.abs(focusTicker.impact['1M']?.mid ?? 0).toLocaleString()}` }
+          : { ticker: focusTicker.ticker, name: focusTicker.name, action: 'add_new' as const, currentValueCad: 0, suggestedChangeCad: largerSize, rationale: `Meaningful position — analysis supports ${isBullish ? 'upside potential' : 'the thesis'}` }
+
+        return [
+          {
+            id: 'do-nothing',
+            title: 'Do nothing',
+            description: `Keep your current portfolio unchanged. ${existsInPortfolio ? `Your ${focusTicker.ticker} position stays at $${focusTicker.holdingValueCad.toLocaleString()}.` : `You stay without exposure to ${focusTicker.ticker}.`}`,
+            estimatedCost: '$0',
+            riskReduction: 'None — no change to portfolio',
+            tradeoffs: ['No cost or risk', `Miss potential ${isBullish ? 'upside' : 'opportunity'} if analysis is correct`],
+            isDoNothing: true,
+          },
+          {
+            id: 'conservative',
+            title: 'Conservative approach',
+            description: `${existsInPortfolio ? 'Modestly increase' : 'Start a small position in'} ${focusTicker.ticker} (~$${smallSize.toLocaleString()}).`,
+            estimatedCost: `~$${smallSize.toLocaleString()}`,
+            riskReduction: `Limited downside — small position size`,
+            tradeoffs: ['Lower commitment', 'Less upside if thesis plays out', 'Easy to add more later'],
+            isDoNothing: false,
+            actions: [conservativeAction],
+          },
+          {
+            id: 'conviction',
+            title: 'Conviction approach',
+            description: `${existsInPortfolio ? 'Significantly increase' : 'Take a meaningful position in'} ${focusTicker.ticker} (~$${largerSize.toLocaleString()}).`,
+            estimatedCost: `~$${largerSize.toLocaleString()}`,
+            riskReduction: `Higher exposure — ${isBullish ? 'aligned with bullish analysis' : 'thesis-driven'}`,
+            tradeoffs: ['Higher upfront commitment', `Larger downside if analysis is wrong`, `Better upside capture if ${focusTicker.ticker} moves as predicted`],
+            isDoNothing: false,
+            actions: [convictionAction],
+          },
+        ]
+      }
+    }
+
+    // Market event fallback: hedging/protection options
+    const hedgeBudget = Math.round(Math.abs(totalMid) * 0.3)
+    const bondAlloc = Math.round(hedgeBudget * 0.5)
+    const goldAlloc = Math.round(hedgeBudget * 0.3)
+    const cashAlloc = hedgeBudget - bondAlloc - goldAlloc
+
+    const lightActions = [
+      ...negHoldings.slice(0, 2).map((h) => ({
+        ticker: h.ticker,
+        name: h.name,
+        action: 'reduce' as const,
+        currentValueCad: h.holdingValueCad,
+        suggestedChangePct: -15,
+        suggestedChangeCad: -Math.round(h.holdingValueCad * 0.15),
+        rationale: `Trim position to reduce ~$${Math.abs(h.impact['1M']?.mid ?? 0).toLocaleString()} downside exposure`,
+      })),
+      {
+        ticker: 'CGL.C',
+        name: 'iShares Gold Bullion ETF (CAD-Hedged)',
+        action: 'add_new' as const,
+        currentValueCad: 0,
+        suggestedChangeCad: goldAlloc,
+        rationale: 'Gold as a defensive store of value — historically uncorrelated with equities',
+      },
+    ]
+    const lightCost = lightActions.reduce((s, a) => s + Math.abs(a.suggestedChangeCad), 0)
+
+    const balancedReduces = negHoldings.slice(0, Math.min(3, negHoldings.length)).map((h) => ({
+      ticker: h.ticker,
+      name: h.name,
+      action: 'reduce' as const,
+      currentValueCad: h.holdingValueCad,
+      suggestedChangePct: -25,
+      suggestedChangeCad: -Math.round(h.holdingValueCad * 0.25),
+      rationale: `Reduce exposure to offset ~$${Math.abs(h.impact['1M']?.mid ?? 0).toLocaleString()} projected impact`,
+    }))
+    const balancedIncreases = posHoldings.slice(0, 1).map((h) => ({
+      ticker: h.ticker,
+      name: h.name,
+      action: 'increase' as const,
+      currentValueCad: h.holdingValueCad,
+      suggestedChangePct: 10,
+      suggestedChangeCad: Math.round(h.holdingValueCad * 0.1),
+      rationale: `Positively impacted by signal — lean into the tailwind (+$${(h.impact['1M']?.mid ?? 0).toLocaleString()})`,
+    }))
+    const balancedHedges = [
+      {
+        ticker: 'XBB',
+        name: 'iShares Core Canadian Universe Bond Index ETF',
+        action: 'add_new' as const,
+        currentValueCad: 0,
+        suggestedChangeCad: bondAlloc,
+        rationale: 'Bonds provide income and reduce portfolio volatility during equity stress',
+      },
+      {
+        ticker: 'CGL.C',
+        name: 'iShares Gold Bullion ETF (CAD-Hedged)',
+        action: 'add_new' as const,
+        currentValueCad: 0,
+        suggestedChangeCad: goldAlloc,
+        rationale: 'Gold hedge — performs well during market uncertainty and inflation risk',
+      },
+      ...(cashAlloc > 100 ? [{
+        ticker: 'CASH.TO',
+        name: 'Global X High Interest Savings ETF',
+        action: 'add_new' as const,
+        currentValueCad: 0,
+        suggestedChangeCad: cashAlloc,
+        rationale: 'Park funds in a high-interest savings ETF while waiting for clarity',
+      }] : []),
+    ]
+    const balancedActions = [...balancedReduces, ...balancedIncreases, ...balancedHedges]
+    const balancedCost = balancedActions.reduce((s, a) => s + Math.abs(a.suggestedChangeCad), 0)
+
+    const hedgeNames = balancedHedges.map((h) => h.ticker).join(', ')
+
     return [
       {
         id: 'do-nothing',
         title: 'Do nothing',
-        description: `Accept the estimated ${totalMid < 0 ? 'loss' : 'impact'} of ~$${Math.abs(totalMid).toLocaleString()}.`,
+        description: `Accept the estimated ${totalMid < 0 ? 'loss' : 'impact'} of ~$${Math.round(Math.abs(totalMid)).toLocaleString()}.`,
         estimatedCost: '$0',
-        riskReduction: `None — accept ~$${Math.abs(totalMid).toLocaleString()} risk`,
+        riskReduction: `None — accept ~$${Math.round(Math.abs(totalMid)).toLocaleString()} risk`,
         tradeoffs: ['No cost', 'Full exposure to the risk'],
         isDoNothing: true,
       },
       {
         id: 'light',
         title: 'Light protection',
-        description: 'Reduce exposure to the most affected holdings.',
-        estimatedCost: '~$200-500',
+        description: `Trim the most exposed holdings and add a small gold position as a hedge.`,
+        estimatedCost: `~$${lightCost.toLocaleString()}`,
         riskReduction: `Reduces risk by ~$${Math.round(Math.abs(totalMid) * 0.4).toLocaleString()}`,
-        tradeoffs: ['Lower cost', 'Partial protection only'],
+        tradeoffs: ['Lower cost', 'Partial protection — still exposed to remaining positions', 'Gold adds diversification but may not fully offset equity risk'],
         isDoNothing: false,
+        actions: lightActions,
       },
       {
         id: 'balanced',
         title: 'Balanced response',
-        description: 'Hedge the primary exposure and add defensive positions.',
-        estimatedCost: '~$500-1,200',
+        description: `Reduce the most affected positions, ${posHoldings.length > 0 ? `lean into ${posHoldings[0].ticker}'s tailwind, ` : ''}and diversify into ${hedgeNames}.`,
+        estimatedCost: `~$${balancedCost.toLocaleString()}`,
         riskReduction: `Reduces risk by ~$${Math.round(Math.abs(totalMid) * 0.7).toLocaleString()}`,
-        tradeoffs: ['Higher upfront cost', 'Better protection', 'May miss upside if reversal occurs'],
+        tradeoffs: ['Higher upfront cost', 'Better downside protection across bonds, gold, and cash', 'May miss upside if signal reverses'],
         isDoNothing: false,
+        actions: balancedActions,
       },
     ]
   }

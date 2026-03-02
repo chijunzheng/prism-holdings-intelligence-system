@@ -106,4 +106,36 @@ describe('runMagnitudeValidator', () => {
 
     expect(result.overallAssessment).toContain('within historical volatility bounds')
   })
+
+  it('falls back safely when volatility data contains non-finite numbers', () => {
+    const result = runMagnitudeValidator({
+      holdingImpacts: [baseImpact],
+      volatilities: {
+        ZAG: {
+          daily: Number.NaN,
+          monthly: Number.NaN,
+          annualized: Number.NaN,
+        } as unknown as VolatilityData,
+      },
+    })
+
+    // ZAG fallback monthly volatility is 2%
+    expect(result.holdingValidations[0].historicalVolatility).toBe(0.02)
+    expect(result.holdingValidations[0].maxReasonableMove).toBe(0.06)
+  })
+
+  it('falls back safely when magnitude score is non-finite', () => {
+    const invalidImpact = {
+      ...baseImpact,
+      magnitudeScore: Number.NaN,
+    } as unknown as HoldingImpactEstimate
+
+    const result = runMagnitudeValidator({
+      holdingImpacts: [invalidImpact],
+      volatilities: { ZAG: baseVol },
+    })
+
+    expect(result.holdingValidations[0].estimatedMagnitude).toBe(0)
+    expect(result.holdingValidations[0].outOfBounds).toBe(false)
+  })
 })

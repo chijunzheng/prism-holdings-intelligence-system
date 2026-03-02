@@ -102,6 +102,8 @@ const NODE_TO_STAGE: Readonly<Record<string, string>> = {
 interface NodeSummary {
   readonly stage: string
   readonly message: string
+  readonly riskProfile?: unknown
+  readonly marketData?: unknown
   readonly analystAssessments?: unknown
   readonly debateResolution?: unknown
   readonly riskChallenge?: unknown
@@ -114,11 +116,39 @@ function summarizeNodeOutput(nodeName: string, nodeOutput: Record<string, unknow
 
   switch (nodeName) {
     case 'infer_risk_profile': {
-      const rp = nodeOutput.riskProfile as { tolerance?: string; horizon?: string } | null
-      return { stage, message: rp ? `Risk tolerance: ${rp.tolerance}, Horizon: ${rp.horizon}` : 'Risk profile inferred' }
+      const rp = nodeOutput.riskProfile as {
+        riskTolerance?: string
+        riskScore?: number
+        factors?: readonly { factor: string; signal: string; scoreEffect: number }[]
+        warnings?: readonly string[]
+      } | null
+      if (!rp) return { stage, message: 'Risk profile inferred' }
+      const tolerance = rp.riskTolerance ?? 'moderate'
+      const score = rp.riskScore ?? 0
+      const factors = rp.factors ?? []
+      const topFactors = factors.slice(0, 3).map((f) => f.factor).join(', ')
+      const warningCount = rp.warnings?.length ?? 0
+      const parts = [`${tolerance} tolerance (${score}/100)`]
+      if (topFactors) parts.push(topFactors)
+      if (warningCount > 0) parts.push(`${warningCount} warning${warningCount !== 1 ? 's' : ''}`)
+      return { stage, message: parts.join(' · '), riskProfile: nodeOutput.riskProfile }
     }
-    case 'fetch_market_data':
-      return { stage, message: 'Fetched real-time volatility and correlation data' }
+    case 'fetch_market_data': {
+      const md = nodeOutput.marketData as {
+        tickers?: readonly string[]
+        source?: string
+        fetchedAt?: string
+      } | null
+      if (!md) return { stage, message: 'Fetched real-time market data' }
+      const tickerCount = md.tickers?.length ?? 0
+      const source = md.source === 'yahoo_finance' ? 'Yahoo Finance' : 'fallback data'
+      const freshness = md.fetchedAt ? ` as of ${new Date(md.fetchedAt).toLocaleTimeString()}` : ''
+      return {
+        stage,
+        message: `${tickerCount} ticker${tickerCount !== 1 ? 's' : ''} — volatility, correlations (${source}${freshness})`,
+        marketData: nodeOutput.marketData,
+      }
+    }
     case 'run_analysts': {
       const assessments = nodeOutput.analystAssessments as readonly { analystType?: string }[] | undefined
       const types = assessments?.map(a => a.analystType).join(', ') ?? 'macro, fundamental, sentiment, technical'
@@ -175,15 +205,24 @@ function summarizeNodeOutput(nodeName: string, nodeOutput: Record<string, unknow
 // After streaming completes, check accumulated state to determine if we hit a checkpoint.
 function detectCheckpoint(accumulated: Record<string, unknown>): CheckpointPause | null {
   const hasVerdict = accumulated.fundManagerVerdict != null
+  const hasResearchBrief = accumulated.researchBrief != null
+  const hasJudgeVerdict = accumulated.judgeVerdict != null
   const hasDebateResolution = accumulated.debateResolution != null
   const hasRiskChallenge = accumulated.riskChallenge != null
   const hasAnalysts = Array.isArray(accumulated.analystAssessments) && accumulated.analystAssessments.length > 0
 
-  if (hasVerdict) return null // Pipeline completed
+  // Soft checkpoint: post-verdict (verdict exists, brief not yet generated)
+  if (hasVerdict && !hasResearchBrief && hasJudgeVerdict) {
+    const judgeVerdict = accumulated.judgeVerdict as { overallQualityScore?: number } | null
+    return {
+      stage: 'verdict_preview',
+      type: 'soft',
+      verdict: accumulated.fundManagerVerdict as FundManagerVerdict,
+      qualityScore: judgeVerdict?.overallQualityScore ?? 0,
+    }
+  }
 
-  // Soft checkpoint: post-verdict (has verdict from judge loop, but brief not generated yet)
-  // Actually, if judge converged and we hit soft_cp_verdict, verdict exists but brief is null
-  // For hard checkpoints:
+  if (hasVerdict) return null // Pipeline completed
 
   // Soft checkpoint: post-debate (debate completed but no risk challenge yet)
   if (hasDebateResolution && !hasRiskChallenge) {
@@ -206,8 +245,8 @@ function detectCheckpoint(accumulated: Record<string, unknown>): CheckpointPause
     }
   }
 
-  // Soft checkpoint: post-risk-challenge (risk challenge done, no magnitude validation yet)
-  if (hasRiskChallenge && accumulated.magnitudeValidation == null) {
+  // Soft checkpoint: post-risk-challenge (all risk-team artifacts available, before synthesis)
+  if (hasRiskChallenge && accumulated.magnitudeValidation != null && accumulated.stressTest != null) {
     return {
       stage: 'risk_challenge_review',
       type: 'soft',
@@ -232,6 +271,59 @@ function buildResult(accumulated: Record<string, unknown>): MultiAgentResult {
       judgeVerdict: accumulated.judgeVerdict as JudgeVerdict,
     },
   }
+}
+
+export function getMissingCompletionFields(accumulated: Record<string, unknown>): readonly string[] {
+  const missing: string[] = []
+
+  if (accumulated.fundManagerVerdict == null) missing.push('fundManagerVerdict')
+  if (accumulated.researchBrief == null) missing.push('researchBrief')
+  if (accumulated.riskProfile == null) missing.push('riskProfile')
+  if (!Array.isArray(accumulated.analystAssessments)) missing.push('analystAssessments')
+  if (accumulated.debateResolution == null) missing.push('debateResolution')
+  if (accumulated.riskChallenge == null) missing.push('riskChallenge')
+  if (accumulated.magnitudeValidation == null) missing.push('magnitudeValidation')
+  if (accumulated.stressTest == null) missing.push('stressTest')
+  if (accumulated.judgeVerdict == null) missing.push('judgeVerdict')
+
+  return missing
+}
+
+function ensureCompleteResult(
+  accumulated: Record<string, unknown>,
+  context: string,
+): MultiAgentResult {
+  const missing = getMissingCompletionFields(accumulated)
+  if (missing.length > 0) {
+    throw new Error(
+      `Pipeline marked complete but missing required state (${missing.join(', ')}). Context: ${context}`,
+    )
+  }
+  return buildResult(accumulated)
+}
+
+async function hydrateFromCheckpointState(
+  compiled: ReturnType<typeof compilePipeline> | ReturnType<typeof compilePipelineNoCheckpoints>,
+  config: Record<string, unknown>,
+  accumulated: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const maybeCompiled = compiled as {
+    getState?: (cfg: Record<string, unknown>) => Promise<{ values?: unknown }>
+  }
+
+  if (typeof maybeCompiled.getState !== 'function') return accumulated
+
+  try {
+    const snapshot = await maybeCompiled.getState(config)
+    const values = snapshot?.values
+    if (values && typeof values === 'object') {
+      return { ...(values as Record<string, unknown>), ...accumulated }
+    }
+  } catch {
+    // If checkpoint state read fails, fall back to streamed deltas.
+  }
+
+  return accumulated
 }
 
 // Stream the pipeline and report progress, returning accumulated state
@@ -344,7 +436,10 @@ export async function runMultiAgentAnalysis(params: {
 
   // Streaming mode with progress updates
   if (onProgress) {
-    const accumulated = await streamPipeline(compiled, initialState, config, onProgress)
+    const streamed = await streamPipeline(compiled, initialState, config, onProgress)
+    const accumulated = shouldSkip
+      ? streamed
+      : await hydrateFromCheckpointState(compiled, config, streamed)
 
     // In guided mode, check if we hit a checkpoint (interrupt)
     if (isGuided) {
@@ -352,28 +447,20 @@ export async function runMultiAgentAnalysis(params: {
       if (checkpoint) {
         return { type: 'checkpoint', checkpoint, threadId } as AnalysisOutcome
       }
-      return { type: 'complete', result: buildResult(accumulated), threadId } as AnalysisOutcome
+      return {
+        type: 'complete',
+        result: ensureCompleteResult(accumulated, `guided-run:${threadId}`),
+        threadId,
+      } as AnalysisOutcome
     }
 
-    return buildResult(accumulated)
+    return ensureCompleteResult(accumulated, `stream-run:${threadId}`)
   }
 
   // Fallback: use .invoke() when no progress callback (eval harness, testing)
   const result = await compiled.invoke(initialState, config)
 
-  return {
-    verdict: result.fundManagerVerdict!,
-    researchBrief: result.researchBrief!,
-    intermediateArtifacts: {
-      riskProfile: result.riskProfile!,
-      analystAssessments: result.analystAssessments,
-      debateResolution: result.debateResolution!,
-      riskChallenge: result.riskChallenge!,
-      magnitudeValidation: result.magnitudeValidation!,
-      stressTest: result.stressTest!,
-      judgeVerdict: result.judgeVerdict!,
-    },
-  }
+  return ensureCompleteResult(result as unknown as Record<string, unknown>, `invoke-run:${threadId}`)
 }
 
 /**
@@ -392,14 +479,19 @@ export async function resumeAnalysis(params: {
   const config = { configurable: { thread_id: threadId } }
   const resumeCommand = new Command({ resume: humanInput })
 
-  const accumulated = await streamPipeline(compiled, resumeCommand, config, onProgress)
+  const streamed = await streamPipeline(compiled, resumeCommand, config, onProgress)
+  const accumulated = await hydrateFromCheckpointState(compiled, config, streamed)
 
   const checkpoint = detectCheckpoint(accumulated)
   if (checkpoint) {
     return { type: 'checkpoint', checkpoint, threadId }
   }
 
-  return { type: 'complete', result: buildResult(accumulated), threadId }
+  return {
+    type: 'complete',
+    result: ensureCompleteResult(accumulated, `resume:${threadId}`),
+    threadId,
+  }
 }
 
 /**

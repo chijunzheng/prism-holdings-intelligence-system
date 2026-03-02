@@ -35,10 +35,13 @@ function validateHolding(params: {
 }): HoldingValidation {
   const { impact, volatility } = params
 
-  const monthlyVol = volatility?.monthly ?? FALLBACK_MONTHLY_VOL[classifyAsset(impact.ticker)] ?? 0.05
+  const fallbackVol = FALLBACK_MONTHLY_VOL[classifyAsset(impact.ticker)] ?? 0.05
+  const monthlyVol = Number.isFinite(volatility?.monthly) && (volatility?.monthly ?? 0) > 0
+    ? (volatility?.monthly as number)
+    : fallbackVol
   // 3x monthly vol covers fat-tailed events (~99.7%) appropriate for event-driven analysis
   const maxReasonableMove = 3 * monthlyVol
-  const estimatedMagnitude = impact.magnitudeScore
+  const estimatedMagnitude = Number.isFinite(impact.magnitudeScore) ? impact.magnitudeScore : 0
 
   const outOfBounds = estimatedMagnitude > maxReasonableMove
   const calibratedMagnitude = outOfBounds

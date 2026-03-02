@@ -7,16 +7,10 @@ import {
   RiskChallengeSchema,
   type RiskChallenge,
   type AnalystAssessment,
+  type Signal,
 } from '@prism/shared'
 import { createGeminiChatModel } from '../../utils/gemini-chat-model'
-
-function extractJson(text: string): string {
-  const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/)
-  if (codeBlockMatch) return codeBlockMatch[1].trim()
-  const jsonMatch = text.match(/\{[\s\S]*\}/)
-  if (jsonMatch) return jsonMatch[0]
-  return text
-}
+import { parseJsonSafe } from '../../utils/json-parse.js'
 
 function extractResponseText(content: unknown): string {
   if (typeof content === 'string') return content
@@ -40,13 +34,12 @@ type RiskChallengeParseOutcome =
   | { readonly kind: 'validation_error', readonly message: string }
 
 function parseRiskChallenge(responseText: string): RiskChallengeParseOutcome {
-  const jsonStr = extractJson(responseText)
   let parsed: unknown
 
   try {
-    parsed = JSON.parse(jsonStr)
+    parsed = parseJsonSafe(responseText)
   } catch {
-    return { kind: 'parse_error', snippet: jsonStr.slice(0, 300) }
+    return { kind: 'parse_error', snippet: responseText.slice(0, 300) }
   }
 
   const result = RiskChallengeSchema.safeParse(parsed)
@@ -82,8 +75,9 @@ function fallbackRiskChallenge(reason: string): RiskChallenge {
 function buildChallengerPrompt(params: {
   readonly analystAssessments: readonly AnalystAssessment[]
   readonly humanCorrection?: string
+  readonly signal?: Signal
 }): string {
-  const { analystAssessments, humanCorrection } = params
+  const { analystAssessments, humanCorrection, signal } = params
 
   const assessmentSummaries = analystAssessments.map((a) => {
     const assumptions = a.keyAssumptions.map((k, i) => `  ${i + 1}. ${k}`).join('\n')
@@ -108,6 +102,20 @@ function buildChallengerPrompt(params: {
     '--- ANALYST ASSESSMENTS ---',
     ...assessmentSummaries,
   ]
+
+  // Inject research brief for grounded challenges
+  const brief = signal?.researchBrief
+  if (brief) {
+    sections.push(
+      '',
+      '--- RESEARCH BRIEF (shared context) ---',
+      `Signal: ${signal.headline}`,
+      `Key Facts: ${brief.keyFacts.join('; ')}`,
+      `Causal Mechanism: ${brief.causalMechanism}`,
+      ...(brief.knownUnknowns.length > 0 ? [`Known Unknowns: ${brief.knownUnknowns.join('; ')}`] : []),
+      'Ground your challenges in the research brief evidence.',
+    )
+  }
 
   if (humanCorrection) {
     sections.push(
@@ -142,6 +150,7 @@ Respond with valid JSON:
 export async function runAssumptionsChallenger(params: {
   readonly analystAssessments: readonly AnalystAssessment[]
   readonly humanCorrection?: string
+  readonly signal?: Signal
 }): Promise<RiskChallenge> {
   const model = createGeminiChatModel({
     model: 'gemini-3-flash-preview',

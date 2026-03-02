@@ -15,6 +15,7 @@ import {
 import type { ThinkingCallback } from '../types.js'
 import { buildAnalystPrompt, buildSharedAnalystContext, buildAnalystSpecificPrompt } from './shared-prompt.js'
 import { createGeminiChatModel } from '../../utils/gemini-chat-model'
+import { extractJson, parseJsonSafe } from '../../utils/json-parse.js'
 
 // ── Gemini Configuration ────────────────────────────────────
 function createAnalystModel() {
@@ -24,23 +25,6 @@ function createAnalystModel() {
     maxOutputTokens: 4096,
     json: true,
   })
-}
-
-// ── JSON Extraction ─────────────────────────────────────────
-function extractJson(text: string): string {
-  // Try to find JSON in markdown code blocks first
-  const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/)
-  if (codeBlockMatch) {
-    return codeBlockMatch[1].trim()
-  }
-
-  // Try to find raw JSON object
-  const jsonMatch = text.match(/\{[\s\S]*\}/)
-  if (jsonMatch) {
-    return jsonMatch[0]
-  }
-
-  return text
 }
 
 function extractResponseText(content: unknown): string {
@@ -103,12 +87,12 @@ function reconcileDirection(assessment: AnalystAssessment): AnalystAssessment {
 }
 
 function parseAndValidateAnalystResponse(responseText: string): AnalystResponseParseOutcome {
-  const jsonStr = extractJson(responseText)
   let parsed: unknown
 
   try {
-    parsed = JSON.parse(jsonStr)
+    parsed = parseJsonSafe(responseText)
   } catch {
+    const jsonStr = extractJson(responseText)
     return { kind: 'parse_error', jsonSnippet: jsonStr.slice(0, 300) }
   }
 

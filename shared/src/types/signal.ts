@@ -14,6 +14,16 @@ export const SourceCitationSchema = z.object({
 })
 export type SourceCitation = z.infer<typeof SourceCitationSchema>
 
+// ── Signal Research Brief (synthesized from grounding metadata) ──
+export const SignalResearchBriefSchema = z.object({
+  keyFacts: z.array(z.string()).readonly(),
+  causalMechanism: z.string(),
+  historicalPrecedents: z.array(z.string()).readonly(),
+  knownUnknowns: z.array(z.string()).readonly(),
+  searchQueries: z.array(z.string()).readonly(),
+})
+export type SignalResearchBrief = z.infer<typeof SignalResearchBriefSchema>
+
 // ── Signal (output of Signal Monitor) ──────────────────────
 export const SignalSchema = z.object({
   id: z.string(),
@@ -33,6 +43,8 @@ export const SignalSchema = z.object({
   portfolioSummary: z.string().optional(),
   /** Sources from Gemini Search grounding */
   sources: z.array(SourceCitationSchema).readonly(),
+  /** Synthesized research brief from grounding metadata (populated during signal detection) */
+  researchBrief: SignalResearchBriefSchema.optional(),
   detectedAt: z.string().datetime(),
   /** Whether user has seen this signal */
   acknowledged: z.boolean(),

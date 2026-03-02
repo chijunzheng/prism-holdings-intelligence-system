@@ -1,6 +1,6 @@
 // Pipeline Orchestrator — LangGraph StateGraph wiring all agents together.
 // Stages: Preparation → Analysts → Debate → Risk Team → Synthesis → Brief
-// Includes interrupt() for human-in-the-loop checkpoints.
+// All checkpoints are soft (auto-continue). Users can optionally intervene.
 
 import { StateGraph, START, END, interrupt, MemorySaver } from '@langchain/langgraph'
 import { PipelineState } from './state.js'
@@ -46,20 +46,36 @@ function getHoldingNames(portfolio: State['portfolio']): Readonly<Record<string,
 }
 
 // ── Node: Infer Risk Profile ────────────────────────────────
-async function inferRiskProfileNode(state: State): Promise<Partial<State>> {
-  const riskProfile = inferRiskProfile({
-    portfolio: state.portfolio,
-    exposureMap: state.exposureMap,
-    userExpectations: state.userExpectations,
-  })
-  return { riskProfile }
+function createInferRiskProfileNode(onThinking?: ThinkingCallback) {
+  return async (state: State): Promise<Partial<State>> => {
+    const horizon = state.userExpectations?.horizon
+    const declared = state.userExpectations?.riskToleranceOverride
+    onThinking?.('risk_profile', `Analyzing portfolio composition${horizon ? ` (${horizon}yr horizon)` : ''}${declared ? `, declared: ${declared}` : ''}...`)
+
+    const riskProfile = inferRiskProfile({
+      portfolio: state.portfolio,
+      exposureMap: state.exposureMap,
+      userExpectations: state.userExpectations,
+    })
+
+    const topFactors = riskProfile.factors.slice(0, 2).map((f) => f.factor).join(', ')
+    onThinking?.('risk_profile', `${riskProfile.riskTolerance} tolerance (${riskProfile.riskScore}/100)${topFactors ? ` — ${topFactors}` : ''}`)
+    return { riskProfile }
+  }
 }
 
 // ── Node: Fetch Market Data ─────────────────────────────────
-async function fetchMarketDataNode(state: State): Promise<Partial<State>> {
-  const tickers = getPortfolioTickers(state.portfolio)
-  const marketData = await getMarketDataForAnalysis(tickers)
-  return { marketData }
+function createFetchMarketDataNode(onThinking?: ThinkingCallback) {
+  return async (state: State): Promise<Partial<State>> => {
+    const tickers = getPortfolioTickers(state.portfolio)
+    onThinking?.('market_data', `Fetching volatility and correlations for ${tickers.length} tickers from Yahoo Finance...`)
+
+    const marketData = await getMarketDataForAnalysis(tickers)
+
+    const source = marketData.source === 'yahoo_finance' ? 'Yahoo Finance' : 'fallback'
+    onThinking?.('market_data', `${tickers.length} tickers loaded (${source}) — ready for calibration`)
+    return { marketData }
+  }
 }
 
 // ── Node Factories (capture onThinking via closure) ─────────
@@ -115,6 +131,7 @@ function createAssumptionsChallengerNode(onThinking?: ThinkingCallback) {
     const riskChallenge = await runAssumptionsChallenger({
       analystAssessments: state.analystAssessments,
       humanCorrection: state.humanCorrectionAtDebate ?? undefined,
+      signal: state.signal,
     })
     const challengeCount = riskChallenge.challengedAssumptions.length
     const haircut = Math.round(riskChallenge.recommendedConfidenceAdjustment * 100)
@@ -357,8 +374,8 @@ function shouldLoopBackToFundManager(state: State): string {
 // ── Build Graph ─────────────────────────────────────────────
 export function buildPipelineGraph(onThinking?: ThinkingCallback) {
   const graph = new StateGraph(PipelineState)
-    .addNode('infer_risk_profile', inferRiskProfileNode)
-    .addNode('fetch_market_data', fetchMarketDataNode)
+    .addNode('infer_risk_profile', createInferRiskProfileNode(onThinking))
+    .addNode('fetch_market_data', createFetchMarketDataNode(onThinking))
     .addNode('run_analysts', createRunAnalystsNode(onThinking))
     .addNode('soft_cp_analysts', softCheckpointPostAnalysts)
     .addNode('run_debate', createRunDebateNode(onThinking))

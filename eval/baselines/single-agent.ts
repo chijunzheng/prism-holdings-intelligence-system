@@ -42,7 +42,7 @@ export async function runSingleAgentBaseline(params: {
   readonly exposureMap: ExposureMap
   readonly model?: string
 }): Promise<SingleAgentResponse> {
-  const { signal, portfolio, exposureMap, model = 'gemini-2.5-flash' } = params
+  const { signal, portfolio, exposureMap, model = 'gemini-3-flash-preview' } = params
 
   const holdingsSummary = portfolio.accounts
     .flatMap((a) => a.holdings)

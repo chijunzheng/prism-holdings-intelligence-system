@@ -5,6 +5,7 @@
 import { HumanMessage } from '@langchain/core/messages'
 import type { UserAssertion, AssertionCategory } from '@prism/shared'
 import { createGeminiChatModel } from '../utils/gemini-chat-model'
+import { parseJsonSafe } from '../utils/json-parse.js'
 import { randomUUID } from 'crypto'
 
 const MIN_MESSAGE_LENGTH = 20
@@ -18,14 +19,6 @@ const VALID_CATEGORIES: readonly AssertionCategory[] = [
   'goal',
   'other',
 ]
-
-function extractJson(text: string): string {
-  const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/)
-  if (codeBlockMatch) return codeBlockMatch[1].trim()
-  const jsonMatch = text.match(/\[[\s\S]*\]/)
-  if (jsonMatch) return jsonMatch[0]
-  return text
-}
 
 export async function extractAssertions(
   message: string,
@@ -63,7 +56,7 @@ Respond with a JSON array (empty if no assertions found):
         ? response.content.map((c) => ('text' in c ? c.text : '')).join('')
         : ''
 
-    const parsed = JSON.parse(extractJson(responseText))
+    const parsed = parseJsonSafe(responseText)
 
     if (!Array.isArray(parsed)) return []
 

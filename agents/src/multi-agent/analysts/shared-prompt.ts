@@ -101,7 +101,7 @@ function formatSignalContext(signal: Signal): string {
     .map((s) => `  - ${s.title} (${s.publisher ?? 'unknown'})`)
     .join('\n')
 
-  return [
+  const sections = [
     `Headline: ${signal.headline}`,
     `Description: ${signal.description}`,
     `Urgency: ${signal.urgency}`,
@@ -109,7 +109,32 @@ function formatSignalContext(signal: Signal): string {
     `Temporal Classification: ${signal.temporalClassification}`,
     `Affected Exposures: ${signal.affectedExposures.join(', ')}`,
     `Sources:\n${sourceList}`,
-  ].join('\n')
+  ]
+
+  // Inject research brief when available — shared factual context for all analysts
+  const brief = signal.researchBrief
+  if (brief) {
+    const facts = brief.keyFacts.map((f) => `  - ${f}`).join('\n')
+    const precedents = brief.historicalPrecedents.length > 0
+      ? `Historical Precedents:\n${brief.historicalPrecedents.map((p) => `  - ${p}`).join('\n')}`
+      : ''
+    const unknowns = brief.knownUnknowns.length > 0
+      ? `Known Unknowns:\n${brief.knownUnknowns.map((u) => `  - ${u}`).join('\n')}`
+      : ''
+
+    sections.push(
+      '',
+      '--- RESEARCH BRIEF (from signal detection grounding) ---',
+      `Key Facts:\n${facts}`,
+      `Causal Mechanism: ${brief.causalMechanism}`,
+      ...(precedents ? [precedents] : []),
+      ...(unknowns ? [unknowns] : []),
+      '',
+      'NOTE: Search for ADDITIONAL evidence from your perspective. Do NOT simply repeat this brief.',
+    )
+  }
+
+  return sections.join('\n')
 }
 
 // ── Format Risk Profile Context ─────────────────────────────

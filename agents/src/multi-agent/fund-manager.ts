@@ -13,7 +13,6 @@ import type {
   MarketDataBundle,
   CalibratedHoldingImpact,
   Recommendation,
-  RecommendationAction,
   HoldingImpactEstimate,
   ScenarioPreference,
   UserExpectations,
@@ -25,14 +24,7 @@ import { RecommendationActionSchema } from '@prism/shared'
 import { z } from 'zod'
 import { calibrateImpact } from './calibration.js'
 import { createGeminiChatModel } from '../utils/gemini-chat-model'
-
-function extractJson(text: string): string {
-  const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/)
-  if (codeBlockMatch) return codeBlockMatch[1].trim()
-  const jsonMatch = text.match(/\[[\s\S]*\]|\{[\s\S]*\}/)
-  if (jsonMatch) return jsonMatch[0]
-  return text
-}
+import { parseJsonSafe } from '../utils/json-parse.js'
 
 // ── Step 1-3: Calibrate Holdings ────────────────────────────
 function calibrateHoldings(params: {
@@ -203,15 +195,15 @@ Respond with a JSON array:
   { "id": "balanced", "title": "...", "description": "...", "estimatedCost": "...", "riskReduction": "...", "tradeoffs": ["..."], "isDoNothing": false, "actions": [...] }
 ]`
 
-  const response = await model.invoke([new HumanMessage(prompt)])
-  const responseText = typeof response.content === 'string'
-    ? response.content
-    : Array.isArray(response.content)
-      ? response.content.map((c) => ('text' in c ? c.text : '')).join('')
-      : ''
-
   try {
-    const raw = JSON.parse(extractJson(responseText)) as Record<string, unknown>[]
+    const response = await model.invoke([new HumanMessage(prompt)])
+    const responseText = typeof response.content === 'string'
+      ? response.content
+      : Array.isArray(response.content)
+        ? response.content.map((c) => ('text' in c ? c.text : '')).join('')
+        : ''
+
+    const raw = parseJsonSafe(responseText) as Record<string, unknown>[]
     const actionsArraySchema = z.array(RecommendationActionSchema)
 
     const parsed: Recommendation[] = raw.map((rec) => {
@@ -228,8 +220,9 @@ Respond with a JSON array:
       }
     })
     return parsed
-  } catch {
-    // Fallback recommendations if LLM fails
+  } catch (error) {
+    // Fallback recommendations if LLM call or JSON parsing fails
+    console.error('[FundManager] generateRecommendations failed:', error instanceof Error ? error.message : error)
     return [
       {
         id: 'do-nothing',

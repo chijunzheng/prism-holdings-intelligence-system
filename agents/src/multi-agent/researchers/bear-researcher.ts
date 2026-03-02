@@ -10,14 +10,7 @@ import {
   type Signal,
 } from '@prism/shared'
 import { createGeminiChatModel } from '../../utils/gemini-chat-model'
-
-function extractJson(text: string): string {
-  const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/)
-  if (codeBlockMatch) return codeBlockMatch[1].trim()
-  const jsonMatch = text.match(/\{[\s\S]*\}/)
-  if (jsonMatch) return jsonMatch[0]
-  return text
-}
+import { parseJsonSafe } from '../../utils/json-parse.js'
 
 function extractResponseText(content: unknown): string {
   if (typeof content === 'string') return content
@@ -41,13 +34,12 @@ type DebateParseOutcome =
   | { readonly kind: 'validation_error', readonly message: string }
 
 function parseDebateArgument(responseText: string): DebateParseOutcome {
-  const jsonStr = extractJson(responseText)
   let parsed: unknown
 
   try {
-    parsed = JSON.parse(jsonStr)
+    parsed = parseJsonSafe(responseText)
   } catch {
-    return { kind: 'parse_error', snippet: jsonStr.slice(0, 300) }
+    return { kind: 'parse_error', snippet: responseText.slice(0, 300) }
   }
 
   const result = DebateArgumentSchema.safeParse(parsed)
@@ -112,6 +104,20 @@ function buildBearPrompt(params: {
     .flatMap((a) => a.keyAssumptions.map((k) => `[${a.analystType}] ${k}`))
     .join('\n  ')
 
+  // Research brief injection helper
+  const briefSections: string[] = []
+  const brief = signal.researchBrief
+  if (brief) {
+    briefSections.push(
+      '',
+      '--- RESEARCH BRIEF (shared context) ---',
+      `Key Facts: ${brief.keyFacts.join('; ')}`,
+      `Causal Mechanism: ${brief.causalMechanism}`,
+      ...(brief.knownUnknowns.length > 0 ? [`Known Unknowns: ${brief.knownUnknowns.join('; ')}`] : []),
+      'Find evidence that CONTRADICTS or complicates this analysis.',
+    )
+  }
+
   // Independent mode for Round 1: challenge analyst consensus directly (no Bull argument)
   if (mode === 'independent' || (round === 1 && !bullArgument)) {
     return [
@@ -122,6 +128,7 @@ function buildBearPrompt(params: {
       `This is Round ${round} of the debate.`,
       '',
       `SIGNAL: ${signal.headline}`,
+      ...briefSections,
       '',
       '--- ANALYST ASSESSMENTS TO CHALLENGE ---',
       JSON.stringify(analystAssessments.map((a) => ({
@@ -157,6 +164,7 @@ function buildBearPrompt(params: {
     `This is Round ${round} of the debate.`,
     '',
     `SIGNAL: ${signal.headline}`,
+    ...briefSections,
     '',
     '--- BULL\'S ARGUMENT ---',
     JSON.stringify(bullArgument, null, 2),

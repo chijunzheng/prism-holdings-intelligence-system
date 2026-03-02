@@ -14,6 +14,7 @@ import type {
   CalibratedHoldingImpact,
 } from '@prism/shared'
 import { createGeminiChatModel } from '../utils/gemini-chat-model'
+import { parseJsonSafe } from '../utils/json-parse.js'
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -161,14 +162,6 @@ export function computePortfolioImpact(
 
 // ── LLM: Interaction Insights ───────────────────────────────
 
-function extractJson(text: string): string {
-  const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/)
-  if (codeBlockMatch) return codeBlockMatch[1].trim()
-  const jsonMatch = text.match(/\[[\s\S]*\]|\{[\s\S]*\}/)
-  if (jsonMatch) return jsonMatch[0]
-  return text
-}
-
 function createSynthesizerModel() {
   return createGeminiChatModel({
     model: 'gemini-3-flash-preview',
@@ -228,7 +221,7 @@ Example: ["The oil price drop partially offsets the rate hike impact on your ene
       : ''
 
   try {
-    const parsed = JSON.parse(extractJson(responseText))
+    const parsed = parseJsonSafe(responseText)
     if (Array.isArray(parsed) && parsed.every((item) => typeof item === 'string')) {
       return parsed
     }
@@ -300,7 +293,7 @@ Respond with valid JSON only.`
       : ''
 
   try {
-    const parsed = JSON.parse(extractJson(responseText))
+    const parsed = parseJsonSafe(responseText)
     if (Array.isArray(parsed)) {
       return parsed as Recommendation[]
     }

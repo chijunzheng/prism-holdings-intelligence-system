@@ -14,6 +14,7 @@ import type {
   DollarRange,
 } from '@prism/shared'
 import { createGeminiChatModel } from '../utils/gemini-chat-model'
+import { parseJsonSafe } from '../utils/json-parse.js'
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -119,14 +120,6 @@ export function classifyByPattern(message: string): FollowUpType | null {
 
 // ── LLM Classification (fallback) ───────────────────────────
 
-function extractJson(text: string): string {
-  const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/)
-  if (codeBlockMatch) return codeBlockMatch[1].trim()
-  const jsonMatch = text.match(/\{[\s\S]*\}/)
-  if (jsonMatch) return jsonMatch[0]
-  return text
-}
-
 async function classifyWithLlm(
   message: string,
   activeSignals: readonly Signal[],
@@ -166,7 +159,7 @@ Only include "modifiedAssumptions", "targetSignalId", or "targetHolding" if rele
       : ''
 
   try {
-    const parsed = JSON.parse(extractJson(responseText))
+    const parsed = parseJsonSafe(responseText)
     return {
       type: parsed.type ?? 'general',
       confidence: parsed.confidence ?? 0.5,

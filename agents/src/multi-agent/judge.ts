@@ -10,14 +10,7 @@ import type {
 } from '@prism/shared'
 import { JudgeVerdictSchema } from '@prism/shared'
 import { createGeminiChatModel } from '../utils/gemini-chat-model'
-
-function extractJson(text: string): string {
-  const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/)
-  if (codeBlockMatch) return codeBlockMatch[1].trim()
-  const jsonMatch = text.match(/\{[\s\S]*\}/)
-  if (jsonMatch) return jsonMatch[0]
-  return text
-}
+import { parseJsonSafe } from '../utils/json-parse.js'
 
 const DIMENSION_WEIGHTS = {
   evidenceGrounding: 0.25,
@@ -117,7 +110,7 @@ Respond with valid JSON:
         ? response.content.map((c) => ('text' in c ? c.text : '')).join('')
         : ''
 
-    const parsed = JSON.parse(extractJson(responseText))
+    const parsed = parseJsonSafe(responseText)
 
     const scores = {
       evidenceGrounding: clamp01(parsed.evidenceGrounding ?? 0.5),
@@ -138,8 +131,9 @@ Respond with valid JSON:
     }
 
     return JudgeVerdictSchema.parse(result)
-  } catch {
+  } catch (error) {
     // Fallback: compute from structural signals without LLM
+    console.error('[Judge] LLM evaluation failed, using structural fallback:', error instanceof Error ? error.message : error)
     return computeFallbackVerdict(verdict, analystTickers, holdingTickers)
   }
 }

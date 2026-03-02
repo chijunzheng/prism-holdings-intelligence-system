@@ -6,6 +6,15 @@ export interface GroundingSource {
   readonly domain?: string
 }
 
+export interface GroundingContext {
+  readonly sources: ReadonlyArray<GroundingSource>
+  readonly searchQueries: ReadonlyArray<string>
+  readonly supportSegments: ReadonlyArray<{
+    readonly text: string
+    readonly sourceIndices: ReadonlyArray<number>
+  }>
+}
+
 interface RawSignalResponse {
   readonly headline?: unknown
   readonly description?: unknown

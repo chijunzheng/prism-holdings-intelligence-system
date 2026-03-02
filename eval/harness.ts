@@ -5,6 +5,7 @@ import { getUserProfileById } from '@prism/data'
 import type { Signal } from '@prism/shared'
 import { runMultiAgentAnalysis } from '../agents/src/multi-agent'
 import { runSingleAgentBaseline } from './baselines/single-agent'
+import { runTradingAgentsForEvent } from './tradingagents/adapter'
 import { judgeSystemOutput } from './judge'
 import { QA_DATASET_25 } from './qa-dataset'
 import { buildCanonicalEvalPortfolio } from './eval-portfolio'
@@ -98,6 +99,8 @@ export interface HarnessOptions {
   readonly skipSingleAgent?: boolean
   /** Skip Gemini 2.5 Pro single-agent baseline */
   readonly skipPro25SingleAgent?: boolean
+  /** Skip TradingAgents multi-agent baseline */
+  readonly skipTradingAgents?: boolean
   /** Skip LLM-as-judge scoring (for fast regression testing) */
   readonly skipJudge?: boolean
   /** Run events in parallel (faster but uses more API quota) */
@@ -112,6 +115,7 @@ export async function runEvaluation(options: HarnessOptions = {}): Promise<EvalR
     skipMultiAgent = false,
     skipSingleAgent = false,
     skipPro25SingleAgent = false,
+    skipTradingAgents = false,
     skipJudge = false,
     parallel = false,
     concurrency,
@@ -129,12 +133,14 @@ export async function runEvaluation(options: HarnessOptions = {}): Promise<EvalR
 
   let eventIndex = 0
   const totalEvents = examples.length
+  const elapsed = (start: number) => `${((Date.now() - start) / 1000).toFixed(0)}s`
 
   const evaluateEvent = async (example: QaExample): Promise<EvalResult> => {
     eventIndex++
     const currentIndex = eventIndex
     const startTime = Date.now()
-    console.log(`[${currentIndex}/${totalEvents}] ${example.id} — starting...`)
+    const tag = `[${currentIndex}/${totalEvents}] ${example.id}`
+    console.log(`${tag} — starting...`)
 
     const signal = eventToSignal(example)
     const actualDirection = classifyActualDirection(example.actualReturns5d)
@@ -176,6 +182,7 @@ export async function runEvaluation(options: HarnessOptions = {}): Promise<EvalR
         multiAgentResult = fallbackMultiAgentResult()
       }
     }
+    console.log(`${tag} — Prism done (${elapsed(startTime)}), dir=${multiAgentResult.direction}`)
 
     // ── Run single-agent baseline (Gemini 2.5 Flash) ──────
     let singleAgentResult: BaselineResult
@@ -187,7 +194,7 @@ export async function runEvaluation(options: HarnessOptions = {}): Promise<EvalR
           signal,
           portfolio,
           exposureMap,
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3-flash-preview',
         })
 
         singleAgentResult = {
@@ -201,6 +208,7 @@ export async function runEvaluation(options: HarnessOptions = {}): Promise<EvalR
         singleAgentResult = fallbackBaselineResult()
       }
     }
+    console.log(`${tag} — Flash done (${elapsed(startTime)}), dir=${singleAgentResult.direction}`)
 
     // ── Run Gemini 2.5 Pro single-agent baseline ──────────
     let pro25Result: BaselineResult
@@ -226,6 +234,21 @@ export async function runEvaluation(options: HarnessOptions = {}): Promise<EvalR
         pro25Result = fallbackBaselineResult()
       }
     }
+    console.log(`${tag} — Pro done (${elapsed(startTime)}), dir=${pro25Result.direction}`)
+
+    // ── Run TradingAgents multi-agent baseline ────────────
+    let tradingAgentsResult: BaselineResult
+    if (skipTradingAgents) {
+      tradingAgentsResult = fallbackBaselineResult()
+    } else {
+      try {
+        tradingAgentsResult = await runTradingAgentsForEvent(example.id, example.date)
+      } catch (error) {
+        console.error(`TradingAgents failed for ${example.id}:`, error)
+        tradingAgentsResult = fallbackBaselineResult()
+      }
+    }
+    console.log(`${tag} — TradingAgents done (${elapsed(startTime)}), dir=${tradingAgentsResult.direction}`)
 
     // ── Judge scoring ─────────────────────────────────────
     if (!skipJudge) {
@@ -234,7 +257,7 @@ export async function runEvaluation(options: HarnessOptions = {}): Promise<EvalR
         actualDirection,
       }
 
-      const [maScore, saScore, f3Score] = await Promise.all([
+      const [maScore, saScore, f3Score, taScore] = await Promise.all([
         skipMultiAgent
           ? Promise.resolve(undefined)
           : judgeSystemOutput({
@@ -262,6 +285,15 @@ export async function runEvaluation(options: HarnessOptions = {}): Promise<EvalR
               dollarRange: pro25Result.dollarImpactRange,
               reasoning: pro25Result.reasoning,
             }),
+        skipTradingAgents
+          ? Promise.resolve(undefined)
+          : judgeSystemOutput({
+              ...judgeInput,
+              system: 'System D',
+              direction: tradingAgentsResult.direction,
+              dollarRange: tradingAgentsResult.dollarImpactRange,
+              reasoning: tradingAgentsResult.reasoning,
+            }),
       ])
 
       if (maScore) {
@@ -273,13 +305,15 @@ export async function runEvaluation(options: HarnessOptions = {}): Promise<EvalR
       if (f3Score) {
         pro25Result = { ...pro25Result, judgeScore: f3Score }
       }
+      if (taScore) {
+        tradingAgentsResult = { ...tradingAgentsResult, judgeScore: taScore }
+      }
     }
 
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
     console.log(
-      `[${currentIndex}/${totalEvents}] ${example.id} — done (${elapsed}s) ` +
+      `${tag} — ALL DONE (${elapsed(startTime)}) ` +
       `MA=${multiAgentResult.direction} SA=${singleAgentResult.direction} ` +
-      `Pro=${pro25Result.direction} actual=${actualDirection}`,
+      `Pro=${pro25Result.direction} TA=${tradingAgentsResult.direction} actual=${actualDirection}`,
     )
 
     return {
@@ -288,6 +322,7 @@ export async function runEvaluation(options: HarnessOptions = {}): Promise<EvalR
       multiAgent: multiAgentResult,
       singleAgent: singleAgentResult,
       pro25SingleAgent: pro25Result,
+      tradingAgents: tradingAgentsResult,
       actual: {
         returns5d: example.actualReturns5d,
         netDirection: actualDirection,
@@ -307,6 +342,7 @@ export async function runEvaluation(options: HarnessOptions = {}): Promise<EvalR
     multiAgent: computeSystemMetrics(results, 'multiAgent'),
     singleAgent: computeSystemMetrics(results, 'singleAgent'),
     pro25SingleAgent: computeSystemMetrics(results, 'pro25SingleAgent'),
+    tradingAgents: computeSystemMetrics(results, 'tradingAgents'),
     results,
   }
 
@@ -351,31 +387,23 @@ function hasZeroJudgeScore(score?: JudgeScore): boolean {
   return !score || score.overall === 0
 }
 
+interface SerializedBaselineResult {
+  readonly direction: 'positive' | 'negative' | 'mixed'
+  readonly dollarImpactRange: { readonly low: number; readonly high: number }
+  readonly holdingDirections: Readonly<Record<string, number>>
+  readonly reasoning: string
+  readonly judgeScore?: JudgeScore
+}
+
 interface SerializedResult {
   readonly eventId: string
   readonly eventType: string
-  readonly multiAgent: {
-    readonly direction: 'positive' | 'negative' | 'mixed'
-    readonly dollarImpactRange: { readonly low: number; readonly high: number }
-    readonly holdingDirections: Readonly<Record<string, number>>
+  readonly multiAgent: SerializedBaselineResult & {
     readonly qualityScore: number
-    readonly reasoning: string
-    readonly judgeScore?: JudgeScore
   }
-  readonly singleAgent: {
-    readonly direction: 'positive' | 'negative' | 'mixed'
-    readonly dollarImpactRange: { readonly low: number; readonly high: number }
-    readonly holdingDirections: Readonly<Record<string, number>>
-    readonly reasoning: string
-    readonly judgeScore?: JudgeScore
-  }
-  readonly pro25SingleAgent: {
-    readonly direction: 'positive' | 'negative' | 'mixed'
-    readonly dollarImpactRange: { readonly low: number; readonly high: number }
-    readonly holdingDirections: Readonly<Record<string, number>>
-    readonly reasoning: string
-    readonly judgeScore?: JudgeScore
-  }
+  readonly singleAgent: SerializedBaselineResult
+  readonly pro25SingleAgent: SerializedBaselineResult
+  readonly tradingAgents: SerializedBaselineResult
   readonly actual: {
     readonly returns5d: Readonly<Record<string, number>>
     readonly netDirection: 'positive' | 'negative' | 'neutral'
@@ -394,12 +422,13 @@ export async function rejudge(
     multiAgent: 'System A',
     singleAgent: 'System B',
     pro25SingleAgent: 'System C',
+    tradingAgents: 'System D',
   }
 
-  const systemKeys = ['multiAgent', 'singleAgent', 'pro25SingleAgent'] as const
+  const systemKeys = ['multiAgent', 'singleAgent', 'pro25SingleAgent', 'tradingAgents'] as const
 
   // Build list of (resultIndex, systemKey) pairs that need re-judging
-  const tasks: { readonly resultIndex: number; readonly systemKey: 'multiAgent' | 'singleAgent' | 'pro25SingleAgent' }[] = []
+  const tasks: { readonly resultIndex: number; readonly systemKey: typeof systemKeys[number] }[] = []
   for (let i = 0; i < results.length; i++) {
     for (const key of systemKeys) {
       if (hasZeroJudgeScore(results[i][key].judgeScore)) {
@@ -450,6 +479,12 @@ export async function rejudge(
     const getScore = (key: typeof systemKeys[number]) =>
       newScores.get(`${i}:${key}`) ?? result[key].judgeScore
 
+    const deserializeBaseline = (key: 'singleAgent' | 'pro25SingleAgent' | 'tradingAgents') => ({
+      ...result[key],
+      judgeScore: getScore(key),
+      holdingDirections: new Map(Object.entries(result[key].holdingDirections)),
+    })
+
     return {
       eventId: result.eventId,
       eventType: result.eventType as EvalResult['eventType'],
@@ -458,16 +493,9 @@ export async function rejudge(
         judgeScore: getScore('multiAgent'),
         holdingDirections: new Map(Object.entries(result.multiAgent.holdingDirections)),
       },
-      singleAgent: {
-        ...result.singleAgent,
-        judgeScore: getScore('singleAgent'),
-        holdingDirections: new Map(Object.entries(result.singleAgent.holdingDirections)),
-      },
-      pro25SingleAgent: {
-        ...result.pro25SingleAgent,
-        judgeScore: getScore('pro25SingleAgent'),
-        holdingDirections: new Map(Object.entries(result.pro25SingleAgent.holdingDirections)),
-      },
+      singleAgent: deserializeBaseline('singleAgent'),
+      pro25SingleAgent: deserializeBaseline('pro25SingleAgent'),
+      tradingAgents: deserializeBaseline('tradingAgents'),
       actual: result.actual,
     }
   })
@@ -480,6 +508,7 @@ export async function rejudge(
     multiAgent: computeSystemMetrics(updatedResults, 'multiAgent'),
     singleAgent: computeSystemMetrics(updatedResults, 'singleAgent'),
     pro25SingleAgent: computeSystemMetrics(updatedResults, 'pro25SingleAgent'),
+    tradingAgents: computeSystemMetrics(updatedResults, 'tradingAgents'),
     results: updatedResults,
   }
 }

@@ -286,10 +286,15 @@ export async function* streamGeneralChatResponse(
   }
 }
 
+/** Tagged chunk: discriminates between thinking tokens and response text. */
+export type AskPrismChunk =
+  | { readonly kind: 'thinking'; readonly text: string }
+  | { readonly kind: 'text'; readonly text: string }
+
 /**
  * Streams an Ask Prism chat response using the unified context with all available layers.
- * Uses Gemini's native streaming API for true token-level streaming.
- * Supports Portfolio, Signal Detail, and Plan pages with progressive disclosure.
+ * Uses Gemini's native streaming API with thinking enabled for true reasoning tokens.
+ * Yields tagged chunks so callers can distinguish thinking from response text.
  */
 export async function* streamAskPrismResponse(
   context: import('@prism/shared').AskPrismContext,
@@ -297,10 +302,10 @@ export async function* streamAskPrismResponse(
   userMessage: string,
   _sessionScope: import('@prism/shared').AskPrismSessionScope = 'global',
   personalContextPrompt?: string,
-): AsyncGenerator<string, void, undefined> {
+): AsyncGenerator<AskPrismChunk, void, undefined> {
   const apiKey = getGeminiApiKey()
   if (!apiKey) {
-    yield 'Error: Gemini API key not configured.'
+    yield { kind: 'text', text: 'Error: Gemini API key not configured.' }
     return
   }
 
@@ -325,16 +330,27 @@ export async function* streamAskPrismResponse(
     const stream = await genai.models.generateContentStream({
       model: getGeminiModelName(),
       contents: prompt,
-      config: { temperature: 0.7 },
+      config: {
+        temperature: 0.7,
+        thinkingConfig: {
+          includeThoughts: true,
+        },
+      },
     })
 
     for await (const chunk of stream) {
-      if (chunk.text) {
-        yield chunk.text
+      // Extract parts directly to separate thinking from response text
+      const parts = chunk.candidates?.[0]?.content?.parts
+      if (parts) {
+        for (const part of parts) {
+          if (part.text) {
+            yield { kind: part.thought ? 'thinking' : 'text', text: part.text }
+          }
+        }
       }
     }
   } catch (error) {
-    yield `Error: ${error instanceof Error ? error.message : 'Gemini streaming call failed'}`
+    yield { kind: 'text', text: `Error: ${error instanceof Error ? error.message : 'Gemini streaming call failed'}` }
   }
 }
 

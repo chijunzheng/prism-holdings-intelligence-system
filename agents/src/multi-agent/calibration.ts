@@ -88,12 +88,12 @@ export function calibrateImpact(params: {
   const clampedMid = midEstimate
 
   // Step 5: Compute range with confidence-adaptive multipliers
-  // High confidence → tight range (lowMult=0.65, highMult=1.4, ratio 2.15:1)
-  // Medium confidence → moderate range (lowMult=0.50, highMult=1.8, ratio 3.6:1)
-  // Low confidence → wide range (lowMult=0.35, highMult=2.2, ratio 6.3:1)
+  // High confidence → tighter range (lowMult=0.56, highMult=1.68, ratio 3.0:1)
+  // Medium confidence → baseline range (lowMult=0.50, highMult=1.80, ratio 3.6:1)
+  // Low confidence → wider range (lowMult=0.44, highMult=1.92, ratio 4.4:1)
   const conf = Math.max(0, Math.min(1, consensusConfidence))
-  const lowMult = 0.35 + 0.30 * conf
-  const highMult = 2.2 - 0.80 * conf
+  const lowMult = 0.40 + 0.20 * conf
+  const highMult = 2.0 - 0.40 * conf
   const a = clampedMid * lowMult
   const b = clampedMid * highMult
   const low = Math.min(a, b)

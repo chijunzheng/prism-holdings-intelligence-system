@@ -154,12 +154,12 @@ describe('confidence-adaptive range multipliers', () => {
   })
 
   it('should produce expected multiplier ratios', () => {
-    // High confidence (0.8): lowMult=0.59, highMult=1.56, ratio ≈ 2.15:1
+    // High confidence (0.8): lowMult=0.56, highMult=1.68, range/mid ≈ 1.12
     const high = calibrateImpact({ ...baseParams, consensusConfidence: 0.8 })
     const highRatio = Math.abs(high.high - high.low) / Math.abs(high.mid)
-    expect(highRatio).toBeCloseTo(2.15 - 1, 0.2) // range/mid ≈ highMult - lowMult
+    expect(highRatio).toBeCloseTo(1.68 - 0.56, 0.1)
 
-    // Low confidence (0.2): lowMult=0.41, highMult=2.04, ratio ≈ 5.4:1
+    // Low confidence (0.2): lowMult=0.44, highMult=1.92, range/mid ≈ 1.48
     const low = calibrateImpact({ ...baseParams, consensusConfidence: 0.2 })
     const lowRatio = Math.abs(low.high - low.low) / Math.abs(low.mid)
     expect(lowRatio).toBeGreaterThan(highRatio)

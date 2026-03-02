@@ -242,7 +242,9 @@ export async function runEvaluation(options: HarnessOptions = {}): Promise<EvalR
       tradingAgentsResult = fallbackBaselineResult()
     } else {
       try {
-        tradingAgentsResult = await runTradingAgentsForEvent(example.id, example.date)
+        tradingAgentsResult = await runTradingAgentsForEvent(
+          example.id, example.date, 'gemini-2.5-flash', example.eventDescription,
+        )
       } catch (error) {
         console.error(`TradingAgents failed for ${example.id}:`, error)
         tradingAgentsResult = fallbackBaselineResult()

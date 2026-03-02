@@ -23,6 +23,12 @@ const TIMEOUT_MS = 15 * 60 * 1000
 /** Wide fallback range — TradingAgents doesn't produce dollar estimates */
 const FALLBACK_DOLLAR_RANGE = { low: -5000, high: 5000 } as const
 
+/** Max retries on rate-limit (429) errors */
+const MAX_RETRIES = 3
+
+/** Base delay between retries in ms */
+const RETRY_BASE_DELAY_MS = 45_000
+
 // ── Bridge Response Type ──────────────────────────────────
 
 interface BridgeResponse {
@@ -45,12 +51,23 @@ function mapSignalToDirection(signal: 'BUY' | 'SELL' | 'HOLD'): 'positive' | 'ne
   }
 }
 
+// ── Helpers ──────────────────────────────────────────────
+
+function isRateLimitError(errorMsg: string): boolean {
+  return errorMsg.includes('RESOURCE_EXHAUSTED') || errorMsg.includes('429')
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms))
+}
+
 // ── Spawn Helper ──────────────────────────────────────────
 
 function spawnBridge(
   ticker: string,
   date: string,
   model: string,
+  eventContext: string = '',
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const args = [
@@ -58,6 +75,7 @@ function spawnBridge(
       '--ticker', ticker,
       '--date', date,
       '--model', model,
+      ...(eventContext ? ['--event-context', eventContext] : []),
     ]
 
     execFile(PYTHON_PATH, args, { timeout: TIMEOUT_MS, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
@@ -92,25 +110,36 @@ function spawnBridge(
 export async function runTradingAgentsForEvent(
   eventId: string,
   date: string,
-  model: string = 'gemini-3-flash-preview',
+  model: string = 'gemini-2.5-flash',
+  eventContext: string = '',
 ): Promise<BaselineResult> {
   console.log(`  [TradingAgents] Running for ${eventId} (${DEFAULT_TICKER} @ ${date})...`)
 
-  const rawOutput = await spawnBridge(DEFAULT_TICKER, date, model)
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const rawOutput = await spawnBridge(DEFAULT_TICKER, date, model, eventContext)
 
-  // Parse JSON from stdout
-  const parsed: BridgeResponse | BridgeError = JSON.parse(rawOutput)
+    // Parse JSON from stdout
+    const parsed: BridgeResponse | BridgeError = JSON.parse(rawOutput)
 
-  if ('error' in parsed) {
-    throw new Error(`TradingAgents returned error: ${parsed.error}`)
+    if ('error' in parsed) {
+      if (isRateLimitError(parsed.error) && attempt < MAX_RETRIES) {
+        const delay = RETRY_BASE_DELAY_MS * (attempt + 1)
+        console.log(`  [TradingAgents] Rate limited for ${eventId}, retrying in ${delay / 1000}s (attempt ${attempt + 1}/${MAX_RETRIES})...`)
+        await sleep(delay)
+        continue
+      }
+      throw new Error(`TradingAgents returned error: ${parsed.error}`)
+    }
+
+    const direction = mapSignalToDirection(parsed.signal)
+
+    return {
+      direction,
+      dollarImpactRange: FALLBACK_DOLLAR_RANGE,
+      holdingDirections: new Map(),
+      reasoning: parsed.reasoning,
+    }
   }
 
-  const direction = mapSignalToDirection(parsed.signal)
-
-  return {
-    direction,
-    dollarImpactRange: FALLBACK_DOLLAR_RANGE,
-    holdingDirections: new Map(),
-    reasoning: parsed.reasoning,
-  }
+  throw new Error(`TradingAgents failed after ${MAX_RETRIES} retries for ${eventId}`)
 }

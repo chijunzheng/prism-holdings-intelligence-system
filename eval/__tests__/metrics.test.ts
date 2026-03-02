@@ -144,6 +144,12 @@ function makeResult(overrides: Partial<EvalResult> & {
       holdingDirections: new Map(),
       reasoning: 'Flash 3 single-agent reasoning text',
     },
+    tradingAgents: {
+      direction: 'negative',
+      dollarImpactRange: { low: -5000, high: 5000 },
+      holdingDirections: new Map(),
+      reasoning: 'TradingAgents reasoning text',
+    },
     actual: {
       returns5d: { VFV: -0.02, XIC: -0.015 },
       netDirection: 'negative',

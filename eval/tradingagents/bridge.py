@@ -115,7 +115,8 @@ def main():
     parser = argparse.ArgumentParser(description="TradingAgents bridge for Prism eval")
     parser.add_argument("--ticker", required=True, help="Stock/ETF ticker (e.g., SPY)")
     parser.add_argument("--date", required=True, help="Trade date (YYYY-MM-DD)")
-    parser.add_argument("--model", default="gemini-3-flash-preview", help="Gemini model name")
+    parser.add_argument("--model", default="gemini-2.5-flash", help="Gemini model name")
+    parser.add_argument("--event-context", default="", help="Macro event description to inject into agent context")
     args = parser.parse_args()
 
     # Load .env for API keys before any imports that need them
@@ -135,8 +136,13 @@ def main():
         pkg_path = tradingagents.__path__[0]
         config = build_config(args.model, pkg_path)
 
-        ta = TradingAgentsGraph(config=config)
-        final_state, signal = ta.propagate(args.ticker, args.date)
+        # Drop social media analyst — SPY is an ETF with no social media signal,
+        # and it wastes ~20% of runtime fetching zero results
+        ta = TradingAgentsGraph(
+            selected_analysts=["market", "news", "fundamentals"],
+            config=config,
+        )
+        final_state, signal = ta.propagate(args.ticker, args.date, args.event_context)
 
         # Clean signal (BUY/SELL/HOLD)
         clean_signal = signal.strip().upper()

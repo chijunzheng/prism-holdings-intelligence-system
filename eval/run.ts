@@ -1,7 +1,9 @@
-// CLI runner for the evaluation harness.
+// CLI runner for the 4-way evaluation harness.
 // Usage:
-//   npx tsx eval/run.ts                              — full eval (sequential)
+//   npx tsx eval/run.ts                              — full 4-way eval (sequential)
 //   npx tsx eval/run.ts --concurrency 3              — 3 events at a time
+//   npx tsx eval/run.ts --skip-tradingagents         — skip TradingAgents (3-way only)
+//   npx tsx eval/run.ts --limit 5                    — first 5 events only (pilot)
 //   npx tsx eval/run.ts --rejudge <results.json>     — re-score zero-scored judge entries
 //   npx tsx eval/run.ts --rejudge <file> --concurrency 5
 
@@ -57,11 +59,13 @@ async function writeReport(report: import('./types').EvalReport): Promise<void> 
     multiAgent: { ...report.multiAgent, perEventType: serializeMap(report.multiAgent.perEventType) },
     singleAgent: { ...report.singleAgent, perEventType: serializeMap(report.singleAgent.perEventType) },
     pro25SingleAgent: { ...report.pro25SingleAgent, perEventType: serializeMap(report.pro25SingleAgent.perEventType) },
+    tradingAgents: { ...report.tradingAgents, perEventType: serializeMap(report.tradingAgents.perEventType) },
     results: report.results.map((r) => ({
       ...r,
       multiAgent: { ...r.multiAgent, holdingDirections: serializeMap(r.multiAgent.holdingDirections) },
       singleAgent: { ...r.singleAgent, holdingDirections: serializeMap(r.singleAgent.holdingDirections) },
       pro25SingleAgent: { ...r.pro25SingleAgent, holdingDirections: serializeMap(r.pro25SingleAgent.holdingDirections) },
+      tradingAgents: { ...r.tradingAgents, holdingDirections: serializeMap(r.tradingAgents.holdingDirections) },
     })),
   }
   await fs.writeFile(jsonPath, JSON.stringify(serializable, null, 2), 'utf-8')
@@ -94,12 +98,16 @@ async function run(): Promise<void> {
   } else {
     const { runEvaluation } = await import('./harness')
 
+    const limit = parseIntArg('--limit')
+    const skipTradingAgents = process.argv.includes('--skip-tradingagents')
     const parallel = concurrency !== undefined && concurrency > 1
-    console.log('Starting Prism evaluation harness...')
+    console.log('Starting Prism 4-way evaluation harness...')
+    if (limit) console.log(`Limit: ${limit} events`)
     if (concurrency) console.log(`Concurrency: ${concurrency}`)
+    if (skipTradingAgents) console.log('Skipping TradingAgents')
     console.log('')
 
-    const report = await runEvaluation({ parallel, concurrency })
+    const report = await runEvaluation({ parallel, concurrency, limit, skipTradingAgents })
     await writeReport(report)
   }
 }

@@ -50,7 +50,7 @@ export interface QaExample {
 }
 
 // ── System Keys ─────────────────────────────────────────────
-export type SystemKey = 'multiAgent' | 'singleAgent' | 'pro25SingleAgent'
+export type SystemKey = 'multiAgent' | 'singleAgent' | 'pro25SingleAgent' | 'tradingAgents'
 
 // ── LLM-as-Judge Quality Scores ────────────────────────────
 export interface JudgeScore {
@@ -86,6 +86,7 @@ export interface EvalResult {
   }
   readonly singleAgent: BaselineResult
   readonly pro25SingleAgent: BaselineResult
+  readonly tradingAgents: BaselineResult
   readonly actual: {
     readonly returns5d: Readonly<Record<string, number>>
     readonly netDirection: 'positive' | 'negative' | 'neutral'
@@ -107,5 +108,6 @@ export interface EvalReport {
   readonly multiAgent: SystemMetrics
   readonly singleAgent: Omit<SystemMetrics, 'evidenceGrounding'>
   readonly pro25SingleAgent: Omit<SystemMetrics, 'evidenceGrounding'>
+  readonly tradingAgents: Omit<SystemMetrics, 'evidenceGrounding'>
   readonly results: readonly EvalResult[]
 }

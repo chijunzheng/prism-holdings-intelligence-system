@@ -4,7 +4,6 @@
 
 import { StateGraph, START, END, interrupt, MemorySaver } from '@langchain/langgraph'
 import { PipelineState } from './state.js'
-import type { ScenarioPreference } from '@prism/shared'
 import type { ThinkingCallback } from './types.js'
 import { inferRiskProfile } from './risk-profile-inference.js'
 import { getMarketDataForAnalysis } from './market-data.js'
@@ -91,19 +90,20 @@ function createRunDebateNode(onThinking?: ThinkingCallback) {
   }
 }
 
-// ── Node: Checkpoint 1 — After Debate ───────────────────────
-// Pauses for human review of debate resolution.
-// Human can provide correction text or approve.
-async function checkpoint1Node(state: State): Promise<Partial<State>> {
-  if (state.skipCheckpoints) return {}
+// ── Soft Checkpoint: Post-Debate ─────────────────────────────
+// Auto-continue after timeout. If user intervenes, their correction
+// is passed to the risk team and fund manager.
+async function softCheckpointPostDebate(state: State): Promise<Partial<State>> {
+  if (state.skipCheckpoints || state.pipelineMode === 'quick') return {}
 
   const humanInput = interrupt({
     stage: 'debate_resolution',
+    type: 'soft',
     debateResolution: state.debateResolution,
-    prompt: 'Review the debate resolution. Provide corrections or approve to continue.',
+    prompt: 'Review debate outcome before risk analysis begins.',
   })
 
-  if (typeof humanInput === 'string' && humanInput.length > 0) {
+  if (typeof humanInput === 'string' && humanInput !== 'continue') {
     return { humanCorrectionAtDebate: humanInput }
   }
   return {}
@@ -116,54 +116,91 @@ function createAssumptionsChallengerNode(onThinking?: ThinkingCallback) {
       analystAssessments: state.analystAssessments,
       humanCorrection: state.humanCorrectionAtDebate ?? undefined,
     })
+    const challengeCount = riskChallenge.challengedAssumptions.length
+    const haircut = Math.round(riskChallenge.recommendedConfidenceAdjustment * 100)
+    onThinking?.('risk_challenge', `Found ${challengeCount} challenged assumption${challengeCount !== 1 ? 's' : ''}. Recommended confidence haircut: ${haircut}%`)
     return { riskChallenge }
   }
 }
 
 // ── Node: Magnitude Validator ───────────────────────────────
-async function magnitudeValidatorNode(state: State): Promise<Partial<State>> {
-  const allImpacts = state.debateResolution!.refinedHoldingImpacts
-  const magnitudeValidation = runMagnitudeValidator({
-    holdingImpacts: allImpacts,
-    volatilities: state.marketData?.volatilities ?? {},
-  })
-  return { magnitudeValidation }
+function createMagnitudeValidatorNode(onThinking?: ThinkingCallback) {
+  return async (state: State): Promise<Partial<State>> => {
+    onThinking?.('magnitude_validation', 'Validating dollar-impact estimates against historical volatility bounds...')
+    const allImpacts = state.debateResolution?.refinedHoldingImpacts ?? []
+    if (allImpacts.length === 0) {
+      onThinking?.('magnitude_validation', 'No holding impacts available for validation — skipping')
+      return {
+        magnitudeValidation: {
+          holdingValidations: [],
+          outOfBoundsFlags: [],
+          overallAssessment: 'No holding impact data available for validation.',
+        },
+      }
+    }
+    const magnitudeValidation = runMagnitudeValidator({
+      holdingImpacts: allImpacts,
+      volatilities: state.marketData?.volatilities ?? {},
+    })
+    const outOfBoundsCount = magnitudeValidation.holdingValidations.filter((v) => v.outOfBounds).length
+    const totalCount = magnitudeValidation.holdingValidations.length
+    const msg = outOfBoundsCount > 0
+      ? `${outOfBoundsCount} of ${totalCount} holdings clamped to reasonable ranges based on historical volatility`
+      : `All ${totalCount} holding estimates within historical volatility bounds`
+    onThinking?.('magnitude_validation', msg)
+    return { magnitudeValidation }
+  }
 }
 
 // ── Node: Portfolio Stress Test ─────────────────────────────
-async function portfolioStressNode(state: State): Promise<Partial<State>> {
-  const holdingValues = getHoldingValues(state.portfolio)
-  const impacts = state.debateResolution!.refinedHoldingImpacts
+function createPortfolioStressNode(onThinking?: ThinkingCallback) {
+  return async (state: State): Promise<Partial<State>> => {
+    onThinking?.('stress_complete', 'Running Monte Carlo simulation (10,000 scenarios) with real correlation matrix...')
+    const holdingValues = getHoldingValues(state.portfolio)
+    const impacts = state.debateResolution?.refinedHoldingImpacts ?? []
 
-  const holdings = impacts.map((impact) => ({
-    ticker: impact.ticker,
-    holdingValueCad: holdingValues[impact.ticker] ?? 0,
-    expectedReturn: impact.direction * impact.magnitudeScore,
-    volatility: state.marketData?.volatilities[impact.ticker]?.monthly ?? 0.05,
-  }))
+    if (impacts.length === 0) {
+      onThinking?.('stress_complete', 'No holding impacts available — using zero-impact stress test')
+      const zeroRange = { low: 0, mid: 0, high: 0 }
+      return {
+        stressTest: {
+          numSimulations: 0,
+          baseCase: zeroRange,
+          downside: zeroRange,
+          tailRisk: zeroRange,
+          reversalProbability: 0,
+          scenarios: [],
+          holdingBreakdown: [],
+        },
+      }
+    }
 
-  const stressTest = runPortfolioStressTest({
-    holdings,
-    correlationMatrix: state.marketData?.correlationMatrix ?? holdings.map((_, i) =>
-      holdings.map((_, j) => (i === j ? 1 : 0)),
-    ),
-  })
-  return { stressTest }
+    const holdings = impacts.map((impact) => ({
+      ticker: impact.ticker,
+      holdingValueCad: holdingValues[impact.ticker] ?? 0,
+      expectedReturn: impact.direction * impact.magnitudeScore,
+      volatility: state.marketData?.volatilities[impact.ticker]?.monthly ?? 0.05,
+    }))
+
+    const stressTest = runPortfolioStressTest({
+      holdings,
+      correlationMatrix: state.marketData?.correlationMatrix ?? holdings.map((_, i) =>
+        holdings.map((_, j) => (i === j ? 1 : 0)),
+      ),
+    })
+
+    const baseMid = stressTest.baseCase.mid
+    const var95 = stressTest.downside.mid
+    const reversalPct = Math.round((stressTest.reversalProbability ?? 0) * 100)
+    onThinking?.('stress_complete', `Base case: $${baseMid.toLocaleString()}, 95% VaR: $${var95.toLocaleString()}, ${reversalPct}% reversal probability`)
+    return { stressTest }
+  }
 }
 
 // ── Node: Checkpoint 2 — After Stress Test ──────────────────
-async function checkpoint2Node(state: State): Promise<Partial<State>> {
-  if (state.skipCheckpoints) return {}
-
-  const humanInput = interrupt({
-    stage: 'stress_test',
-    stressTest: state.stressTest,
-    prompt: 'Review stress test results. Choose scenario preference: base, downside, or tail.',
-  })
-
-  if (typeof humanInput === 'string' && ['base', 'downside', 'tail'].includes(humanInput)) {
-    return { humanScenarioPreference: humanInput as ScenarioPreference }
-  }
+// Auto-selects base case scenario. Previously interrupted for user selection,
+// but the stress test picker added friction without meaningful user input.
+async function checkpoint2Node(_state: State): Promise<Partial<State>> {
   return {}
 }
 
@@ -173,14 +210,28 @@ function createFundManagerNode(onThinking?: ThinkingCallback) {
     const holdingNames = getHoldingNames(state.portfolio)
 
     onThinking?.('verdict', 'Synthesizing all inputs — balancing debate outcome, risk challenges, and stress scenarios into calibrated dollar-impact ranges...')
+
+    if (!state.debateResolution || !state.riskChallenge || !state.magnitudeValidation || !state.stressTest || !state.riskProfile || !state.marketData) {
+      const missing = [
+        !state.debateResolution && 'debateResolution',
+        !state.riskChallenge && 'riskChallenge',
+        !state.magnitudeValidation && 'magnitudeValidation',
+        !state.stressTest && 'stressTest',
+        !state.riskProfile && 'riskProfile',
+        !state.marketData && 'marketData',
+      ].filter(Boolean).join(', ')
+      onThinking?.('verdict', `Missing required data (${missing}) — cannot synthesize verdict`)
+      throw new Error(`Fund manager missing required state: ${missing}`)
+    }
+
     const verdict = await runFundManager({
       signal: state.signal,
-      debateResolution: state.debateResolution!,
-      riskChallenge: state.riskChallenge!,
-      magnitudeValidation: state.magnitudeValidation!,
-      stressTest: state.stressTest!,
-      riskProfile: state.riskProfile!,
-      marketData: state.marketData!,
+      debateResolution: state.debateResolution,
+      riskChallenge: state.riskChallenge,
+      magnitudeValidation: state.magnitudeValidation,
+      stressTest: state.stressTest,
+      riskProfile: state.riskProfile,
+      marketData: state.marketData,
       holdingValues,
       holdingNames,
       userExpectations: state.userExpectations,
@@ -214,16 +265,26 @@ function createJudgeNode(onThinking?: ThinkingCallback) {
 }
 
 // ── Node: Generate Research Brief ───────────────────────────
-async function generateBriefNode(state: State): Promise<Partial<State>> {
-  const brief = await generateResearchBrief({
-    signal: state.signal,
-    verdict: state.fundManagerVerdict!,
-    debateResolution: state.debateResolution!,
-    riskChallenge: state.riskChallenge!,
-    stressTest: state.stressTest!,
-    judgeVerdict: state.judgeVerdict!,
-  })
-  return { researchBrief: brief }
+function createGenerateBriefNode(onThinking?: ThinkingCallback) {
+  return async (state: State): Promise<Partial<State>> => {
+    onThinking?.('brief', 'Compiling research brief with full audit trail...')
+
+    if (!state.fundManagerVerdict || !state.debateResolution || !state.riskChallenge || !state.stressTest || !state.judgeVerdict) {
+      onThinking?.('brief', 'Missing required data — cannot generate research brief')
+      throw new Error('Research brief missing required pipeline state')
+    }
+
+    const brief = await generateResearchBrief({
+      signal: state.signal,
+      verdict: state.fundManagerVerdict,
+      debateResolution: state.debateResolution,
+      riskChallenge: state.riskChallenge,
+      stressTest: state.stressTest,
+      judgeVerdict: state.judgeVerdict,
+    })
+    onThinking?.('brief', 'Research brief generated — all agent reasoning, debate transcript, and computational derivation documented')
+    return { researchBrief: brief }
+  }
 }
 
 // ── Soft Checkpoint: Post-Analysts ───────────────────────────
@@ -254,6 +315,8 @@ async function softCheckpointPostRiskChallenge(state: State): Promise<Partial<St
     stage: 'risk_challenge_review',
     type: 'soft',
     riskChallenge: state.riskChallenge,
+    magnitudeValidation: state.magnitudeValidation,
+    stressTest: state.stressTest,
     prompt: 'Review challenged assumptions.',
   })
 
@@ -301,14 +364,14 @@ export function buildPipelineGraph(onThinking?: ThinkingCallback) {
     .addNode('run_debate', createRunDebateNode(onThinking))
     .addNode('checkpoint_1', checkpoint1Node)
     .addNode('assumptions_challenger', createAssumptionsChallengerNode(onThinking))
-    .addNode('magnitude_validator', magnitudeValidatorNode)
-    .addNode('portfolio_stress', portfolioStressNode)
+    .addNode('magnitude_validator', createMagnitudeValidatorNode(onThinking))
+    .addNode('portfolio_stress', createPortfolioStressNode(onThinking))
     .addNode('soft_cp_risk_challenge', softCheckpointPostRiskChallenge)
     .addNode('checkpoint_2', checkpoint2Node)
     .addNode('fund_manager', createFundManagerNode(onThinking))
     .addNode('judge', createJudgeNode(onThinking))
     .addNode('soft_cp_verdict', softCheckpointPostVerdict)
-    .addNode('generate_brief', generateBriefNode)
+    .addNode('generate_brief', createGenerateBriefNode(onThinking))
 
     // Parallel prep: risk profile + market data run concurrently, both fan into analysts
     .addEdge(START, 'infer_risk_profile')

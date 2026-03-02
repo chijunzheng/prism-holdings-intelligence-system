@@ -144,7 +144,7 @@ export async function runAssumptionsChallenger(params: {
   readonly humanCorrection?: string
 }): Promise<RiskChallenge> {
   const model = createGeminiChatModel({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3-flash-preview',
     temperature: 0.4, // Slightly higher for creative challenge-finding
     maxOutputTokens: 4096,
     json: true,

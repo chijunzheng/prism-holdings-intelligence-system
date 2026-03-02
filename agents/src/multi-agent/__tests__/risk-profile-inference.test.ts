@@ -9,9 +9,9 @@ function loadPortfolio(path: string): Portfolio {
 }
 
 describe('inferRiskProfile', () => {
-  describe('Marcus (marcus-01) — YOLO Redditor', () => {
+  describe('Jason (jason-01) — YOLO Redditor', () => {
     it('should score extremely high risk (~85-95)', () => {
-      const portfolio = loadPortfolio('portfolios/marcus-01.json')
+      const portfolio = loadPortfolio('portfolios/jason-01.json')
       const result = inferRiskProfile({ portfolio })
 
       expect(result.riskScore).toBeGreaterThanOrEqual(80)
@@ -20,7 +20,7 @@ describe('inferRiskProfile', () => {
     })
 
     it('should detect no bonds and high equity concentration', () => {
-      const portfolio = loadPortfolio('portfolios/marcus-01.json')
+      const portfolio = loadPortfolio('portfolios/jason-01.json')
       const result = inferRiskProfile({ portfolio })
 
       const factorNames = result.factors.map((f) => f.factor)
@@ -29,7 +29,7 @@ describe('inferRiskProfile', () => {
     })
 
     it('should detect NVDA as >20% single position', () => {
-      const portfolio = loadPortfolio('portfolios/marcus-01.json')
+      const portfolio = loadPortfolio('portfolios/jason-01.json')
       const result = inferRiskProfile({ portfolio })
 
       const factorNames = result.factors.map((f) => f.factor)
@@ -131,7 +131,7 @@ describe('inferRiskProfile', () => {
     })
 
     it('should use declared tolerance when provided', () => {
-      const portfolio = loadPortfolio('portfolios/marcus-01.json')
+      const portfolio = loadPortfolio('portfolios/jason-01.json')
       const result = inferRiskProfile({
         portfolio,
         userExpectations: { riskToleranceOverride: 'low' },

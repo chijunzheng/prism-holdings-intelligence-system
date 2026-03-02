@@ -51,13 +51,6 @@ export type CheckpointPause =
       readonly riskProfile: InferredRiskProfile
     }
   | {
-      readonly stage: 'stress_test'
-      readonly type: 'hard'
-      readonly stressTest: StressTestResult
-      readonly riskChallenge: RiskChallenge
-      readonly magnitudeValidation: MagnitudeValidation
-    }
-  | {
       readonly stage: 'analyst_review'
       readonly type: 'soft'
       readonly analystAssessments: readonly AnalystAssessment[]
@@ -106,7 +99,17 @@ const NODE_TO_STAGE: Readonly<Record<string, string>> = {
 }
 
 // Summarize node output into a human-readable message for the progress card
-function summarizeNodeOutput(nodeName: string, nodeOutput: Record<string, unknown>): { stage: string; message: string } {
+interface NodeSummary {
+  readonly stage: string
+  readonly message: string
+  readonly analystAssessments?: unknown
+  readonly debateResolution?: unknown
+  readonly riskChallenge?: unknown
+  readonly magnitudeValidation?: unknown
+  readonly stressTest?: unknown
+}
+
+function summarizeNodeOutput(nodeName: string, nodeOutput: Record<string, unknown>): NodeSummary {
   const stage = NODE_TO_STAGE[nodeName] ?? nodeName
 
   switch (nodeName) {
@@ -119,19 +122,39 @@ function summarizeNodeOutput(nodeName: string, nodeOutput: Record<string, unknow
     case 'run_analysts': {
       const assessments = nodeOutput.analystAssessments as readonly { analystType?: string }[] | undefined
       const types = assessments?.map(a => a.analystType).join(', ') ?? 'macro, fundamental, sentiment, technical'
-      return { stage, message: `${assessments?.length ?? 4} analysts completed (${types}). Independent perspectives captured across all dimensions.` }
+      return {
+        stage,
+        message: `${assessments?.length ?? 4} analysts completed (${types}). Independent perspectives captured across all dimensions.`,
+        analystAssessments: nodeOutput.analystAssessments,
+      }
     }
     case 'run_debate': {
       const debate = nodeOutput.debateResolution as { outcome?: string; rounds?: number } | null
       const rounds = debate?.rounds ?? 2
-      return { stage, message: `${rounds}-round adversarial debate completed. Outcome: ${debate?.outcome ?? 'resolved'}. Key disagreements identified and resolved.` }
+      return {
+        stage,
+        message: `${rounds}-round adversarial debate completed. Outcome: ${debate?.outcome ?? 'resolved'}. Key disagreements identified and resolved.`,
+        debateResolution: nodeOutput.debateResolution,
+      }
     }
     case 'assumptions_challenger':
-      return { stage, message: 'Challenged key assumptions from analyst consensus — identified blind spots and overconfident claims.' }
+      return {
+        stage,
+        message: 'Challenged key assumptions from analyst consensus — identified blind spots and overconfident claims.',
+        riskChallenge: nodeOutput.riskChallenge,
+      }
     case 'magnitude_validator':
-      return { stage, message: 'Dollar-impact magnitudes validated against historical volatility and real market data.' }
+      return {
+        stage,
+        message: 'Dollar-impact magnitudes validated against historical volatility and real market data.',
+        magnitudeValidation: nodeOutput.magnitudeValidation,
+      }
     case 'portfolio_stress':
-      return { stage, message: 'Monte Carlo simulation completed (10,000 scenarios). VaR and CVaR computed at 95th and 99th percentiles.' }
+      return {
+        stage,
+        message: 'Monte Carlo simulation completed (10,000 scenarios). VaR and CVaR computed at 95th and 99th percentiles.',
+        stressTest: nodeOutput.stressTest,
+      }
     case 'fund_manager':
       return { stage, message: 'All inputs synthesized into calibrated verdict with dollar-impact ranges bounded by computed volatility.' }
     case 'judge': {
@@ -152,7 +175,6 @@ function summarizeNodeOutput(nodeName: string, nodeOutput: Record<string, unknow
 // After streaming completes, check accumulated state to determine if we hit a checkpoint.
 function detectCheckpoint(accumulated: Record<string, unknown>): CheckpointPause | null {
   const hasVerdict = accumulated.fundManagerVerdict != null
-  const hasStressTest = accumulated.stressTest != null
   const hasDebateResolution = accumulated.debateResolution != null
   const hasRiskChallenge = accumulated.riskChallenge != null
   const hasAnalysts = Array.isArray(accumulated.analystAssessments) && accumulated.analystAssessments.length > 0
@@ -162,17 +184,6 @@ function detectCheckpoint(accumulated: Record<string, unknown>): CheckpointPause
   // Soft checkpoint: post-verdict (has verdict from judge loop, but brief not generated yet)
   // Actually, if judge converged and we hit soft_cp_verdict, verdict exists but brief is null
   // For hard checkpoints:
-
-  // Hard checkpoint 2: stress_test completed but no verdict yet
-  if (hasStressTest && !hasVerdict) {
-    return {
-      stage: 'stress_test',
-      type: 'hard',
-      stressTest: accumulated.stressTest as StressTestResult,
-      riskChallenge: accumulated.riskChallenge as RiskChallenge,
-      magnitudeValidation: accumulated.magnitudeValidation as MagnitudeValidation,
-    }
-  }
 
   // Hard checkpoint 1: debate completed but no stress test yet
   if (hasDebateResolution && !hasRiskChallenge) {

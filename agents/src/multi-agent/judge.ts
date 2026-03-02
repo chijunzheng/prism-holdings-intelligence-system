@@ -56,7 +56,7 @@ export async function runJudge(params: {
   const { verdict, signal, analystAssessments, iteration } = params
 
   const model = createGeminiChatModel({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3-flash-preview',
     temperature: 0.1, // Low temp for consistent scoring
     maxOutputTokens: 2048,
   })

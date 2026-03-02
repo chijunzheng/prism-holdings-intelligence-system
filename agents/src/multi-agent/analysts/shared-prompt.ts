@@ -29,16 +29,18 @@ const ANALYST_MANDATES: Record<AnalystType, {
     title: 'Fundamental Analyst',
     mandate:
       'Analyze earnings impact, valuation shifts, and business model effects on specific holdings via look-through constituents. ' +
-      'Focus on company-level fundamentals and how the signal changes earning power or intrinsic value.',
-    groundingFocus: 'Earnings data, analyst consensus estimates, P/E ratios, revenue growth, margin impacts',
+      'Focus on company-level fundamentals and how the signal changes earning power or intrinsic value. ' +
+      'Search for recent earnings reports, analyst upgrades/downgrades, and financial news articles. Include source URLs.',
+    groundingFocus: 'Earnings data, analyst consensus estimates, P/E ratios, revenue growth, margin impacts, analyst reports, financial news articles',
     outputFocus: 'Holding-level earnings and valuation impact',
   },
   sentiment: {
     title: 'Sentiment Analyst',
     mandate:
       'Analyze market sentiment direction, momentum, positioning, and whether the signal is already priced in. ' +
-      'Focus on how market participants have already reacted and what remains unpriced.',
-    groundingFocus: 'Market sentiment indicators, institutional vs retail flow, options positioning, futures pricing',
+      'Focus on how market participants have already reacted and what remains unpriced. ' +
+      'Search for social media sentiment (Reddit, X/Twitter, StockTwits), news coverage, and market commentary. Include source URLs.',
+    groundingFocus: 'Social media sentiment (Reddit, X/Twitter, StockTwits), market news, institutional vs retail flow, options positioning, futures pricing, financial news commentary',
     outputFocus: 'Sentiment indicators, momentum assessment, and pricing-in evaluation',
   },
   technical: {
@@ -196,6 +198,7 @@ Search for: ${mandate.groundingFocus}
 
 Requirements:
 1. Provide overallDirection: one of "positive", "negative", "neutral", or "mixed"
+   CRITICAL: overallDirection MUST be consistent with your holdingImpacts directions. If most holdings have negative direction, overallDirection must be "negative" (bearish). If most are positive, it must be "positive" (bullish). Do NOT say "positive" overall while giving holdings negative directions.
 2. Provide overallConfidence: a number between 0 and 1
 3. For each affected holding, provide:
    - ticker and name (use ONLY holdings from the portfolio: [${formatHoldingsList(portfolio)}])
@@ -204,8 +207,9 @@ Requirements:
    - confidence: 0 to 1
    - reasoning: brief explanation
 4. State 2-3 KEY ASSUMPTIONS your analysis depends on (these will be challenged by the risk team)
-5. Cite evidence sources from your search results
+5. Cite evidence sources from your search results. Describe each source clearly (e.g. "IMF World Economic Outlook, January 2026", "Reuters: Fed signals further tightening").
 6. Do NOT estimate dollar amounts — only qualitative magnitude (0-1). The calibration engine converts these to dollars using real market data.
+7. Format your "reasoning" as bullet points (use markdown bullet list "- point"). Each bullet should be a concise insight, not a paragraph.
 
 Respond with valid JSON matching this structure:
 {
@@ -223,8 +227,8 @@ Respond with valid JSON matching this structure:
     }
   ],
   "keyAssumptions": ["string", "string"],
-  "evidenceSources": ["string"],
-  "reasoning": "string"
+  "evidenceSources": ["IMF World Economic Outlook, January 2026", "Reuters: Fed signals further tightening"],
+  "reasoning": "- Bullet point insight 1\n- Bullet point insight 2\n- Bullet point insight 3"
 }`)
 
   return sections.join('\n')

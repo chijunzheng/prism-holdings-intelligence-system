@@ -63,6 +63,7 @@ async function fetchYahooFinancePrices(
     headers: {
       'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
     },
+    signal: AbortSignal.timeout(10_000),
   })
 
   if (!response.ok) {

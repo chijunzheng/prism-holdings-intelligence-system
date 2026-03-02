@@ -90,9 +90,9 @@ describe('Exposure Analyzer', () => {
   })
 
   describe('Edge cases', () => {
-    it('handles missing fund composition gracefully', async () => {
-      const portfolio = getPortfolioByUserId('marcus-01')!
-      // Marcus has SHOP as individual stock — no fund composition needed
+    it('handles Jason YOLO portfolio correctly', async () => {
+      const portfolio = getPortfolioByUserId('jason-01')!
+      // Jason has NVDA direct stock + XQQ ETF + TSLA + BTCX.B — all have fund compositions
       const result = await analyze(portfolio, getFundComposition)
       expect(result.success).toBe(true)
     })

@@ -229,6 +229,10 @@ export async function runDebate(params: {
       ])
       bullArguments.push(bullArg)
       bearArguments.push(bearArg)
+
+      const bullPoint = bullArg.keyPoints[0] ?? 'building upside case'
+      const bearPoint = bearArg.keyPoints[0] ?? 'building downside case'
+      onThinking?.('debate_complete', `Round 1 complete: Bull argues "${bullPoint}"; Bear counters "${bearPoint}"`)
     } else {
       // Rounds 2+: Sequential (Bear needs Bull's latest argument)
       onThinking?.('debate_complete', `Round ${round}: Bull researcher countering Bear's arguments with new evidence...`)
@@ -251,14 +255,18 @@ export async function runDebate(params: {
         ownPriorArgument: bearArguments[bearArguments.length - 1],
       })
       bearArguments.push(bearArg)
+
+      const bullConcessionCount = bullArg.concessions.length
+      const bearConcessionCount = bearArg.concessions.length
+      onThinking?.('debate_complete', `Round ${round} complete: Bull made ${bullConcessionCount} concession${bullConcessionCount !== 1 ? 's' : ''}, Bear made ${bearConcessionCount} concession${bearConcessionCount !== 1 ? 's' : ''}`)
     }
 
     // Check for convergence
-    onThinking?.('debate_complete', 'Evaluating whether Bull and Bear positions have converged...')
     if (hasConverged(bullArguments, bearArguments)) {
       onThinking?.('debate_complete', `Debate converged after ${round} round${round > 1 ? 's' : ''} — direction agreement or mutual concessions reached`)
       break
     }
+    onThinking?.('debate_complete', `Round ${round}: positions not yet converged, continuing debate...`)
   }
 
   const bullConcessions = extractAllConcessions(bullArguments)

@@ -171,7 +171,7 @@ function extractJson(text: string): string {
 
 function createSynthesizerModel() {
   return createGeminiChatModel({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3-flash-preview',
     temperature: 0.3,
     maxOutputTokens: 4096,
   })

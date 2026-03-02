@@ -19,7 +19,7 @@ import { createGeminiChatModel } from '../../utils/gemini-chat-model'
 // ── Gemini Configuration ────────────────────────────────────
 function createAnalystModel() {
   return createGeminiChatModel({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3-flash-preview',
     temperature: 0.3, // Low temp for analytical consistency
     maxOutputTokens: 4096,
     json: true,
@@ -64,6 +64,44 @@ type AnalystResponseParseOutcome =
   | { readonly kind: 'parse_error', readonly jsonSnippet: string }
   | { readonly kind: 'validation_error', readonly validationMessage: string }
 
+/**
+ * Reconcile overallDirection with holdingImpacts.
+ * If the LLM says "positive" but most holdings have negative direction (or vice versa),
+ * correct overallDirection to match the weighted majority of holding directions.
+ */
+function reconcileDirection(assessment: AnalystAssessment): AnalystAssessment {
+  const impacts = assessment.holdingImpacts
+  if (impacts.length === 0) return assessment
+
+  // Compute weighted average direction (by magnitude)
+  let weightedSum = 0
+  let totalWeight = 0
+  for (const h of impacts) {
+    const weight = h.magnitudeScore * h.confidence
+    weightedSum += h.direction * weight
+    totalWeight += weight
+  }
+  const avgDirection = totalWeight > 0 ? weightedSum / totalWeight : 0
+
+  // Derive what overallDirection should be from holding impacts
+  const derivedDirection: AnalystAssessment['overallDirection'] =
+    avgDirection > 0.15 ? 'positive'
+    : avgDirection < -0.15 ? 'negative'
+    : Math.abs(avgDirection) <= 0.15 && impacts.some((h) => h.direction > 0) && impacts.some((h) => h.direction < 0) ? 'mixed'
+    : 'neutral'
+
+  // Check for inconsistency
+  const current = assessment.overallDirection
+  const isInconsistent =
+    (current === 'positive' && avgDirection < -0.1) ||
+    (current === 'negative' && avgDirection > 0.1)
+
+  if (!isInconsistent) return assessment
+
+  // Correct overallDirection to match holdings
+  return { ...assessment, overallDirection: derivedDirection }
+}
+
 function parseAndValidateAnalystResponse(responseText: string): AnalystResponseParseOutcome {
   const jsonStr = extractJson(responseText)
   let parsed: unknown
@@ -79,7 +117,9 @@ function parseAndValidateAnalystResponse(responseText: string): AnalystResponseP
     return { kind: 'validation_error', validationMessage: result.error.message }
   }
 
-  return { kind: 'ok', data: result.data }
+  // Reconcile overallDirection with holding impacts to prevent contradictions
+  const reconciled = reconcileDirection(result.data)
+  return { kind: 'ok', data: reconciled }
 }
 
 function buildRetryPrompt(params: {
@@ -197,7 +237,12 @@ export async function runAllAnalysts(params: {
       onThinking?.('analyst_complete', `${analystType} analyst: evaluating signal impact on your holdings...`)
       try {
         const result = await runAnalyst({ ...analystParams, analystType, sharedContext })
-        onThinking?.('analyst_complete', `${analystType} analyst: assessment complete, key findings captured`)
+        const directionLabel = result.overallDirection === 'positive' ? 'bullish' : result.overallDirection === 'negative' ? 'bearish' : 'neutral'
+        const magnitude = Math.round(result.overallConfidence * 100)
+        const topHolding = result.holdingImpacts[0]
+        const mechanism = result.keyAssumptions[0] ?? 'assessment complete'
+        const holdingDetail = topHolding ? ` — top impact: ${topHolding.ticker}` : ''
+        onThinking?.('analyst_complete', `${analystType} analyst: ${directionLabel} outlook (magnitude: ${magnitude}%)${holdingDetail}. ${mechanism}`)
         return result
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error)

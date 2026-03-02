@@ -80,7 +80,7 @@ function fallbackBullArgument(round: number, reason: string): DebateArgument {
     keyPoints: ['Bull argument fallback used due to JSON parsing/validation failure.'],
     evidenceCited: ['fallback://bull-researcher-unavailable'],
     rebuttalPoints: ['Unable to generate full rebuttal in this round.'],
-    concessions: [`Fallback applied: ${reason.slice(0, 140)}`],
+    concessions: [],
   }
 }
 
@@ -176,7 +176,7 @@ export async function runBullResearcher(params: {
   readonly humanCorrection?: string
 }): Promise<DebateArgument> {
   const model = createGeminiChatModel({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3-flash-preview',
     temperature: 0.4,
     maxOutputTokens: 3072,
     json: true,

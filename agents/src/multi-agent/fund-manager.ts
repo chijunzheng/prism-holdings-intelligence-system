@@ -153,7 +153,7 @@ async function generateRecommendations(params: {
   )
 
   const model = createGeminiChatModel({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3-flash-preview',
     temperature: 0.3,
     maxOutputTokens: 2048,
   })
@@ -296,8 +296,11 @@ export async function runFundManager(params: {
     scenarioPreference,
   })
 
+  const totalMid1M = calibratedImpacts.reduce((sum, h) => sum + (h.impact['1M']?.mid ?? 0), 0)
+  onThinking?.('verdict', `Calibrated ${calibratedImpacts.length} holdings. Net 1M impact: $${totalMid1M.toLocaleString()}`)
+
   // Step 4: Generate recommendations
-  onThinking?.('verdict', 'Generating recommendation options...')
+  onThinking?.('verdict', 'Generating recommendation options with do-nothing baseline...')
   const recommendations = await generateRecommendations({
     calibratedImpacts,
     riskProfile,
@@ -306,6 +309,9 @@ export async function runFundManager(params: {
     userExpectations,
     signal,
   })
+
+  const actionableCount = recommendations.filter((r) => !r.isDoNothing).length
+  onThinking?.('verdict', `Generated ${recommendations.length} options (${actionableCount} actionable + do-nothing baseline)`)
 
   // Step 5: Assemble verdict
   const magnitudeBoundsApplied = magnitudeValidation.holdingValidations

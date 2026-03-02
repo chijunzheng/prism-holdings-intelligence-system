@@ -1,55 +1,70 @@
-# Prism Evaluation Report
+# Prism 3-Way Evaluation Report
 
-**Events:** 25 | **Generated:** 2026-03-01T05:47:38.212Z
+**Events:** 25 | **Generated:** 2026-03-01T23:54:55.072Z
+
+**Narrative:** Single Gemini 2.5 Flash → Single Gemini 2.5 Pro → Multi-agent Gemini 2.5 Flash
 
 ## Summary
 
-| Metric | Single-Agent | Multi-Agent | Delta |
-|--------|-------------|-------------|-------|
-| Directional Accuracy | 72% | 84% | +12% |
-| Range Coverage | 8% | 0% | +-8% |
-| Evidence Grounding | N/A | 0% | — |
+| Metric | Single 2.5 Flash | Single 2.5 Pro | Multi-Agent | Delta (MA vs 2.5 Pro) |
+|--------|-----------------|---------------|-------------|----------------------|
+| Directional Accuracy | 80% | 84% | 88% | +4% |
+| Range Coverage | 36% | 48% | 68% | +20% |
+| Evidence Grounding | N/A | N/A | 0% | — |
+
+## Quality Scores (LLM-as-Judge)
+
+Scored 0-5 by Gemini 3 Flash. Higher is better.
+
+| Metric | Single 2.5F | Single 2.5P | Multi-Agent |
+|--------|------------|------------|-------------|
+| Causal Reasoning | 3.0 | 2.8 | 2.8 |
+| Calibration | 2.6 | 2.6 | 2.1 |
+| Risk Identification | 0.2 | 0.2 | 3.0 |
+| Recommendation Quality | 0.0 | 0.0 | 3.6 |
+| Transparency | 1.9 | 2.0 | 3.2 |
+| **Overall** | **1.5** | **1.5** | **3.0** |
 
 ## By Event Type
 
-| Event Type | Multi-Agent Accuracy | Multi-Agent Coverage | Single-Agent Accuracy |
-|------------|---------------------|---------------------|----------------------|
-| Rate Decisions | 88% | 0% | 88% |
-| CPI Surprises | 100% | 0% | 100% |
-| Oil/Commodity | 100% | 0% | 75% |
-| Banking Stress | 67% | 0% | 33% |
-| Geopolitical | 67% | 0% | 67% |
-| Currency/FX | 67% | 0% | 33% |
+| Event Type | Single 2.5 Acc | Single 2.5P Acc | Multi-Agent Acc | Multi-Agent Cov |
+|------------|---------------|---------------|----------------|----------------|
+| Rate Decisions | 100% | 88% | 88% | 50% |
+| CPI Surprises | 100% | 100% | 100% | 50% |
+| Oil/Commodity | 100% | 75% | 100% | 75% |
+| Banking Stress | 33% | 67% | 67% | 100% |
+| Geopolitical | 67% | 100% | 67% | 100% |
+| Currency/FX | 33% | 67% | 100% | 67% |
 
 ## Per-Event Results
 
-| Event | Type | Multi-Agent Dir | Single-Agent Dir | Actual Dir |
-|-------|------|----------------|-----------------|------------|
-| fed-75bps-2022-06 | rate_decision | negative | negative | negative |
-| fed-75bps-2022-09 | rate_decision | negative | negative | negative |
-| fed-pause-2023-06 | rate_decision | negative | positive | positive |
-| fed-cut-50bps-2024-09 | rate_decision | positive | mixed | positive |
-| boc-100bps-2022-07 | rate_decision | negative | negative | negative |
-| boc-pause-2023-01 | rate_decision | positive | positive | positive |
-| boc-surprise-hike-2023-06 | rate_decision | negative | negative | negative |
-| fed-hold-hawkish-2024-01 | rate_decision | negative | negative | neutral |
-| us-cpi-hot-2022-06 | cpi_surprise | negative | negative | negative |
-| us-cpi-cooling-2022-11 | cpi_surprise | positive | positive | positive |
-| canada-cpi-drop-2023-06 | cpi_surprise | positive | positive | positive |
-| us-cpi-sticky-2024-01 | cpi_surprise | negative | negative | neutral |
-| opec-cut-2022-10 | oil_shock | positive | positive | positive |
-| oil-price-collapse-2023-03 | oil_shock | negative | mixed | negative |
-| opec-voluntary-cut-2023-11 | oil_shock | negative | negative | neutral |
-| oil-mideast-spike-2024-04 | oil_shock | positive | mixed | neutral |
-| svb-collapse-2023-03 | banking_stress | negative | mixed | negative |
-| credit-suisse-2023-03 | banking_stress | negative | mixed | neutral |
-| first-republic-2023-05 | banking_stress | positive | mixed | negative |
-| china-balloon-2023-02 | geopolitical | positive | mixed | neutral |
-| us-china-chips-2022-10 | geopolitical | positive | mixed | negative |
-| us-tariff-escalation-2024-05 | geopolitical | positive | mixed | neutral |
-| dxy-peak-2022-09 | currency_fx | positive | mixed | negative |
-| yen-intervention-2022-10 | currency_fx | positive | mixed | positive |
-| cad-slide-2024-06 | currency_fx | positive | positive | neutral |
+| Event | Type | Single 2.5 | Single 2.5P | Multi-Agent | Actual |
+|-------|------|-----------|-----------|-------------|--------|
+| fed-75bps-2022-06 | rate_decision | negative | negative | negative | negative |
+| fed-75bps-2022-09 | rate_decision | negative | negative | negative | negative |
+| fed-pause-2023-06 | rate_decision | positive | positive | negative | positive |
+| fed-cut-50bps-2024-09 | rate_decision | positive | positive | positive | positive |
+| boc-100bps-2022-07 | rate_decision | negative | negative | negative | negative |
+| boc-pause-2023-01 | rate_decision | positive | positive | positive | positive |
+| boc-surprise-hike-2023-06 | rate_decision | negative | mixed | negative | negative |
+| fed-hold-hawkish-2024-01 | rate_decision | negative | negative | negative | neutral |
+| us-cpi-hot-2022-06 | cpi_surprise | negative | negative | negative | negative |
+| us-cpi-cooling-2022-11 | cpi_surprise | positive | positive | positive | positive |
+| canada-cpi-drop-2023-06 | cpi_surprise | positive | positive | positive | positive |
+| us-cpi-sticky-2024-01 | cpi_surprise | negative | negative | negative | neutral |
+| opec-cut-2022-10 | oil_shock | positive | positive | positive | positive |
+| oil-price-collapse-2023-03 | oil_shock | negative | mixed | negative | negative |
+| opec-voluntary-cut-2023-11 | oil_shock | mixed | negative | negative | neutral |
+| oil-mideast-spike-2024-04 | oil_shock | mixed | mixed | positive | neutral |
+| svb-collapse-2023-03 | banking_stress | mixed | negative | negative | negative |
+| credit-suisse-2023-03 | banking_stress | negative | mixed | negative | neutral |
+| first-republic-2023-05 | banking_stress | mixed | mixed | positive | negative |
+| china-balloon-2023-02 | geopolitical | mixed | mixed | positive | neutral |
+| us-china-chips-2022-10 | geopolitical | mixed | negative | positive | negative |
+| us-tariff-escalation-2024-05 | geopolitical | mixed | mixed | positive | neutral |
+| dxy-peak-2022-09 | currency_fx | mixed | mixed | negative | negative |
+| yen-intervention-2022-10 | currency_fx | mixed | positive | positive | positive |
+| cad-slide-2024-06 | currency_fx | positive | positive | positive | neutral |
 
 ---
 *Generated by Prism Evaluation Harness*

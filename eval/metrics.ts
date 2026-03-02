@@ -1,7 +1,7 @@
-// Evaluation metrics — directional accuracy, range coverage, evidence grounding.
+// Evaluation metrics — directional accuracy, range coverage, evidence grounding, judge scores.
 // All functions are pure computation (no LLM calls).
 
-import type { EvalResult, EventType, SystemMetrics } from './types'
+import type { EvalResult, EventType, JudgeScore, SystemKey, SystemMetrics } from './types'
 
 // ── Directional Accuracy ───────────────────────────────────
 // Did the system predict the correct direction of market impact?
@@ -68,7 +68,7 @@ export function isWithinRange(
 }
 
 /** Compute range coverage across all events for one system */
-export function computeRangeCoverage(results: readonly EvalResult[], system: 'multiAgent' | 'singleAgent'): number {
+export function computeRangeCoverage(results: readonly EvalResult[], system: SystemKey): number {
   let covered = 0
   let total = 0
 
@@ -76,11 +76,12 @@ export function computeRangeCoverage(results: readonly EvalResult[], system: 'mu
     const prediction = result[system]
     const actualReturns = result.actual.returns5d
 
-    // Convert actual returns to approximate dollar impact using a reference portfolio value
-    // We use the sum of absolute returns as a proxy
-    const actualNetReturn = Object.values(actualReturns).reduce((sum, r) => sum + r, 0)
-    const referencePortfolioValue = 60000 // Eval portfolio (Sarah's diversified portfolio)
-    const actualDollarImpact = actualNetReturn * referencePortfolioValue
+    // Convert actual returns to approximate dollar impact.
+    // Each holding is worth ~$10k (6 holdings × $10k = $60k portfolio).
+    // Each return applies to one holding, so multiply each by per-holding value.
+    const holdingValues = Object.values(actualReturns)
+    const perHoldingValue = holdingValues.length > 0 ? 60000 / holdingValues.length : 10000
+    const actualDollarImpact = holdingValues.reduce((sum, r) => sum + r * perHoldingValue, 0)
 
     if (isWithinRange(prediction.dollarImpactRange, actualDollarImpact)) {
       covered++
@@ -93,7 +94,7 @@ export function computeRangeCoverage(results: readonly EvalResult[], system: 'mu
 
 // ── Aggregate Metrics ──────────────────────────────────────
 
-export function computeDirectionalAccuracy(results: readonly EvalResult[], system: 'multiAgent' | 'singleAgent'): number {
+export function computeDirectionalAccuracy(results: readonly EvalResult[], system: SystemKey): number {
   let correct = 0
   let total = 0
 
@@ -111,7 +112,7 @@ export function computeDirectionalAccuracy(results: readonly EvalResult[], syste
 
 export function computePerEventTypeMetrics(
   results: readonly EvalResult[],
-  system: 'multiAgent' | 'singleAgent',
+  system: SystemKey,
 ): ReadonlyMap<EventType, { accuracy: number; coverage: number }> {
   const grouped = new Map<EventType, EvalResult[]>()
 
@@ -132,15 +133,54 @@ export function computePerEventTypeMetrics(
   return metrics
 }
 
+// ── Judge Score Averaging ──────────────────────────────────
+
+export function computeAverageJudgeScore(
+  results: readonly EvalResult[],
+  system: SystemKey,
+): JudgeScore | undefined {
+  const scores = results
+    .map((r) => r[system].judgeScore)
+    .filter((s): s is JudgeScore => s !== undefined)
+
+  if (scores.length === 0) return undefined
+
+  const sum = scores.reduce(
+    (acc, s) => ({
+      causalReasoning: acc.causalReasoning + s.causalReasoning,
+      calibration: acc.calibration + s.calibration,
+      riskIdentification: acc.riskIdentification + s.riskIdentification,
+      recommendationQuality: acc.recommendationQuality + s.recommendationQuality,
+      transparency: acc.transparency + s.transparency,
+      overall: acc.overall + s.overall,
+    }),
+    { causalReasoning: 0, calibration: 0, riskIdentification: 0, recommendationQuality: 0, transparency: 0, overall: 0 },
+  )
+
+  const n = scores.length
+  const round = (v: number) => Math.round((v / n) * 100) / 100
+
+  return {
+    causalReasoning: round(sum.causalReasoning),
+    calibration: round(sum.calibration),
+    riskIdentification: round(sum.riskIdentification),
+    recommendationQuality: round(sum.recommendationQuality),
+    transparency: round(sum.transparency),
+    overall: round(sum.overall),
+  }
+}
+
+// ── System Metrics Builder ──────────────────────────────────
+
 export function computeSystemMetrics(
   results: readonly EvalResult[],
-  system: 'multiAgent' | 'singleAgent',
+  system: SystemKey,
 ): SystemMetrics {
   const directionalAccuracy = computeDirectionalAccuracy(results, system)
   const rangeCoverage = computeRangeCoverage(results, system)
   const perEventType = computePerEventTypeMetrics(results, system)
 
-  // Evidence grounding — average across events that have it
+  // Evidence grounding — average across events that have it (multi-agent only)
   const groundingScores = results
     .map((r) => system === 'multiAgent' ? r.multiAgent.evidenceGroundingScore : undefined)
     .filter((s): s is number => s !== undefined)
@@ -149,5 +189,7 @@ export function computeSystemMetrics(
     ? groundingScores.reduce((sum, s) => sum + s, 0) / groundingScores.length
     : 0
 
-  return { directionalAccuracy, rangeCoverage, evidenceGrounding, perEventType }
+  const averageJudgeScore = computeAverageJudgeScore(results, system)
+
+  return { directionalAccuracy, rangeCoverage, evidenceGrounding, perEventType, averageJudgeScore }
 }

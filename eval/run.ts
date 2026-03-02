@@ -1,5 +1,9 @@
 // CLI runner for the evaluation harness.
-// Usage: npx tsx eval/run.ts
+// Usage:
+//   npx tsx eval/run.ts                              — full eval (sequential)
+//   npx tsx eval/run.ts --concurrency 3              — 3 events at a time
+//   npx tsx eval/run.ts --rejudge <results.json>     — re-score zero-scored judge entries
+//   npx tsx eval/run.ts --rejudge <file> --concurrency 5
 
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -27,11 +31,77 @@ function loadEnv(): void {
   }
 }
 
+function parseIntArg(flag: string): number | undefined {
+  const idx = process.argv.indexOf(flag)
+  if (idx === -1) return undefined
+  const val = parseInt(process.argv[idx + 1], 10)
+  if (isNaN(val) || val < 1) {
+    console.error(`Invalid ${flag} value. Must be a positive integer.`)
+    process.exit(1)
+  }
+  return val
+}
+
 loadEnv()
 
+async function writeReport(report: import('./types').EvalReport): Promise<void> {
+  const { generateConsoleReport, generateMarkdownReport } = await import('./report')
+  const fs = await import('node:fs/promises')
+
+  console.log(generateConsoleReport(report))
+
+  const serializeMap = (m: ReadonlyMap<string, unknown>) => Object.fromEntries(m)
+  const jsonPath = `eval/results-qa-${report.timestamp.replace(/:/g, '-')}.json`
+  const serializable = {
+    ...report,
+    multiAgent: { ...report.multiAgent, perEventType: serializeMap(report.multiAgent.perEventType) },
+    singleAgent: { ...report.singleAgent, perEventType: serializeMap(report.singleAgent.perEventType) },
+    pro25SingleAgent: { ...report.pro25SingleAgent, perEventType: serializeMap(report.pro25SingleAgent.perEventType) },
+    results: report.results.map((r) => ({
+      ...r,
+      multiAgent: { ...r.multiAgent, holdingDirections: serializeMap(r.multiAgent.holdingDirections) },
+      singleAgent: { ...r.singleAgent, holdingDirections: serializeMap(r.singleAgent.holdingDirections) },
+      pro25SingleAgent: { ...r.pro25SingleAgent, holdingDirections: serializeMap(r.pro25SingleAgent.holdingDirections) },
+    })),
+  }
+  await fs.writeFile(jsonPath, JSON.stringify(serializable, null, 2), 'utf-8')
+  console.log(`\nJSON results written to ${jsonPath}`)
+
+  const markdownReport = generateMarkdownReport(report)
+  await fs.writeFile('eval/REPORT.md', markdownReport, 'utf-8')
+  console.log('Markdown report written to eval/REPORT.md')
+}
+
 async function run(): Promise<void> {
-  const { main } = await import('./harness')
-  await main()
+  const rejudgeIdx = process.argv.indexOf('--rejudge')
+  const concurrency = parseIntArg('--concurrency')
+
+  if (rejudgeIdx !== -1) {
+    const inputPath = process.argv[rejudgeIdx + 1]
+    if (!inputPath || inputPath.startsWith('--')) {
+      console.error('Usage: npx tsx eval/run.ts --rejudge <results.json> [--concurrency N]')
+      process.exit(1)
+    }
+
+    const { rejudge } = await import('./harness')
+
+    console.log(`Re-judging from: ${inputPath}`)
+    if (concurrency) console.log(`Concurrency: ${concurrency}`)
+    console.log('')
+
+    const report = await rejudge(inputPath, { concurrency })
+    await writeReport(report)
+  } else {
+    const { runEvaluation } = await import('./harness')
+
+    const parallel = concurrency !== undefined && concurrency > 1
+    console.log('Starting Prism evaluation harness...')
+    if (concurrency) console.log(`Concurrency: ${concurrency}`)
+    console.log('')
+
+    const report = await runEvaluation({ parallel, concurrency })
+    await writeReport(report)
+  }
 }
 
 run().catch((error) => {

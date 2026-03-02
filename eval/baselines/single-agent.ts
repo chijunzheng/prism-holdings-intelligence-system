@@ -1,9 +1,9 @@
 // Single-agent baseline — one Gemini call for direction + impact estimate.
 // Used as the comparison baseline against the multi-agent pipeline.
 
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai'
 import { z } from 'zod'
 import type { Signal, Portfolio, ExposureMap } from '@prism/shared'
+import { createGeminiChatModel } from '../../agents/src/utils/gemini-chat-model'
 import { formatExposureSummary } from './exposure-summary'
 
 const SingleAgentResponseSchema = z.object({
@@ -40,8 +40,9 @@ export async function runSingleAgentBaseline(params: {
   readonly signal: Signal
   readonly portfolio: Portfolio
   readonly exposureMap: ExposureMap
+  readonly model?: string
 }): Promise<SingleAgentResponse> {
-  const { signal, portfolio, exposureMap } = params
+  const { signal, portfolio, exposureMap, model = 'gemini-2.5-flash' } = params
 
   const holdingsSummary = portfolio.accounts
     .flatMap((a) => a.holdings)
@@ -62,12 +63,12 @@ ${exposureSummary}
 
 Estimate the directional impact and dollar range for this portfolio.`
 
-  const model = new ChatGoogleGenerativeAI({
-    model: 'gemini-2.5-flash',
+  const llm = createGeminiChatModel({
+    model,
     temperature: 0.3,
   })
 
-  const response = await model.invoke([
+  const response = await llm.invoke([
     { role: 'system', content: SYSTEM_PROMPT },
     { role: 'user', content: prompt },
   ])

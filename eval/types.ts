@@ -49,6 +49,28 @@ export interface QaExample {
   readonly groundedAnswer: GroundTruthAnswer
 }
 
+// ── System Keys ─────────────────────────────────────────────
+export type SystemKey = 'multiAgent' | 'singleAgent' | 'pro25SingleAgent'
+
+// ── LLM-as-Judge Quality Scores ────────────────────────────
+export interface JudgeScore {
+  readonly causalReasoning: number      // 0-5
+  readonly calibration: number          // 0-5
+  readonly riskIdentification: number   // 0-5
+  readonly recommendationQuality: number // 0-5
+  readonly transparency: number         // 0-5
+  readonly overall: number              // average of above
+}
+
+// ── Baseline Result (shared shape for single-agent systems) ─
+export interface BaselineResult {
+  readonly direction: 'positive' | 'negative' | 'mixed'
+  readonly dollarImpactRange: { readonly low: number; readonly high: number }
+  readonly holdingDirections: ReadonlyMap<string, number>
+  readonly reasoning: string
+  readonly judgeScore?: JudgeScore
+}
+
 // ── Per-Event Evaluation Result ────────────────────────────
 export interface EvalResult {
   readonly eventId: string
@@ -59,12 +81,11 @@ export interface EvalResult {
     readonly holdingDirections: ReadonlyMap<string, number>
     readonly qualityScore: number
     readonly evidenceGroundingScore?: number
+    readonly reasoning: string
+    readonly judgeScore?: JudgeScore
   }
-  readonly singleAgent: {
-    readonly direction: 'positive' | 'negative' | 'mixed'
-    readonly dollarImpactRange: { readonly low: number; readonly high: number }
-    readonly holdingDirections: ReadonlyMap<string, number>
-  }
+  readonly singleAgent: BaselineResult
+  readonly pro25SingleAgent: BaselineResult
   readonly actual: {
     readonly returns5d: Readonly<Record<string, number>>
     readonly netDirection: 'positive' | 'negative' | 'neutral'
@@ -77,6 +98,7 @@ export interface SystemMetrics {
   readonly rangeCoverage: number // 0-1
   readonly evidenceGrounding: number // 0-1 (multi-agent only)
   readonly perEventType: ReadonlyMap<EventType, { accuracy: number; coverage: number }>
+  readonly averageJudgeScore?: JudgeScore
 }
 
 export interface EvalReport {
@@ -84,5 +106,6 @@ export interface EvalReport {
   readonly eventCount: number
   readonly multiAgent: SystemMetrics
   readonly singleAgent: Omit<SystemMetrics, 'evidenceGrounding'>
+  readonly pro25SingleAgent: Omit<SystemMetrics, 'evidenceGrounding'>
   readonly results: readonly EvalResult[]
 }

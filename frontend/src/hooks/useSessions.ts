@@ -8,6 +8,7 @@ export type SessionSummary = {
   readonly type: 'signal' | 'portfolio_review' | 'holding' | 'general'
   readonly title: string
   readonly signalId?: string
+  readonly starred?: boolean
   readonly status: 'pending' | 'analyzing' | 'checkpoint' | 'complete' | 'error'
   readonly messageCount: number
   readonly createdAt: string
@@ -26,6 +27,7 @@ interface UseSessionsReturn {
   readonly updateSession: (sessionId: string, params: {
     title?: string
     status?: SessionSummary['status']
+    starred?: boolean
   }) => void
   readonly selectSession: (sessionId: string | null) => void
   readonly deleteSession: (sessionId: string) => Promise<void>
@@ -78,12 +80,17 @@ export function useSessions(userId: string): UseSessionsReturn {
   )
 
   const updateSession = useCallback(
-    (sessionId: string, params: { title?: string; status?: SessionSummary['status'] }) => {
+    (sessionId: string, params: { title?: string; status?: SessionSummary['status']; starred?: boolean }) => {
       // Optimistic local update
       setSessions((prev) =>
         prev.map((s) =>
           s.id === sessionId
-            ? { ...s, ...(params.title ? { title: params.title } : {}), ...(params.status ? { status: params.status } : {}) }
+            ? {
+                ...s,
+                ...(params.title !== undefined ? { title: params.title } : {}),
+                ...(params.status !== undefined ? { status: params.status } : {}),
+                ...(params.starred !== undefined ? { starred: params.starred } : {}),
+              }
             : s,
         ),
       )

@@ -1,4 +1,5 @@
 // SignalCard — rich signal card with urgency badge, sentiment, exposure chips, and action.
+// When onAnalyze is undefined, renders as read-only (no click handler, no "Analyze Impact" button).
 
 import type { Signal } from '@prism/shared'
 
@@ -38,14 +39,15 @@ export function SignalCard({ data, onAnalyze }: SignalCardProps) {
   const urgency = URGENCY_CONFIG[signal.urgency] ?? { label: signal.urgency.toUpperCase(), className: '' }
   const sentiment = SENTIMENT_LABELS[signal.sentiment] ?? signal.sentiment
   const timeAgo = formatTimeAgo(signal.detectedAt)
+  const isInteractive = onAnalyze !== undefined
 
   return (
     <div
-      className="signal-card"
-      onClick={() => onAnalyze?.(signal.id)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter') onAnalyze?.(signal.id) }}
+      className={`signal-card${isInteractive ? '' : ' signal-card--readonly'}`}
+      onClick={isInteractive ? () => onAnalyze(signal.id) : undefined}
+      role={isInteractive ? 'button' : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
+      onKeyDown={isInteractive ? (e) => { if (e.key === 'Enter') onAnalyze(signal.id) } : undefined}
     >
       <div className="signal-card__top">
         <span className={`signal-card__badge ${urgency.className}`}>{urgency.label}</span>
@@ -84,20 +86,22 @@ export function SignalCard({ data, onAnalyze }: SignalCardProps) {
         </div>
       )}
 
-      <div className="signal-card__footer">
-        <button
-          className="signal-card__analyze-btn"
-          onClick={(e) => {
-            e.stopPropagation()
-            onAnalyze?.(signal.id)
-          }}
-        >
-          Analyze Impact
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M5.25 3.5L8.75 7L5.25 10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-      </div>
+      {isInteractive && (
+        <div className="signal-card__footer">
+          <button
+            className="signal-card__analyze-btn"
+            onClick={(e) => {
+              e.stopPropagation()
+              onAnalyze(signal.id)
+            }}
+          >
+            Analyze Impact
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M5.25 3.5L8.75 7L5.25 10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   )
 }

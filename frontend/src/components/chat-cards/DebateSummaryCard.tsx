@@ -41,7 +41,7 @@ export function DebateSummaryCard({ data, onActionCenterMode }: DebateSummaryCar
         {debate.bullConcessions.length > 0 && (
           <div className="chat-card__debate-preview-side">
             <span className="chat-card__debate-preview-label chat-card__debate-preview-label--bull">
-              Bull conceded
+              Acknowledged risks
             </span>
             <ul>
               {debate.bullConcessions.map((c, i) => <li key={i}>{c}</li>)}
@@ -51,7 +51,7 @@ export function DebateSummaryCard({ data, onActionCenterMode }: DebateSummaryCar
         {debate.bearConcessions.length > 0 && (
           <div className="chat-card__debate-preview-side">
             <span className="chat-card__debate-preview-label chat-card__debate-preview-label--bear">
-              Bear conceded
+              Acknowledged strengths
             </span>
             <ul>
               {debate.bearConcessions.map((c, i) => <li key={i}>{c}</li>)}

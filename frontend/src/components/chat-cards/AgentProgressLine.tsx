@@ -6,6 +6,7 @@
 import { useState, useEffect, useRef } from 'react'
 import type { ActionCenterMode, AgentProgressGroupData, AgentStageState } from './types'
 import type { AnalystAssessment } from '@prism/shared'
+import { getStageDrawerAction } from './stage-actions'
 
 interface AgentProgressLineProps {
   readonly stage: AgentStageState
@@ -53,44 +54,6 @@ function isRiskChallengeEntry(entry: string): boolean {
   return /challeng|assumption|blind spot|overconfident/i.test(entry)
 }
 
-/** Map stage IDs to ActionCenterMode actions when artifacts are available */
-function getStageDrawerAction(
-  stageId: string,
-  artifacts: AgentProgressLineProps['intermediateArtifacts'],
-): ActionCenterMode | null {
-  if (!artifacts) return null
-
-  switch (stageId) {
-    case 'analyst_complete':
-      if (artifacts.analystAssessments && artifacts.analystAssessments.length > 0) {
-        return { mode: 'analyst_picker', assessments: artifacts.analystAssessments }
-      }
-      return null
-    case 'debate_complete':
-      if (artifacts.debateResolution) {
-        return { mode: 'debate_transcript', debate: artifacts.debateResolution }
-      }
-      return null
-    case 'risk_challenge':
-      if (artifacts.riskChallenge) {
-        return { mode: 'assumption_challenges', riskChallenge: artifacts.riskChallenge }
-      }
-      return null
-    case 'magnitude_validation':
-      if (artifacts.magnitudeValidation) {
-        return { mode: 'magnitude_detail', magnitudeValidation: artifacts.magnitudeValidation }
-      }
-      return null
-    case 'stress_complete':
-      if (artifacts.stressTest) {
-        return { mode: 'stress_detail', stressTest: artifacts.stressTest }
-      }
-      return null
-    default:
-      return null
-  }
-}
-
 export function AgentProgressLine({ stage, autoExpand = false, intermediateArtifacts, onActionCenterMode }: AgentProgressLineProps) {
   const [expanded, setExpanded] = useState(false)
   const prevStatusRef = useRef(stage.status)
@@ -121,7 +84,7 @@ export function AgentProgressLine({ stage, autoExpand = false, intermediateArtif
 
   // Whether clicking the completed stage header opens the drawer (instead of expand/collapse)
   const drawerAction = stage.status === 'complete'
-    ? getStageDrawerAction(stage.id, intermediateArtifacts)
+    ? getStageDrawerAction(stage.id, stage.label, stage.completionMessage ?? '', intermediateArtifacts)
     : null
   const hasDrawer = drawerAction !== null && onActionCenterMode !== undefined
 

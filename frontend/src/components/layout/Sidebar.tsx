@@ -18,6 +18,7 @@ interface SidebarProps {
     title: string
     signalId?: string
   }) => Promise<string>
+  readonly onUpdateSession: (id: string, params: { title?: string; starred?: boolean }) => void
   readonly onDeleteSession: (id: string) => Promise<void>
   readonly portfolio: Portfolio | null
   readonly portfolioLoading: boolean
@@ -27,7 +28,6 @@ interface SidebarProps {
   readonly onHoldingClick: (ticker: string) => void
   readonly candidates?: readonly Candidate[]
   readonly onCandidateAction?: (id: string, action: 'explore' | 'dismiss') => void
-  readonly onPreviewPlan?: () => void
   readonly onCollapse: () => void
   readonly onHomeClick: () => void
   readonly onSearchOpen: () => void
@@ -157,6 +157,7 @@ export function Sidebar({
   activeSessionId,
   onSelectSession,
   onCreateSession,
+  onUpdateSession,
   onDeleteSession,
   portfolio,
   portfolioLoading,
@@ -166,7 +167,6 @@ export function Sidebar({
   onHoldingClick,
   candidates,
   onCandidateAction,
-  onPreviewPlan,
   onCollapse,
   onHomeClick,
   onSearchOpen,
@@ -223,12 +223,12 @@ export function Sidebar({
       <div className="sidebar__content">
         {activeTab === 'sessions' && (
           <>
-            <div className="sidebar__section-label">Recents</div>
             <SessionList
               sessions={sessions}
               activeSessionId={activeSessionId}
               onSelect={onSelectSession}
               onCreate={onCreateSession}
+              onUpdate={onUpdateSession}
               onDelete={onDeleteSession}
               showHeader={false}
             />
@@ -242,7 +242,6 @@ export function Sidebar({
             onHoldingClick={onHoldingClick}
             candidates={candidates}
             onCandidateAction={onCandidateAction}
-            onPreviewPlan={onPreviewPlan}
           />
         )}
 

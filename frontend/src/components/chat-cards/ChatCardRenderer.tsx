@@ -23,6 +23,7 @@ import { SoftCheckpointCard } from './SoftCheckpointCard'
 import { AgentProgressGroup } from './AgentProgressGroup'
 import { AnalysisReportCard } from './AnalysisReportCard'
 import { SignalUpdateCard } from './SignalUpdateCard'
+import { StageSummaryLine } from './StageSummaryLine'
 import type { ActionCenterMode, ChatCard } from './types'
 
 interface ChatCardRendererProps {
@@ -33,6 +34,7 @@ interface ChatCardRendererProps {
   readonly onSignalAnalyze?: (signalId: string) => void
   readonly onFollowUp?: (query: string) => void
   readonly onActionCenterMode?: (mode: ActionCenterMode) => void
+  readonly onSwitchToHoldings?: () => void
 }
 
 export function ChatCardRenderer({
@@ -43,6 +45,7 @@ export function ChatCardRenderer({
   onSignalAnalyze,
   onFollowUp,
   onActionCenterMode,
+  onSwitchToHoldings,
 }: ChatCardRendererProps) {
   switch (card.type) {
     case 'signal':
@@ -98,7 +101,7 @@ export function ChatCardRenderer({
     case 'plan_preview':
       return <PlanPreviewCard data={card.data} />
     case 'structured_response':
-      return <StructuredResponseCard data={card.data} onFollowUp={onFollowUp} />
+      return <StructuredResponseCard data={card.data} onFollowUp={onFollowUp} onSignalAnalyze={onSignalAnalyze} />
     case 'transparency_bar':
       return (
         <TransparencyBar
@@ -124,10 +127,13 @@ export function ChatCardRenderer({
           onFollowUp={onFollowUp}
           onSavePlan={onSavePlan}
           onActionCenterMode={onActionCenterMode}
+          onSwitchToHoldings={onSwitchToHoldings}
         />
       )
     case 'signal_update':
       return <SignalUpdateCard data={card.data} onFollowUp={onFollowUp} />
+    case 'stage_summary':
+      return <StageSummaryLine data={card.data} onActionCenterMode={onActionCenterMode} />
     default:
       return (
         <div className="chat-card chat-card--unknown">

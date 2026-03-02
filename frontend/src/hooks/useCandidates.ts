@@ -93,22 +93,50 @@ export function useCandidates(userId: string): UseCandidatesReturn {
       sourceSignalId?: string
       actions: readonly RecommendationAction[]
     }) => {
-      const res = await fetch(`/api/v2/candidates/${userId}/from-recommendation`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recommendationId: params.recommendationId,
-          sourceLabel: params.sourceLabel,
-          sourceSignalId: params.sourceSignalId,
-          actions: params.actions,
-        }),
-      })
-      const payload = await res.json() as { success: boolean; data?: Candidate[] }
-      if (payload.success && payload.data) {
-        setCandidates((prev) => [...payload.data!, ...prev])
+      // Optimistic local update — show candidates immediately
+      const optimistic: Candidate[] = params.actions.map((action, i) => ({
+        id: `optimistic-${Date.now()}-${i}`,
+        userId,
+        ticker: action.ticker,
+        name: action.name,
+        action: action.action,
+        suggestedChangeCad: action.suggestedChangeCad,
+        suggestedChangePct: action.suggestedChangePct,
+        rationale: action.rationale,
+        status: 'planned' as const,
+        sourceSignalId: params.sourceSignalId,
+        sourceRecommendationId: params.recommendationId,
+        sourceLabel: params.sourceLabel,
+        createdAt: new Date().toISOString(),
+      }))
+      setCandidates((prev) => [...optimistic, ...prev])
+
+      try {
+        const res = await fetch(`/api/v2/candidates/${userId}/from-recommendation`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            recommendationId: params.recommendationId,
+            sourceLabel: params.sourceLabel,
+            sourceSignalId: params.sourceSignalId,
+            actions: params.actions,
+          }),
+        })
+        const payload = await res.json() as { success: boolean; data?: Candidate[] }
+        if (payload.success && payload.data) {
+          // Replace optimistic entries with real server-assigned IDs
+          const optimisticIds = new Set(optimistic.map((o) => o.id))
+          setCandidates((prev) => [
+            ...payload.data!,
+            ...prev.filter((c) => !optimisticIds.has(c.id)),
+          ])
+        }
+      } catch {
+        // Revert optimistic update on failure
+        void fetchCandidates()
       }
     },
-    [userId],
+    [userId, fetchCandidates],
   )
 
   const previewPlan = useCallback(async () => {

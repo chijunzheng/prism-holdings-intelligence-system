@@ -42,6 +42,9 @@ export function ActionCenter({ mode, onClose, onActionCenterMode }: ActionCenter
       {mode.mode === 'assumption_challenges' && <AssumptionChallengesView riskChallenge={mode.riskChallenge} />}
       {mode.mode === 'magnitude_detail' && <MagnitudeDetailView magnitudeValidation={mode.magnitudeValidation} />}
       {mode.mode === 'stress_detail' && <StressDetailView stressTest={mode.stressTest} />}
+      {mode.mode === 'risk_profile_detail' && <RiskProfileDetailView riskProfile={mode.riskProfile} />}
+      {mode.mode === 'market_data_detail' && <MarketDataDetailView marketData={mode.marketData} />}
+      {mode.mode === 'stage_summary_detail' && <StageSummaryDetailView stageLabel={mode.stageLabel} summary={mode.summary} />}
     </aside>
   )
 }
@@ -59,6 +62,9 @@ function getModeSubtitle(mode: ActionCenterMode): string {
     case 'assumption_challenges': return 'Risk team assumption challenges'
     case 'magnitude_detail': return 'Historical volatility validation'
     case 'stress_detail': return 'Monte Carlo stress test results'
+    case 'risk_profile_detail': return 'Inferred risk tolerance profile'
+    case 'market_data_detail': return 'Real-time market data'
+    case 'stage_summary_detail': return mode.stageLabel
   }
 }
 
@@ -110,10 +116,10 @@ function DebateTranscriptView({ debate }: {
       </section>
 
       <section className="action-center__section">
-        <h4>Concessions</h4>
+        <h4>Common Ground</h4>
         <div className="action-center__debate-sides">
           <div className="action-center__debate-side action-center__debate-side--bull">
-            <h5>Bull</h5>
+            <h5>Acknowledged risks</h5>
             <ul>
               {debate.bullConcessions.length > 0
                 ? debate.bullConcessions.map((c, i) => <li key={i}>{c}</li>)
@@ -122,7 +128,7 @@ function DebateTranscriptView({ debate }: {
             </ul>
           </div>
           <div className="action-center__debate-side action-center__debate-side--bear">
-            <h5>Bear</h5>
+            <h5>Acknowledged strengths</h5>
             <ul>
               {debate.bearConcessions.length > 0
                 ? debate.bearConcessions.map((c, i) => <li key={i}>{c}</li>)
@@ -630,49 +636,224 @@ function StressDetailView({ stressTest }: {
 
 // ── Research Brief ───────────────────────────────
 
+function qualityBadgeClass(score: number): string {
+  if (score >= 0.8) return 'action-center__brief-quality--high'
+  if (score >= 0.6) return 'action-center__brief-quality--mid'
+  return 'action-center__brief-quality--low'
+}
+
 function ResearchBriefView({ brief }: {
   readonly brief: import('@prism/shared').ResearchBrief
 }) {
+  const qualityPct = Math.round(brief.qualityScore * 100)
+  const generatedDate = new Date(brief.generatedAt).toLocaleDateString('en-CA', {
+    year: 'numeric', month: 'short', day: 'numeric',
+  })
+
   return (
-    <>
-      <section className="action-center__section">
+    <div className="action-center__brief">
+      {/* Header card */}
+      <section className="action-center__section action-center__brief-header">
         <h4>Research Brief</h4>
         <div className="action-center__meta">
-          <span>Quality: {(brief.qualityScore * 100).toFixed(0)}%</span>
-          <span>Generated: {brief.generatedAt}</span>
+          <span className={`action-center__brief-quality ${qualityBadgeClass(brief.qualityScore)}`}>
+            {qualityPct}% quality
+          </span>
+          <span>{generatedDate}</span>
         </div>
       </section>
 
-      <div className="action-center__brief-sections">
-        {brief.sections.map((section, i) => (
-          <div key={i} className="action-center__brief-section">
+      {/* Each section as its own card */}
+      {brief.sections.map((section, i) => (
+        <section key={i} className="action-center__section action-center__brief-section-card">
+          <div className="action-center__brief-section-header">
+            <span className="action-center__brief-section-num">{i + 1}</span>
             <h5>{section.title}</h5>
-            <div className="chat-message__markdown">
-              {renderMarkdown(section.content)}
-            </div>
           </div>
-        ))}
-      </div>
+          <div className="chat-message__markdown">
+            {renderMarkdown(section.content)}
+          </div>
+        </section>
+      ))}
 
+      {/* Sources card */}
       {brief.sources.length > 0 && (
-        <section className="action-center__section">
-          <h4>Sources</h4>
-          <ul className="action-center__unresolved-list">
+        <section className="action-center__section action-center__brief-sources-card">
+          <h4>Sources ({brief.sources.length})</h4>
+          <ol className="action-center__brief-source-list">
             {brief.sources.map((source) => (
               <li key={source.index}>
-                {source.description}
-                {source.url && (
-                  <> — <a href={source.url} target="_blank" rel="noopener noreferrer" className="action-center__source-link">{source.url}</a></>
+                {source.url ? (
+                  <a href={source.url} target="_blank" rel="noopener noreferrer" className="action-center__evidence-link">
+                    {source.description}
+                    <span className="action-center__link-icon">&rsaquo;</span>
+                  </a>
+                ) : (
+                  <span>{source.description}</span>
                 )}
               </li>
             ))}
-          </ul>
+          </ol>
         </section>
       )}
 
-      <div style={{ fontSize: 11, color: '#71717A', padding: '8px 0', fontStyle: 'italic' }}>
-        {brief.disclaimer}
-      </div>
+      {/* Disclaimer card */}
+      <section className="action-center__section action-center__brief-disclaimer">
+        <p>{brief.disclaimer}</p>
+      </section>
+    </div>
+  )
+}
+
+// ── Risk Profile Detail ─────────────────────────
+
+function RiskProfileDetailView({ riskProfile }: {
+  readonly riskProfile: import('@prism/shared').InferredRiskProfile
+}) {
+  const toleranceLabel = riskProfile.riskTolerance.charAt(0).toUpperCase() + riskProfile.riskTolerance.slice(1)
+  const scoreColor = riskProfile.riskScore >= 70 ? 'action-center__impact--positive'
+    : riskProfile.riskScore >= 40 ? '' : 'action-center__impact--negative'
+
+  return (
+    <>
+      <section className="action-center__section">
+        <h4>Risk Tolerance</h4>
+        <div className="action-center__meta">
+          <span className={scoreColor}>{toleranceLabel} ({riskProfile.riskScore}/100)</span>
+        </div>
+        {riskProfile.declaredTolerance && riskProfile.mismatch?.detected && (
+          <div className="action-center__mismatch-warning">
+            Declared: {riskProfile.declaredTolerance} — {riskProfile.mismatch.explanation}
+          </div>
+        )}
+      </section>
+
+      {riskProfile.factors.length > 0 && (
+        <section className="action-center__section">
+          <h4>Contributing Factors</h4>
+          <div className="action-center__holding-impacts-table">
+            <div className="action-center__table-header">
+              <span>Factor</span>
+              <span>Signal</span>
+              <span>Effect</span>
+            </div>
+            {riskProfile.factors.map((f, i) => (
+              <div key={i} className="action-center__table-row">
+                <span>{f.factor}</span>
+                <span style={{ fontSize: 12, color: 'var(--color-text-secondary, #71717A)' }}>{f.signal}</span>
+                <span className={f.scoreEffect >= 0 ? 'action-center__impact--positive' : 'action-center__impact--negative'}>
+                  {f.scoreEffect >= 0 ? '+' : ''}{f.scoreEffect}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="action-center__section">
+        <h4>Reasoning</h4>
+        <div className="chat-message__markdown">
+          {renderMarkdown(riskProfile.reasoning)}
+        </div>
+      </section>
+
+      {riskProfile.warnings.length > 0 && (
+        <section className="action-center__section">
+          <h4>Warnings</h4>
+          <ul className="action-center__unresolved-list">
+            {riskProfile.warnings.map((w, i) => <li key={i}>{w}</li>)}
+          </ul>
+        </section>
+      )}
     </>
+  )
+}
+
+// ── Market Data Detail ──────────────────────────
+
+function MarketDataDetailView({ marketData }: {
+  readonly marketData: import('@prism/shared').MarketDataBundle
+}) {
+  const sourceLabel = marketData.source === 'yahoo_finance' ? 'Yahoo Finance' : 'Fallback data'
+  const fetchedTime = new Date(marketData.fetchedAt).toLocaleString()
+
+  return (
+    <>
+      <section className="action-center__section">
+        <h4>Data Source</h4>
+        <div className="action-center__meta">
+          <span>{sourceLabel}</span>
+          <span>Fetched: {fetchedTime}</span>
+        </div>
+      </section>
+
+      <section className="action-center__section">
+        <h4>Ticker Volatility</h4>
+        <div className="action-center__holding-impacts-table">
+          <div className="action-center__table-header">
+            <span>Ticker</span>
+            <span>Daily</span>
+            <span>Monthly</span>
+            <span>Annualized</span>
+          </div>
+          {marketData.tickers.map((ticker) => {
+            const vol = marketData.volatilities[ticker]
+            if (!vol) return null
+            return (
+              <div key={ticker} className="action-center__table-row">
+                <span className="action-center__ticker">{ticker}</span>
+                <span>{(vol.daily * 100).toFixed(2)}%</span>
+                <span>{(vol.monthly * 100).toFixed(1)}%</span>
+                <span>{(vol.annualized * 100).toFixed(1)}%</span>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      {marketData.correlationMatrix.length > 0 && (
+        <section className="action-center__section">
+          <h4>Correlation Matrix</h4>
+          <div className="action-center__correlation-matrix">
+            <div className="action-center__correlation-row action-center__correlation-header">
+              <span />
+              {marketData.tickers.map((t) => <span key={t}>{t}</span>)}
+            </div>
+            {marketData.tickers.map((rowTicker, i) => (
+              <div key={rowTicker} className="action-center__correlation-row">
+                <span className="action-center__ticker">{rowTicker}</span>
+                {marketData.correlationMatrix[i]?.map((val, j) => {
+                  const absVal = Math.abs(val)
+                  const colorClass = absVal > 0.7 ? 'action-center__corr--high'
+                    : absVal > 0.3 ? 'action-center__corr--mid'
+                    : 'action-center__corr--low'
+                  return (
+                    <span key={j} className={colorClass}>
+                      {val.toFixed(2)}
+                    </span>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </>
+  )
+}
+
+// ── Stage Summary Detail (generic fallback) ─────
+
+function StageSummaryDetailView({ stageLabel, summary }: {
+  readonly stageLabel: string
+  readonly summary: string
+}) {
+  return (
+    <section className="action-center__section">
+      <h4>{stageLabel}</h4>
+      <div className="chat-message__markdown">
+        {renderMarkdown(summary)}
+      </div>
+    </section>
   )
 }

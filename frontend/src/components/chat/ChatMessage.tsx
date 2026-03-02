@@ -105,7 +105,7 @@ export function ChatMessage({ message, onFollowUp }: ChatMessageProps) {
 
   const isAssistant = message.role === 'assistant'
   const isStreaming = message.isStreaming ?? false
-  const showActions = isAssistant && !isStreaming && message.content.length > 0
+  const showActions = isAssistant && !isStreaming && message.content.length > 0 && !message.hideActions
 
   // Use LLM-powered suggestions if available, fall back to keyword-based
   const followUps = message.suggestedFollowUps && message.suggestedFollowUps.length > 0

@@ -190,21 +190,150 @@
   margin-top: 6px;
 }
 
-.sr__analyze-btn {
+.sr__signal-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-left: auto;
-  padding: 4px 12px;
-  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.12));
-  border-radius: 8px;
+}
+
+/* ── Chip Buttons (icon + text pills) ────────────────── */
+
+.sr__chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.10));
+  border-radius: 20px;
   background: var(--color-surface, #ffffff);
   font-size: 0.8125rem;
   font-weight: 500;
-  color: var(--color-text, #1a1a1a);
+  color: var(--color-text-secondary, #4a4a4a);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, box-shadow 0.15s, border-color 0.15s;
+  line-height: 1.3;
+  white-space: nowrap;
 }
 
-.sr__analyze-btn:hover {
-  background: var(--color-bg-subtle, #f0efed);
+.sr__chip-btn:hover {
+  background: var(--color-bg-subtle, #f5f4f2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.16);
+}
+
+.sr__chip-btn svg {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.sr__chip-btn:hover svg {
+  opacity: 0.85;
+}
+
+.sr__chip-btn--primary {
+  background: var(--color-text, #1a1a1a);
+  color: #fff;
+  border-color: transparent;
+}
+
+.sr__chip-btn--primary:hover {
+  background: #333;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
+.sr__chip-btn--primary svg {
+  opacity: 0.85;
+}
+
+.sr__chip-btn--primary:hover svg {
+  opacity: 1;
+}
+
+/* ── Action Item Section ─────────────────────────────── */
+
+.sr__action-item {
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.06));
+  border-radius: 12px;
+  padding: 12px 16px;
+  border-left: 3px solid var(--color-accent, #2563EB);
+  background: var(--color-surface, #ffffff);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.sr__action-item--clickable {
+  cursor: pointer;
+}
+
+.sr__action-item--clickable:hover {
+  background: var(--color-bg-subtle, rgba(0, 0, 0, 0.02));
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.sr__action-item--buy  { border-left-color: #16A34A; }
+.sr__action-item--sell { border-left-color: #DC2626; }
+.sr__action-item--hold { border-left-color: #6366F1; }
+.sr__action-item--rebalance { border-left-color: #D97706; }
+.sr__action-item--explore { border-left-color: #2563EB; }
+
+.sr__action-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.sr__action-item-verb {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.sr__action-item--buy .sr__action-item-verb  { color: #16A34A; background: #F0FDF4; }
+.sr__action-item--sell .sr__action-item-verb { color: #DC2626; background: #FEF2F2; }
+.sr__action-item--hold .sr__action-item-verb { color: #6366F1; background: #EEF2FF; }
+.sr__action-item--rebalance .sr__action-item-verb { color: #D97706; background: #FFFBEB; }
+.sr__action-item--explore .sr__action-item-verb { color: #2563EB; background: #EFF6FF; }
+
+.sr__action-item-title {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--color-text, #1a1a1a);
+  flex: 1;
+  min-width: 0;
+}
+
+.sr__action-item-amount {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary, #52525B);
+  white-space: nowrap;
+}
+
+.sr__action-item-body {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary, #52525B);
+  margin-bottom: 6px;
+}
+
+.sr__action-item-tickers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.sr__action-item-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  justify-content: flex-end;
 }
 
 /* ── Holding Item Section ────────────────────────────── */
@@ -431,8 +560,17 @@
 .sr__follow-ups {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   margin-top: 4px;
+}
+
+.sr__follow-ups-label {
+  width: 100%;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary, #6b7280);
+  margin-bottom: 2px;
 }
 
 .sr__follow-up {

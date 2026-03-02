@@ -57,7 +57,6 @@ export function ChatView() {
     candidates,
     updateCandidate,
     saveFromRecommendation,
-    previewPlan,
   } = useCandidates(userId)
 
   const [searchParams, setSearchParams] = useSearchParams()
@@ -117,11 +116,11 @@ export function ChatView() {
   const handleSavePlan = useCallback(
     (recommendationId: string, recommendations: readonly import('@prism/shared').Recommendation[]) => {
       const rec = recommendations.find((r) => r.id === recommendationId)
-      if (!rec?.actions || rec.actions.length === 0) return
+      if (!rec) return
       void saveFromRecommendation({
         recommendationId,
         sourceLabel: rec.title,
-        actions: rec.actions,
+        actions: rec.actions ?? [],
       })
     },
     [saveFromRecommendation],
@@ -145,20 +144,16 @@ export function ChatView() {
     }
   }, [candidates, updateCandidate])
 
-  const handlePreviewPlan = useCallback(async () => {
-    const preview = await previewPlan()
-    if (preview) {
-      // Send a system message with the plan preview card
-      chatSendRef.current?.('Preview my planned portfolio changes')
-    }
-  }, [previewPlan])
-
   const toggleSidebar = useCallback(() => {
     updateSearchParam(searchParams, setSearchParams, 'sidebar', isSidebarCollapsed ? null : 'collapsed')
   }, [isSidebarCollapsed, searchParams, setSearchParams])
 
   const handleTabChange = useCallback((tab: 'sessions' | 'holdings' | 'signals') => {
     updateSearchParam(searchParams, setSearchParams, 'panel', tab)
+  }, [searchParams, setSearchParams])
+
+  const handleSwitchToHoldings = useCallback(() => {
+    updateSearchParam(searchParams, setSearchParams, 'panel', 'holdings')
   }, [searchParams, setSearchParams])
 
   const handleSearchSelectSession = useCallback((sessionId: string) => {
@@ -269,6 +264,7 @@ export function ChatView() {
         activeSessionId={activeSessionId}
         onSelectSession={selectSession}
         onCreateSession={createSession}
+        onUpdateSession={updateSession}
         onDeleteSession={deleteSession}
         portfolio={portfolio}
         portfolioLoading={portfolioLoading}
@@ -278,7 +274,6 @@ export function ChatView() {
         onHoldingClick={handleHoldingClick}
         candidates={candidates}
         onCandidateAction={handleCandidateAction}
-        onPreviewPlan={handlePreviewPlan}
         onCollapse={toggleSidebar}
         onHomeClick={() => selectSession(null)}
         onSearchOpen={() => setIsSearchOpen(true)}
@@ -305,6 +300,7 @@ export function ChatView() {
             <ChatArea
               userId={userId}
               activeSessionId={activeSessionId}
+              activeSessionTitle={sessions.find((s) => s.id === activeSessionId)?.title}
               signals={signals}
               userName={userName}
               onSendRef={chatSendRef}
@@ -313,6 +309,7 @@ export function ChatView() {
               onUpdateSession={updateSession}
               onSavePlan={handleSavePlan}
               onActionCenterMode={handleActionCenterMode}
+              onSwitchToHoldings={handleSwitchToHoldings}
             />
           </section>
 

@@ -10,6 +10,7 @@ import { TickerIcon } from '../../common/TickerIcon'
 import { SummarySection } from './SummarySection'
 import { SignalItemSection } from './SignalItemSection'
 import { InsightSection } from './InsightSection'
+import { ActionItemSection } from './ActionItemSection'
 import { GroupSection } from './GroupSection'
 import '../../../styles/structured-response.css'
 
@@ -84,6 +85,8 @@ export function StructuredResponseCard({ data, onFollowUp, onSignalAnalyze }: St
         return <div key={key} className="sr__section" style={style}><TextSectionInline data={section} /></div>
       case 'insight':
         return <div key={key} className="sr__section" style={style}><InsightSection data={section} onFollowUp={onFollowUp} /></div>
+      case 'action_item':
+        return <div key={key} className="sr__section" style={style}><ActionItemSection data={section} onFollowUp={onFollowUp} /></div>
       case 'metric_row':
         return <div key={key} className="sr__section" style={style}><MetricRowSectionInline data={section} /></div>
       case 'group':
@@ -99,6 +102,7 @@ export function StructuredResponseCard({ data, onFollowUp, onSignalAnalyze }: St
 
       {data.followUps && data.followUps.length > 0 && (
         <div className="sr__follow-ups">
+          <span className="sr__follow-ups-label">Follow-ups</span>
           {data.followUps.map((f) => (
             <button
               key={f.text}

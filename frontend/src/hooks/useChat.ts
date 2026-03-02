@@ -20,6 +20,8 @@ export interface ChatMessage {
   readonly isStreaming?: boolean
   readonly planProposal?: AskPrismPlanProposal
   readonly suggestedFollowUps?: ReadonlyArray<string>
+  /** When true, suppress copy button and follow-up pills (e.g. pipeline intro messages). */
+  readonly hideActions?: boolean
 }
 
 interface UseChatOptions {

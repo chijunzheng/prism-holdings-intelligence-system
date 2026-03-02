@@ -4,6 +4,7 @@ import type {
   FundManagerVerdict,
   InferredRiskProfile,
   MagnitudeValidation,
+  MarketDataBundle,
   PlanPreview,
   Recommendation,
   RecommendationAction,
@@ -28,6 +29,9 @@ export type ActionCenterMode =
   | { readonly mode: 'assumption_challenges'; readonly riskChallenge: RiskChallenge }
   | { readonly mode: 'magnitude_detail'; readonly magnitudeValidation: MagnitudeValidation }
   | { readonly mode: 'stress_detail'; readonly stressTest: StressTestResult }
+  | { readonly mode: 'risk_profile_detail'; readonly riskProfile: InferredRiskProfile }
+  | { readonly mode: 'market_data_detail'; readonly marketData: MarketDataBundle }
+  | { readonly mode: 'stage_summary_detail'; readonly stageLabel: string; readonly summary: string }
 
 export type StageStatus = 'pending' | 'active' | 'complete' | 'waiting'
 
@@ -151,6 +155,9 @@ export interface SoftCheckpointData {
   readonly analystAssessments?: readonly AnalystAssessment[]
   readonly riskProfile?: InferredRiskProfile
   readonly riskChallenge?: RiskChallenge
+  readonly debateResolution?: DebateResolution
+  readonly verdict?: FundManagerVerdict
+  readonly qualityScore?: number
   readonly [key: string]: unknown
 }
 
@@ -211,8 +218,16 @@ export interface SignalUpdateData {
   readonly newSentiment: string
 }
 
+export interface StageSummaryData {
+  readonly stageId: string
+  readonly stageLabel: string
+  readonly summary: string
+  readonly actionCenterMode?: ActionCenterMode
+}
+
 export type ChatCard =
   | { readonly type: 'signal'; readonly data: Signal }
+  | { readonly type: 'stage_summary'; readonly data: StageSummaryData }
   | { readonly type: 'thinking'; readonly data: unknown }
   | { readonly type: 'pipeline_progress'; readonly data: PipelineProgressData }
   | { readonly type: 'debate_summary'; readonly data: unknown }

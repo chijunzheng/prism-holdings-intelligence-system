@@ -12,7 +12,6 @@ interface HoldingsPanelProps {
   readonly onHoldingClick?: (ticker: string) => void
   readonly candidates?: readonly Candidate[]
   readonly onCandidateAction?: (id: string, action: 'explore' | 'dismiss') => void
-  readonly onPreviewPlan?: () => void
 }
 
 const ACCOUNT_LABELS: Record<string, string> = {
@@ -56,11 +55,9 @@ const ACTION_VERB_MAP: Record<Candidate['action'], string> = {
 function PlannedChangesSection({
   candidates,
   onCandidateAction,
-  onPreviewPlan,
 }: {
   readonly candidates: readonly Candidate[]
   readonly onCandidateAction?: (id: string, action: 'explore' | 'dismiss') => void
-  readonly onPreviewPlan?: () => void
 }) {
   const [collapsedGroups, setCollapsedGroups] = useState<ReadonlySet<string>>(new Set())
 
@@ -143,15 +140,6 @@ function PlannedChangesSection({
         )
       })}
 
-      {onPreviewPlan && (
-        <button
-          type="button"
-          className="holdings-panel__preview-btn"
-          onClick={onPreviewPlan}
-        >
-          Preview Plan Impact
-        </button>
-      )}
     </div>
   )
 }
@@ -200,7 +188,7 @@ function PillToggle({ value, onChange }: { readonly value: ReturnPeriod; readonl
   )
 }
 
-export function HoldingsPanel({ portfolio, isLoading, onHoldingClick, candidates, onCandidateAction, onPreviewPlan }: HoldingsPanelProps) {
+export function HoldingsPanel({ portfolio, isLoading, onHoldingClick, candidates, onCandidateAction }: HoldingsPanelProps) {
   const [balanceVisible, setBalanceVisible] = useState(true)
   const [returnPeriod, setReturnPeriod] = useState<ReturnPeriod>('today')
 
@@ -332,7 +320,6 @@ export function HoldingsPanel({ portfolio, isLoading, onHoldingClick, candidates
         <PlannedChangesSection
           candidates={candidates}
           onCandidateAction={onCandidateAction}
-          onPreviewPlan={onPreviewPlan}
         />
       )}
     </div>

@@ -1,24 +1,75 @@
 // AnalysisReportCard — single consolidated report replacing 5-6 separate cards.
+// Wealthsimple-style: each section is a separate white card with gap between.
 // Sections: Header, Portfolio Impact (open), Recommendations (open),
-// How We Got Here (collapsed), Research Brief (collapsed), Action Bar.
+// Research Brief (collapsed), Action Bar.
 
 import { useState } from 'react'
-import type { Recommendation } from '@prism/shared'
+import type { Recommendation, RecommendationAction } from '@prism/shared'
 import type { ActionCenterMode, AnalysisReportData } from './types'
 import { TickerIcon } from '../common/TickerIcon'
-import { downloadAdvisorSummary } from '../../utils/generate-advisor-summary'
+import { downloadAdvisorPdf } from '../../utils/generate-advisor-summary'
+
+// ── SVG Icon Components ──────────────────────────────
+
+function ChevronIcon({ expanded }: { readonly expanded: boolean }) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      className={`ar-chevron ${expanded ? 'ar-chevron--expanded' : ''}`}
+    >
+      <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function ShareIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <path d="M4 12V14H12V12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 2V10M5 5L8 2L11 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function RefreshIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <path d="M2 8a6 6 0 0110.89-3.48M14 2v4h-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 8a6 6 0 01-10.89 3.48M2 14v-4h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function CheckIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <path d="M3 8.5L6.5 12L13 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+// ── Helpers ──────────────────────────────────────────
 
 interface AnalysisReportCardProps {
   readonly data: AnalysisReportData
   readonly onFollowUp?: (query: string) => void
   readonly onSavePlan?: (id: string) => void
   readonly onActionCenterMode?: (mode: ActionCenterMode) => void
+  readonly onSwitchToHoldings?: () => void
 }
 
-type ExpandedSection = 'impact' | 'recommendations' | 'process' | 'brief'
+type ExpandedSection = 'impact' | 'recommendations' | 'brief'
 
 function formatDollar(amount: number): string {
   const sign = amount >= 0 ? '+' : ''
+  return `${sign}$${Math.abs(Math.round(amount)).toLocaleString()}`
+}
+
+function formatChangeDollar(amount: number): string {
+  const sign = amount >= 0 ? '+' : '-'
   return `${sign}$${Math.abs(Math.round(amount)).toLocaleString()}`
 }
 
@@ -28,21 +79,99 @@ function directionLabel(direction: number): string {
   return 'Neutral'
 }
 
+/** Extract a short plain-text summary from markdown content (first sentence, max 120 chars). */
+function extractSummary(markdown: string): string {
+  // Strip markdown formatting: headers, bold, italic, bullets, numbered lists, tables, links
+  const plain = markdown
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/^[-*]\s+/gm, '')
+    .replace(/^\d+\.\s+/gm, '')
+    .replace(/^\|.*\|$/gm, '')           // table rows (lines starting and ending with |)
+    .replace(/^[-|:\s]+$/gm, '')          // table separator rows (---|---|---)
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // markdown links → text only
+    .replace(/\n{2,}/g, '\n')            // collapse blank lines
+    .trim()
+  // First sentence: up to period+space or newline
+  const match = plain.match(/^(.+?(?:\.|$))/)
+  const sentence = match?.[1]?.trim() ?? plain.slice(0, 120)
+  return sentence.length > 120 ? `${sentence.slice(0, 117)}...` : sentence
+}
+
+function actionVerb(action: RecommendationAction['action']): string {
+  switch (action) {
+    case 'reduce': return 'Reduce'
+    case 'increase': return 'Increase'
+    case 'hold': return 'Hold'
+    case 'add_new': return 'Add'
+    case 'remove': return 'Remove'
+  }
+}
+
+function actionColor(action: RecommendationAction['action']): string {
+  switch (action) {
+    case 'reduce':
+    case 'remove':
+      return 'var(--color-negative, #DC2626)'
+    case 'increase':
+    case 'add_new':
+      return 'var(--color-positive, #16A34A)'
+    case 'hold':
+      return 'var(--color-text-muted, #71717A)'
+  }
+}
+
+/** Generate context-aware follow-up chips from the actual analysis data. */
+export function generateReportFollowUps(report: AnalysisReportData): readonly string[] {
+  const chips: string[] = []
+  const headline = report.signal.headline
+  const netImpact = report.impactDelta.netImpactMidCad ?? 0
+  const topHolding = report.impactDelta.affectedHoldings?.[0]
+
+  // Signal-specific: counter-scenario
+  if (headline.toLowerCase().includes('rate') || headline.toLowerCase().includes('interest')) {
+    chips.push('What if rates move the other way?')
+  } else if (headline.toLowerCase().includes('tariff') || headline.toLowerCase().includes('trade')) {
+    chips.push('What if the tariffs get rolled back?')
+  } else if (headline.toLowerCase().includes('oil') || headline.toLowerCase().includes('energy')) {
+    chips.push('What if oil prices reverse?')
+  } else {
+    chips.push(`What if this signal doesn't materialize?`)
+  }
+
+  // Holding-specific depth
+  if (topHolding) {
+    chips.push(`Why is ${topHolding.ticker} most affected?`)
+  }
+
+  // Direction-aware (based on net dollar impact)
+  if (netImpact < 0) {
+    chips.push('Show me the worst case scenario')
+  } else if (netImpact > 0) {
+    chips.push('How sustainable is this upside?')
+  }
+
+  // Cross-signal interaction (always useful)
+  chips.push('How does this interact with my other risks?')
+
+  return chips.slice(0, 3)
+}
+
 export function AnalysisReportCard({
   data,
   onFollowUp,
   onSavePlan,
   onActionCenterMode,
+  onSwitchToHoldings,
 }: AnalysisReportCardProps) {
   const [expandedSections, setExpandedSections] = useState<Set<ExpandedSection>>(
     new Set(['impact', 'recommendations']),
   )
-  const [selectedRecId, setSelectedRecId] = useState<string | null>(null)
-  const [planSaved, setPlanSaved] = useState(false)
-  const [watching, setWatching] = useState(false)
+  const [savedRecId, setSavedRecId] = useState<string | null>(null)
   const [showReanalyze, setShowReanalyze] = useState(false)
+  const [pdfError, setPdfError] = useState(false)
   const [reanalyzeInput, setReanalyzeInput] = useState('')
-  const [showShare, setShowShare] = useState(false)
 
   const { verdict, impactDelta, intermediateArtifacts, researchBrief } = data
   const netImpact = impactDelta.netImpactMidCad
@@ -69,15 +198,10 @@ export function AnalysisReportCard({
     })
   }
 
-  function handleSelectRec(rec: Recommendation) {
-    setSelectedRecId(rec.id)
-  }
-
-  function handleSavePlan() {
-    if (selectedRecId) {
-      onSavePlan?.(selectedRecId)
-      setPlanSaved(true)
-    }
+  function handleExecutePlan(rec: Recommendation) {
+    onSavePlan?.(rec.id)
+    setSavedRecId(rec.id)
+    onSwitchToHoldings?.()
   }
 
   function handleReanalyze(correction: string) {
@@ -86,7 +210,7 @@ export function AnalysisReportCard({
     setReanalyzeInput('')
   }
 
-  // ── Quick options for re-analyze (auto-generated from analysis)
+  // Quick options for re-analyze (auto-generated from analysis)
   const quickOptions: string[] = []
   if (intermediateArtifacts?.debateResolution) {
     const debate = intermediateArtifacts.debateResolution
@@ -100,242 +224,265 @@ export function AnalysisReportCard({
   }
 
   return (
-    <div className="analysis-report">
-      {/* ── Header ── */}
-      <div className="analysis-report__header">
-        <h3 className="analysis-report__headline">{data.signal.headline}</h3>
-        <div className="analysis-report__meta">
-          <span className="analysis-report__impact">{formatDollar(netImpact)} estimated 1M impact</span>
-          <span className={`analysis-report__direction analysis-report__direction--${direction.toLowerCase()}`}>
+    <div className="ar">
+      {/* ── Header Card ── */}
+      <div className="ar__card ar__header">
+        <h3 className="ar__headline">{data.signal.headline}</h3>
+        <div className="ar__meta">
+          <span className="ar__impact">{formatDollar(netImpact)} estimated 1M impact</span>
+          <span className={`ar__badge ar__badge--${direction.toLowerCase()}`}>
             {direction}
           </span>
-          <span className="analysis-report__confidence">{confidence}% confidence</span>
-          <span className="analysis-report__agents">{data.agentCount} agents</span>
+          <span className="ar__badge ar__badge--neutral">{confidence}% confidence</span>
+          <span className="ar__badge ar__badge--neutral">{data.agentCount} agents</span>
         </div>
       </div>
 
-      {/* ── Portfolio Impact ── */}
-      <button
-        type="button"
-        className="analysis-report__section-toggle"
-        onClick={() => toggleSection('impact')}
-      >
-        <span>{expandedSections.has('impact') ? '\u25BE' : '\u25B8'} Portfolio Impact</span>
-      </button>
-      {expandedSections.has('impact') && (
-        <div className="analysis-report__section">
-          <div className="analysis-report__holdings">
-            {impactDelta.affectedHoldings.map((h) => (
-              <button
-                type="button"
-                key={h.ticker}
-                className="analysis-report__holding-row"
-                onClick={() => onActionCenterMode?.({
-                  mode: 'holding_detail',
-                  ticker: h.ticker,
-                  holdingData: h,
-                })}
-              >
-                <TickerIcon ticker={h.ticker} size={20} />
-                <span className="analysis-report__holding-name">{h.name}</span>
-                <span className={`analysis-report__holding-impact ${h.impactMidCad < 0 ? 'analysis-report__holding-impact--negative' : 'analysis-report__holding-impact--positive'}`}>
-                  {formatDollar(h.impactMidCad)}
-                </span>
-              </button>
-            ))}
+      {/* ── Portfolio Impact Card ── */}
+      <div className="ar__card">
+        <button
+          type="button"
+          className="ar__section-toggle"
+          onClick={() => toggleSection('impact')}
+          aria-expanded={expandedSections.has('impact')}
+        >
+          <ChevronIcon expanded={expandedSections.has('impact')} />
+          <span className="ar__section-title">Portfolio Impact</span>
+        </button>
+        {expandedSections.has('impact') && (
+          <div className="ar__section-body">
+            <div className="ar__holdings">
+              {impactDelta.affectedHoldings.map((h) => (
+                <button
+                  type="button"
+                  key={h.ticker}
+                  className="ar__holding-row"
+                  onClick={() => onActionCenterMode?.({
+                    mode: 'holding_detail',
+                    ticker: h.ticker,
+                    holdingData: h,
+                  })}
+                >
+                  <TickerIcon ticker={h.ticker} size={20} />
+                  <span className="ar__holding-name">{h.name}</span>
+                  <span className={`ar__holding-impact ${h.impactMidCad < 0 ? 'ar__holding-impact--neg' : 'ar__holding-impact--pos'}`}>
+                    {formatDollar(h.impactMidCad)}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* ── Recommendations ── */}
       <button
         type="button"
-        className="analysis-report__section-toggle"
+        className="ar__section-toggle ar__section-toggle--standalone"
         onClick={() => toggleSection('recommendations')}
+        aria-expanded={expandedSections.has('recommendations')}
       >
-        <span>{expandedSections.has('recommendations') ? '\u25BE' : '\u25B8'} What You Can Do</span>
+        <ChevronIcon expanded={expandedSections.has('recommendations')} />
+        <span className="ar__section-title">What You Can Do</span>
       </button>
       {expandedSections.has('recommendations') && (
-        <div className="analysis-report__section">
-          <div className="analysis-report__recommendations">
-            {verdict.recommendations.map((rec) => (
-              <button
-                type="button"
-                key={rec.id}
-                className={`analysis-report__rec-option ${selectedRecId === rec.id ? 'analysis-report__rec-option--selected' : ''} ${rec.isDoNothing ? 'analysis-report__rec-option--baseline' : ''}`}
-                onClick={() => handleSelectRec(rec)}
-              >
-                <div className="analysis-report__rec-header">
-                  <span className="analysis-report__rec-radio">
-                    {selectedRecId === rec.id ? '\u25C9' : '\u25CB'}
-                  </span>
-                  <span className="analysis-report__rec-title">{rec.title}</span>
-                  {rec.isDoNothing && <span className="analysis-report__baseline-tag">Baseline</span>}
-                </div>
-                <p className="analysis-report__rec-desc">{rec.description}</p>
-                <div className="analysis-report__rec-meta">
-                  <span>Cost: {rec.estimatedCost}</span>
-                  <span>Risk: {rec.riskReduction}</span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+        <div className="ar__recs">
+          {verdict.recommendations.map((rec) => {
+                const isSaved = savedRecId === rec.id
+                return (
+                  <div
+                    key={rec.id}
+                    className={`ar__rec ${rec.isDoNothing ? 'ar__rec--baseline' : ''}`}
+                  >
+                    {/* Header: title + cost/risk + saved tag */}
+                    <div className="ar__rec-header">
+                      <span className="ar__rec-title">{rec.title}</span>
+                      {rec.isDoNothing && <span className="ar__baseline-tag">Baseline</span>}
+                      {isSaved && (
+                        <span className="ar__saved-tag">
+                          <CheckIcon /> Planned
+                        </span>
+                      )}
+                      <span className="ar__rec-meta-inline">
+                        <span>{rec.estimatedCost}</span>
+                        <span>{rec.riskReduction}</span>
+                      </span>
+                    </div>
 
-      {/* ── How We Got Here ── */}
-      <button
-        type="button"
-        className="analysis-report__section-toggle"
-        onClick={() => toggleSection('process')}
-      >
-        <span>
-          {expandedSections.has('process') ? '\u25BE' : '\u25B8'} How We Got Here
-          {!expandedSections.has('process') && (
-            <span className="analysis-report__section-hint">
-              {' '}{data.agentCount} agents \u00B7 {data.debateRounds}-round debate \u00B7 10k stress scenarios
-            </span>
-          )}
-        </span>
-      </button>
-      {expandedSections.has('process') && intermediateArtifacts && (
-        <div className="analysis-report__section analysis-report__process">
-          <div className="analysis-report__process-item">
-            <strong>Analyst Team</strong>
-            <p>{intermediateArtifacts.analystAssessments.length} specialists assessed the signal independently</p>
-          </div>
-          <div className="analysis-report__process-item">
-            <strong>Debate</strong>
-            <p>{intermediateArtifacts.debateResolution.rounds} rounds, {intermediateArtifacts.debateResolution.consensusDirection} consensus</p>
-            <button
-              type="button"
-              className="analysis-report__link-btn"
-              onClick={() => onActionCenterMode?.({
-                mode: 'debate_transcript',
-                debate: intermediateArtifacts.debateResolution,
+                    {/* Description */}
+                    <p className="ar__rec-desc">{rec.description}</p>
+
+                    {/* Action rows — shows exactly what to do */}
+                    {rec.actions && rec.actions.length > 0 && (
+                      <div className="ar__rec-actions">
+                        {rec.actions.map((act) => (
+                          <div key={act.ticker} className="ar__rec-action-row">
+                            <TickerIcon ticker={act.ticker} size={16} />
+                            <span className="ar__rec-action-verb" style={{ color: actionColor(act.action) }}>
+                              {actionVerb(act.action)}
+                            </span>
+                            <span className="ar__rec-action-ticker">{act.ticker}</span>
+                            {act.suggestedChangeCad != null && (
+                              <span className="ar__rec-action-amount" style={{ color: actionColor(act.action) }}>
+                                {formatChangeDollar(act.suggestedChangeCad)}
+                              </span>
+                            )}
+                            {act.currentValueCad != null && act.currentValueCad > 0 && (
+                              <span className="ar__rec-action-current">
+                                of ${Math.round(act.currentValueCad).toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Per-ticker rationale */}
+                    {rec.actions && rec.actions.some((a) => a.rationale) && (
+                      <div className="ar__rec-detail-rationales">
+                        {rec.actions.filter((a) => a.rationale).map((act) => (
+                          <p key={act.ticker} className="ar__rec-detail-rationale">
+                            <strong>{act.ticker}:</strong> {act.rationale}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Tradeoffs */}
+                    {rec.tradeoffs.length > 0 && (
+                      <div className="ar__rec-detail-tradeoffs">
+                        <strong>Tradeoffs</strong>
+                        <ul>
+                          {rec.tradeoffs.map((t, i) => <li key={i}>{t}</li>)}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Summary row */}
+                    <div className="ar__rec-detail-summary">
+                      <span>Estimated Cost: <strong>{rec.estimatedCost}</strong></span>
+                      <span>Risk Reduction: <strong>{rec.riskReduction}</strong></span>
+                    </div>
+
+                    {/* Save / Saved button — visible for non-baseline */}
+                    {!rec.isDoNothing && !isSaved && (
+                      <button
+                        type="button"
+                        className="ar__btn-primary ar__rec-save-btn"
+                        onClick={() => handleExecutePlan(rec)}
+                      >
+                        Save plan
+                      </button>
+                    )}
+                    {isSaved && (
+                      <div className="ar__rec-detail-confirmed">
+                        <CheckIcon /> Plan added. View in Holdings tab.
+                      </div>
+                    )}
+                  </div>
+                )
               })}
-            >
-              View full debate
-            </button>
-          </div>
-          <div className="analysis-report__process-item">
-            <strong>Risk Challenges</strong>
-            <p>{intermediateArtifacts.riskChallenge.challengedAssumptions.length} assumptions challenged, confidence adjusted by {Math.round(intermediateArtifacts.riskChallenge.recommendedConfidenceAdjustment * 100)}%</p>
-          </div>
-          <div className="analysis-report__process-item">
-            <strong>Stress Test</strong>
-            <p>{intermediateArtifacts.stressTest.numSimulations.toLocaleString()} Monte Carlo scenarios. Downside: ${Math.abs(Math.round(intermediateArtifacts.stressTest.downside.mid)).toLocaleString()}</p>
-          </div>
         </div>
       )}
 
-      {/* ── Research Brief ── */}
-      <button
-        type="button"
-        className="analysis-report__section-toggle"
-        onClick={() => toggleSection('brief')}
-      >
-        <span>
-          {expandedSections.has('brief') ? '\u25BE' : '\u25B8'} Research Brief
-          {!expandedSections.has('brief') && (
-            <span className="analysis-report__section-hint">
-              {' '}Quality: {data.qualityScore}%
-            </span>
-          )}
-        </span>
-      </button>
-      {expandedSections.has('brief') && researchBrief && (
-        <div className="analysis-report__section">
-          <div className="analysis-report__brief-preview">
-            <p>{researchBrief.sections[0]?.content.slice(0, 200) ?? researchBrief.fullText.slice(0, 200)}...</p>
+      {/* ── Research Brief Card ── */}
+      <div className="ar__card">
+        <div className="ar__brief-header">
+          <button
+            type="button"
+            className="ar__section-toggle"
+            onClick={() => toggleSection('brief')}
+            aria-expanded={expandedSections.has('brief')}
+          >
+            <ChevronIcon expanded={expandedSections.has('brief')} />
+            <span className="ar__section-title">Research Brief</span>
+            <span className="ar__section-hint">Quality: {data.qualityScore}%</span>
+          </button>
+          {researchBrief && (
             <button
               type="button"
-              className="analysis-report__link-btn"
+              className="ar__brief-view-link"
               onClick={() => onActionCenterMode?.({ mode: 'research_brief', brief: researchBrief })}
             >
-              View full brief
+              View details &rsaquo;
             </button>
-          </div>
+          )}
         </div>
-      )}
+        {expandedSections.has('brief') && researchBrief && (
+          <div className="ar__section-body">
+            <div className="ar__brief-overview">
+              <span className={`ar__brief-quality ${
+                data.qualityScore >= 80 ? 'ar__brief-quality--high'
+                  : data.qualityScore >= 60 ? 'ar__brief-quality--mid'
+                  : 'ar__brief-quality--low'
+              }`}>
+                Quality: {data.qualityScore}%
+              </span>
+              <span className="ar__brief-sources">
+                {researchBrief.sources.length} sources cited
+              </span>
+            </div>
+            <ol className="ar__brief-toc">
+              {researchBrief.sections.map((section, i) => (
+                <li key={i}>
+                  <span className="ar__brief-toc-title">{section.title}</span>
+                  <span className="ar__brief-toc-summary">{extractSummary(section.content)}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+      </div>
 
-      {/* ── Action Bar ── */}
-      <div className="analysis-report__action-bar">
+      {/* ── Action Bar Card ── */}
+      <div className="ar__card ar__action-bar">
         <button
           type="button"
-          className={`analysis-report__action-btn ${planSaved ? 'analysis-report__action-btn--active' : ''}`}
-          disabled={!selectedRecId || planSaved}
-          onClick={handleSavePlan}
+          className="ar__action-btn"
+          onClick={() => {
+            const success = downloadAdvisorPdf(data)
+            if (!success) setPdfError(true)
+            else setPdfError(false)
+          }}
         >
-          {planSaved ? '\u2713 Plan Saved' : '\u2713 Save Plan'}
+          <ShareIcon />
+          <span>Download PDF</span>
         </button>
         <button
           type="button"
-          className={`analysis-report__action-btn ${showShare ? 'analysis-report__action-btn--active' : ''}`}
-          onClick={() => setShowShare(!showShare)}
-        >
-          \u2197 Share
-        </button>
-        <button
-          type="button"
-          className={`analysis-report__action-btn ${watching ? 'analysis-report__action-btn--active' : ''}`}
-          onClick={() => setWatching(!watching)}
-          title={watching ? 'Prism will check for changes to this signal when you next open the app.' : 'Watch for signal changes'}
-        >
-          {watching ? '\uD83D\uDC41 Watching' : '\uD83D\uDC41 Watch'}
-        </button>
-        <button
-          type="button"
-          className={`analysis-report__action-btn ${showReanalyze ? 'analysis-report__action-btn--active' : ''}`}
+          className={`ar__action-btn ${showReanalyze ? 'ar__action-btn--active' : ''}`}
           onClick={() => setShowReanalyze(!showReanalyze)}
         >
-          \u21BB Re-analyze
+          <RefreshIcon />
+          <span>Re-analyze</span>
         </button>
       </div>
 
-      {/* ── Share Panel ── */}
-      {showShare && (
-        <div className="analysis-report__share-panel">
-          <p>Generate a 1-page summary for your advisor or personal records.</p>
-          <div className="analysis-report__share-actions">
-            <button
-              type="button"
-              className="analysis-report__btn-primary"
-              onClick={() => {
-                downloadAdvisorSummary(data)
-                setShowShare(false)
-              }}
-            >
-              Download (.md)
-            </button>
-            <button
-              type="button"
-              className="analysis-report__btn-secondary"
-              onClick={() => setShowShare(false)}
-            >
-              Cancel
-            </button>
-          </div>
+      {pdfError && (
+        <div className="ar__card ar__panel">
+          <p className="ar__panel-error">
+            Pop-up blocked. Allow pop-ups for this site and try again.
+          </p>
         </div>
       )}
 
       {/* ── Re-analyze Panel ── */}
       {showReanalyze && (
-        <div className="analysis-report__reanalyze-panel">
+        <div className="ar__card ar__panel">
           <p>Change an assumption and re-run the full analysis pipeline.</p>
-          <div className="analysis-report__quick-options">
+          <div className="ar__quick-options">
             {quickOptions.map((option, i) => (
               <button
                 key={i}
                 type="button"
-                className="analysis-report__quick-option"
+                className="ar__quick-option"
                 onClick={() => handleReanalyze(option)}
               >
                 {option}
               </button>
             ))}
           </div>
-          <div className="analysis-report__custom-input">
+          <div className="ar__custom-input">
             <input
               type="text"
               placeholder="Or type your own assumption..."
@@ -349,7 +496,7 @@ export function AnalysisReportCard({
             />
             <button
               type="button"
-              className="analysis-report__btn-primary"
+              className="ar__btn-primary"
               disabled={!reanalyzeInput.trim()}
               onClick={() => reanalyzeInput.trim() && handleReanalyze(reanalyzeInput.trim())}
             >
@@ -359,35 +506,8 @@ export function AnalysisReportCard({
         </div>
       )}
 
-      {/* ── Follow-up chips ── */}
-      {onFollowUp && (
-        <div className="analysis-report__follow-ups">
-          <button
-            type="button"
-            className="chat-card__follow-up-pill"
-            onClick={() => onFollowUp('What if rates don\'t change?')}
-          >
-            What if rates don't change?
-          </button>
-          <button
-            type="button"
-            className="chat-card__follow-up-pill"
-            onClick={() => onFollowUp('Show me the worst case scenario')}
-          >
-            Show me the worst case
-          </button>
-          <button
-            type="button"
-            className="chat-card__follow-up-pill"
-            onClick={() => onFollowUp('How does this interact with my other risks?')}
-          >
-            How does this interact with my other risks?
-          </button>
-        </div>
-      )}
-
       {/* ── Disclaimer ── */}
-      <p className="analysis-report__disclaimer">
+      <p className="ar__disclaimer">
         This analysis is for informational purposes only. Past performance does not guarantee future results. Consult a qualified financial advisor before making investment decisions.
       </p>
     </div>

@@ -22,6 +22,50 @@ const DISCLAIMER =
 
 // ── Section Builders ────────────────────────────────────────
 
+function buildCausalAnalysis(
+  verdict: FundManagerVerdict,
+  debate: DebateResolution,
+): ResearchBriefSection {
+  const directionLabel = debate.consensusDirection === 'negative' ? 'bearish'
+    : debate.consensusDirection === 'positive' ? 'bullish'
+      : debate.consensusDirection === 'mixed' ? 'mixed' : 'neutral'
+
+  const holdingChains = verdict.holdingImpacts
+    .filter((h) => h.derivation && h.derivation.length > 0)
+    .map((h) => {
+      const arrow = h.direction > 0 ? '↑' : h.direction < 0 ? '↓' : '→'
+      return `- **${h.ticker}** (${h.name}) ${arrow}: ${h.derivation}`
+    })
+
+  const debatePoints = debate.debateTranscript
+    .filter((arg) => arg.keyPoints.length > 0)
+    .flatMap((arg) => arg.keyPoints.slice(0, 2))
+    .slice(0, 6)
+
+  const unresolvedSection = debate.unresolvedDisagreements.length > 0
+    ? [
+        '',
+        '**Unresolved Causal Uncertainties:**',
+        ...debate.unresolvedDisagreements.map((d) => `- ${d}`),
+      ]
+    : []
+
+  const lines = [
+    `**Overall Direction:** ${directionLabel} (confidence: ${(debate.consensusConfidence * 100).toFixed(0)}%)`,
+    '',
+    '**Signal → Portfolio Transmission:**',
+    ...holdingChains,
+    '',
+    '**Key Causal Arguments (from debate):**',
+    ...(debatePoints.length > 0
+      ? debatePoints.map((p) => `- ${p}`)
+      : ['- See debate summary for full transcript.']),
+    ...unresolvedSection,
+  ]
+
+  return { title: 'Causal Analysis', content: lines.join('\n') }
+}
+
 function buildSignalSummary(signal: Signal): ResearchBriefSection {
   const sourceList = signal.sources.length > 0
     ? signal.sources.map((s) => s.title).join(', ')
@@ -216,6 +260,7 @@ export function generateResearchBrief(params: {
 
   const sections: ResearchBriefSection[] = [
     buildSignalSummary(signal),
+    buildCausalAnalysis(verdict, debateResolution),
     buildDebateSummary(debateResolution),
     buildRiskAssessment(riskChallenge),
     buildStressScenarios(stressTest),

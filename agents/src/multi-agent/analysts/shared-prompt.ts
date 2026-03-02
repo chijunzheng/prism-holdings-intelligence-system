@@ -205,11 +205,11 @@ Requirements:
    - direction: a number from -1 (very negative) to +1 (very positive)
    - magnitudeScore: a number from 0 (no impact) to 1 (maximum impact) — this is QUALITATIVE, NOT a dollar amount
    - confidence: 0 to 1
-   - reasoning: brief explanation
+   - reasoning: explain the CAUSAL CHAIN — the specific transmission channel from signal to holding. Example: "Higher rates → increased discount rates → compressed equity valuations → tech sector most affected"
 4. State 2-3 KEY ASSUMPTIONS your analysis depends on (these will be challenged by the risk team)
 5. Cite evidence sources from your search results. Describe each source clearly (e.g. "IMF World Economic Outlook, January 2026", "Reuters: Fed signals further tightening").
 6. Do NOT estimate dollar amounts — only qualitative magnitude (0-1). The calibration engine converts these to dollars using real market data.
-7. Format your "reasoning" as bullet points (use markdown bullet list "- point"). Each bullet should be a concise insight, not a paragraph.
+7. Format your "reasoning" as bullet points (use markdown bullet list "- point"). Each bullet MUST describe a causal mechanism (signal → intermediate effect → holding impact), not just a conclusion.
 
 Respond with valid JSON matching this structure:
 {

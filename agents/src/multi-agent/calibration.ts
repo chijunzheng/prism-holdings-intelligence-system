@@ -43,6 +43,7 @@ export function calibrateImpact(params: {
   readonly historicalEventImpact?: number // Average move on similar events
   readonly historicalSampleSize?: number // Number of similar events
   readonly timeHorizon: string // '1W', '1M', '6M'
+  readonly consensusConfidence?: number // 0 to 1, from debate resolution
 }): DollarRange {
   const {
     holdingValueCad,
@@ -53,6 +54,7 @@ export function calibrateImpact(params: {
     historicalEventImpact,
     historicalSampleSize,
     timeHorizon,
+    consensusConfidence = 0.5,
   } = params
 
   if (holdingValueCad <= 0) {
@@ -85,10 +87,15 @@ export function calibrateImpact(params: {
 
   const clampedMid = midEstimate
 
-  // Step 5: Compute range (low = conservative, high = upper bound)
-  // Use Math.min/max to guarantee low <= high regardless of sign
-  const a = clampedMid * 0.5
-  const b = clampedMid * 1.8
+  // Step 5: Compute range with confidence-adaptive multipliers
+  // High confidence → tight range (lowMult=0.65, highMult=1.4, ratio 2.15:1)
+  // Medium confidence → moderate range (lowMult=0.50, highMult=1.8, ratio 3.6:1)
+  // Low confidence → wide range (lowMult=0.35, highMult=2.2, ratio 6.3:1)
+  const conf = Math.max(0, Math.min(1, consensusConfidence))
+  const lowMult = 0.35 + 0.30 * conf
+  const highMult = 2.2 - 0.80 * conf
+  const a = clampedMid * lowMult
+  const b = clampedMid * highMult
   const low = Math.min(a, b)
   const high = Math.max(a, b)
 
@@ -160,6 +167,7 @@ export function calibrateAllHoldings(params: {
   readonly volatilities: Readonly<Record<string, VolatilityData>>
   readonly riskChallengeHaircut: number
   readonly timeHorizon: string
+  readonly consensusConfidence?: number
   readonly historicalEventImpacts?: Readonly<
     Record<string, { avgMove: number; sampleSize: number }>
   >
@@ -170,7 +178,7 @@ export function calibrateAllHoldings(params: {
   readonly impact: DollarRange
   readonly derivation: string
 }[] {
-  const { holdings, volatilities, riskChallengeHaircut, timeHorizon, historicalEventImpacts } =
+  const { holdings, volatilities, riskChallengeHaircut, timeHorizon, consensusConfidence, historicalEventImpacts } =
     params
 
   return holdings.map((holding) => {
@@ -186,6 +194,7 @@ export function calibrateAllHoldings(params: {
       historicalEventImpact: eventImpact?.avgMove,
       historicalSampleSize: eventImpact?.sampleSize,
       timeHorizon,
+      consensusConfidence,
     })
 
     const volSource = volatilities[holding.ticker] ? 'Yahoo Finance' : 'fallback'

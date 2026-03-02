@@ -127,6 +127,74 @@ describe('calibrateImpact', () => {
   })
 })
 
+describe('confidence-adaptive range multipliers', () => {
+  const baseParams = {
+    holdingValueCad: 10000,
+    analystDirectionConsensus: -1,
+    analystMagnitudeConsensus: 0.5,
+    riskChallengeHaircut: 0,
+    computedVolatility: 0.05,
+    timeHorizon: '1M' as const,
+  }
+
+  it('should produce tighter range for high confidence', () => {
+    const highConf = calibrateImpact({ ...baseParams, consensusConfidence: 0.8 })
+    const lowConf = calibrateImpact({ ...baseParams, consensusConfidence: 0.2 })
+    const highRange = Math.abs(highConf.high - highConf.low)
+    const lowRange = Math.abs(lowConf.high - lowConf.low)
+    expect(highRange).toBeLessThan(lowRange)
+  })
+
+  it('should match legacy behavior at medium confidence (0.5)', () => {
+    const withConf = calibrateImpact({ ...baseParams, consensusConfidence: 0.5 })
+    const withoutConf = calibrateImpact(baseParams) // defaults to 0.5
+    expect(withConf.low).toBe(withoutConf.low)
+    expect(withConf.mid).toBe(withoutConf.mid)
+    expect(withConf.high).toBe(withoutConf.high)
+  })
+
+  it('should produce expected multiplier ratios', () => {
+    // High confidence (0.8): lowMult=0.59, highMult=1.56, ratio ≈ 2.15:1
+    const high = calibrateImpact({ ...baseParams, consensusConfidence: 0.8 })
+    const highRatio = Math.abs(high.high - high.low) / Math.abs(high.mid)
+    expect(highRatio).toBeCloseTo(2.15 - 1, 0.2) // range/mid ≈ highMult - lowMult
+
+    // Low confidence (0.2): lowMult=0.41, highMult=2.04, ratio ≈ 5.4:1
+    const low = calibrateImpact({ ...baseParams, consensusConfidence: 0.2 })
+    const lowRatio = Math.abs(low.high - low.low) / Math.abs(low.mid)
+    expect(lowRatio).toBeGreaterThan(highRatio)
+  })
+
+  it('should clamp confidence to 0-1 range', () => {
+    const overOne = calibrateImpact({ ...baseParams, consensusConfidence: 1.5 })
+    const atOne = calibrateImpact({ ...baseParams, consensusConfidence: 1.0 })
+    expect(overOne.low).toBe(atOne.low)
+    expect(overOne.high).toBe(atOne.high)
+
+    const underZero = calibrateImpact({ ...baseParams, consensusConfidence: -0.5 })
+    const atZero = calibrateImpact({ ...baseParams, consensusConfidence: 0 })
+    expect(underZero.low).toBe(atZero.low)
+    expect(underZero.high).toBe(atZero.high)
+  })
+
+  it('should still guarantee low <= high with adaptive multipliers', () => {
+    for (const conf of [0, 0.2, 0.5, 0.8, 1.0]) {
+      const result = calibrateImpact({ ...baseParams, consensusConfidence: conf })
+      expect(result.low).toBeLessThanOrEqual(result.mid)
+      expect(result.mid).toBeLessThanOrEqual(result.high)
+
+      // Also test positive direction
+      const positive = calibrateImpact({
+        ...baseParams,
+        analystDirectionConsensus: 1,
+        consensusConfidence: conf,
+      })
+      expect(positive.low).toBeLessThanOrEqual(positive.mid)
+      expect(positive.mid).toBeLessThanOrEqual(positive.high)
+    }
+  })
+})
+
 describe('getTimeMultiplier', () => {
   it('should return sqrt-of-time multipliers', () => {
     expect(getTimeMultiplier('1W')).toBeCloseTo(Math.sqrt(5 / 21), 6) // ~0.49

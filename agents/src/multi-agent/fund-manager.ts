@@ -87,6 +87,7 @@ function calibrateHoldings(params: {
         riskChallengeHaircut: riskChallenge.recommendedConfidenceAdjustment,
         computedVolatility: vol,
         timeHorizon: horizon,
+        consensusConfidence: debateResolution.consensusConfidence,
       })
     }
 
@@ -116,11 +117,20 @@ function calibrateHoldings(params: {
     }
 
     const volSource = marketData.volatilities[impact.ticker] ? 'Yahoo Finance' : 'fallback'
+    const conf = debateResolution.consensusConfidence
+    const confLabel = conf >= 0.7 ? 'high' : conf >= 0.4 ? 'moderate' : 'low'
+    const rangeLabel = conf >= 0.7 ? 'tight bounds' : conf >= 0.4 ? 'moderate bounds' : 'wide bounds'
+    const challengeCount = riskChallenge.challengedAssumptions.length
+    const dirLabel = debateResolution.consensusDirection === 'negative' ? 'Bearish'
+      : debateResolution.consensusDirection === 'positive' ? 'Bullish'
+        : debateResolution.consensusDirection === 'mixed' ? 'Mixed' : 'Neutral'
     const derivation =
+      `${dirLabel} (${confLabel} confidence, ${challengeCount} assumptions challenged). ` +
       `$${holdingValueCad.toLocaleString()} × ${(impact.magnitudeScore * 100).toFixed(0)}% magnitude × ` +
       `${impact.direction > 0 ? '+' : ''}${impact.direction.toFixed(2)} direction. ` +
       `Vol: ${(vol * 100).toFixed(1)}% monthly (${volSource}). ` +
-      `Haircut: ${(riskChallenge.recommendedConfidenceAdjustment * 100).toFixed(0)}%.`
+      `Haircut: ${(riskChallenge.recommendedConfidenceAdjustment * 100).toFixed(0)}%. ` +
+      `Range: ${rangeLabel} (${confLabel} debate confidence).`
 
     return {
       ticker: impact.ticker,

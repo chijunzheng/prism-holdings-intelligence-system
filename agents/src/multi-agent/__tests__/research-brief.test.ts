@@ -149,9 +149,10 @@ describe('generateResearchBrief', () => {
       judgeVerdict: mockJudge,
     })
 
-    expect(brief.sections).toHaveLength(10)
+    expect(brief.sections).toHaveLength(11)
     expect(brief.sections.map((s) => s.title)).toEqual([
       'Signal Summary',
+      'Causal Analysis',
       'Debate Summary',
       'Risk Assessment',
       'Stress Scenarios',

@@ -59,17 +59,31 @@ function parseDebateArgument(responseText: string): DebateParseOutcome {
   return { kind: 'ok', data: result.data }
 }
 
-function buildRetryPrompt(originalPrompt: string, failure: DebateParseOutcome): string {
-  let issue = 'Unknown failure'
-  if (failure.kind === 'parse_error') issue = `JSON parsing failed:\n${failure.snippet}`
-  if (failure.kind === 'validation_error') issue = `Schema validation failed:\n${failure.message}`
+const JSON_SCHEMA_INSTRUCTION = `You MUST respond with a JSON object matching this EXACT schema. No markdown, no code fences, no commentary — ONLY valid JSON:
+{
+  "position": "positive" | "negative" | "neutral" | "mixed",
+  "round": <number>,
+  "keyPoints": ["string", ...],
+  "evidenceCited": ["string", ...],
+  "rebuttalPoints": ["string", ...],
+  "concessions": ["string", ...]
+}`
+
+function buildRetryPrompt(round: number, signal: string, task: string, failure: DebateParseOutcome): string {
+  const issue = failure.kind === 'parse_error'
+    ? `JSON parsing failed. Fragment: ${failure.snippet}`
+    : failure.kind === 'validation_error'
+      ? `Schema validation failed: ${failure.message}`
+      : 'Unknown failure'
 
   return [
-    'Your previous response could not be accepted.',
-    issue,
-    'Respond with ONLY valid JSON. No markdown, no code fences, no commentary.',
+    JSON_SCHEMA_INSTRUCTION,
     '',
-    `Original task:\n${originalPrompt}`,
+    `Previous attempt failed: ${issue}`,
+    '',
+    `You are the BULL researcher, Round ${round}. Signal: "${signal}".`,
+    task,
+    'Respond with ONLY the JSON object above.',
   ].join('\n')
 }
 
@@ -107,6 +121,8 @@ function buildBullPrompt(params: {
   const { round, analystAssessments, signal, bearArgument, ownPriorArgument, humanCorrection } = params
 
   const sections = [
+    JSON_SCHEMA_INSTRUCTION,
+    '',
     'You are the BULL researcher in a structured financial debate.',
     `This is Round ${round} of the debate.`,
     '',
@@ -152,17 +168,6 @@ function buildBullPrompt(params: {
     )
   }
 
-  sections.push(`
-Respond with valid JSON:
-{
-  "position": "positive" | "negative" | "neutral" | "mixed",
-  "round": ${round},
-  "keyPoints": ["string", ...],
-  "evidenceCited": ["string", ...],
-  "rebuttalPoints": ["string", ...],
-  "concessions": ["string", ...]
-}`)
-
   return sections.join('\n')
 }
 
@@ -186,15 +191,16 @@ export async function runBullResearcher(params: {
   let workingPrompt = prompt
   let lastFailure: DebateParseOutcome | null = null
 
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     const response = await model.invoke([new HumanMessage(workingPrompt)])
     const parsed = parseDebateArgument(extractResponseText(response.content))
     if (parsed.kind === 'ok') return parsed.data
 
     lastFailure = parsed
-    if (attempt === 0) {
-      workingPrompt = buildRetryPrompt(prompt, parsed)
-    }
+    const task = params.round === 1
+      ? 'Synthesize analyst perspectives into the strongest bull case.'
+      : 'Defend your thesis against the Bear\'s counterarguments.'
+    workingPrompt = buildRetryPrompt(params.round, params.signal.headline, task, parsed)
   }
 
   const reason =

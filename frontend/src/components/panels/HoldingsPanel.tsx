@@ -156,11 +156,57 @@ function PlannedChangesSection({
   )
 }
 
+const MASKED_VALUE = '$\u2022\u2022\u2022\u2022\u2022\u2022'
+const MASKED_CHANGE = '\u2022\u2022\u2022\u2022'
+
+function EyeIcon({ open }: { readonly open: boolean }) {
+  if (open) {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    )
+  }
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+      <line x1="1" y1="1" x2="23" y2="23" />
+    </svg>
+  )
+}
+
+type ReturnPeriod = 'today' | 'all_time'
+
+function PillToggle({ value, onChange }: { readonly value: ReturnPeriod; readonly onChange: (v: ReturnPeriod) => void }) {
+  return (
+    <div className="holdings-panel__pill-toggle">
+      <button
+        type="button"
+        className={`holdings-panel__pill ${value === 'today' ? 'holdings-panel__pill--active' : ''}`}
+        onClick={() => onChange('today')}
+      >
+        Today
+      </button>
+      <button
+        type="button"
+        className={`holdings-panel__pill ${value === 'all_time' ? 'holdings-panel__pill--active' : ''}`}
+        onClick={() => onChange('all_time')}
+      >
+        All time
+      </button>
+    </div>
+  )
+}
+
 export function HoldingsPanel({ portfolio, isLoading, onHoldingClick, candidates, onCandidateAction, onPreviewPlan }: HoldingsPanelProps) {
+  const [balanceVisible, setBalanceVisible] = useState(true)
+  const [returnPeriod, setReturnPeriod] = useState<ReturnPeriod>('today')
+
   if (isLoading) {
     return (
       <div className="holdings-panel">
-        <h3 className="holdings-panel__title">Holdings</h3>
         <SkeletonCards />
       </div>
     )
@@ -169,7 +215,6 @@ export function HoldingsPanel({ portfolio, isLoading, onHoldingClick, candidates
   if (!portfolio) {
     return (
       <div className="holdings-panel">
-        <h3 className="holdings-panel__title">Holdings</h3>
         <div className="holdings-panel__empty">
           Connect your portfolio to get started
         </div>
@@ -180,11 +225,45 @@ export function HoldingsPanel({ portfolio, isLoading, onHoldingClick, candidates
   const allHoldings = portfolio.accounts.flatMap((a) => a.holdings)
   const totalValue = allHoldings.reduce((sum, h) => sum + h.valueCad, 0)
 
+  const totalDayChange = allHoldings.reduce((sum, h) => sum + (h.dayChangeCad ?? 0), 0)
+  const totalDayPct = totalValue > 0 ? (totalDayChange / (totalValue - totalDayChange)) * 100 : 0
+
+  // All-time returns computed from live value vs book value (cost basis)
+  const totalBookValue = allHoldings.reduce((sum, h) => sum + (h.bookValueCad ?? h.valueCad), 0)
+  const totalAllTimeChange = totalValue - totalBookValue
+  const totalAllTimePct = totalBookValue > 0 ? (totalAllTimeChange / totalBookValue) * 100 : 0
+
+  const displayChange = returnPeriod === 'today' ? totalDayChange : totalAllTimeChange
+  const displayPct = returnPeriod === 'today' ? totalDayPct : totalAllTimePct
+  const isDisplayPositive = displayChange >= 0
+  const displaySign = isDisplayPositive ? '+' : ''
+
   return (
     <div className="holdings-panel">
-      <div className="holdings-panel__header">
-        <h3 className="holdings-panel__title">Holdings</h3>
-        <span className="holdings-panel__total">${totalValue.toLocaleString()}</span>
+      <div className="holdings-panel__total-display">
+        <div className="holdings-panel__total-row">
+          <span className="holdings-panel__total-value">
+            {balanceVisible
+              ? `$${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              : MASKED_VALUE}
+          </span>
+          <button
+            type="button"
+            className="holdings-panel__visibility-toggle"
+            onClick={() => setBalanceVisible((v) => !v)}
+            aria-label={balanceVisible ? 'Hide balance' : 'Show balance'}
+          >
+            <EyeIcon open={balanceVisible} />
+          </button>
+        </div>
+        <div className="holdings-panel__change-row">
+          <span className={`holdings-panel__total-change ${isDisplayPositive ? 'holdings-panel__day-change--positive' : 'holdings-panel__day-change--negative'}`}>
+            {balanceVisible
+              ? `${displaySign}$${Math.abs(displayChange).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${displaySign}${displayPct.toFixed(2)}%)`
+              : MASKED_CHANGE}
+          </span>
+          <PillToggle value={returnPeriod} onChange={setReturnPeriod} />
+        </div>
       </div>
 
       <div className="holdings-panel__groups">
@@ -203,7 +282,15 @@ export function HoldingsPanel({ portfolio, isLoading, onHoldingClick, candidates
 
               <ul className="holdings-panel__list">
                 {account.holdings.map((h) => {
-                  const pct = ((h.valueCad / totalValue) * 100).toFixed(0)
+                  const sharesLabel = `${h.units.toLocaleString()} ${h.units === 1 ? 'share' : 'shares'}`
+                  const bookVal = h.bookValueCad ?? h.valueCad
+                  const allTimeChange = h.valueCad - bookVal
+                  const allTimePct = bookVal > 0 ? (allTimeChange / bookVal) * 100 : 0
+                  const changeCad = returnPeriod === 'today' ? (h.dayChangeCad ?? 0) : allTimeChange
+                  const changePct = returnPeriod === 'today' ? (h.dayChangePct ?? 0) : allTimePct
+                  const isPositive = changeCad >= 0
+                  const changeSign = isPositive ? '+' : ''
+
                   return (
                     <li
                       key={`${account.id}-${h.ticker}`}
@@ -218,11 +305,19 @@ export function HoldingsPanel({ portfolio, isLoading, onHoldingClick, candidates
                       <TickerIcon ticker={h.ticker} size={32} />
                       <span className="holdings-panel__info">
                         <span className="holdings-panel__ticker">{h.ticker}</span>
-                        <span className="holdings-panel__name">{h.name}</span>
+                        <span className="holdings-panel__shares">{sharesLabel}</span>
                       </span>
                       <span className="holdings-panel__values">
-                        <span className="holdings-panel__value">${h.valueCad.toLocaleString()}</span>
-                        <span className="holdings-panel__pct">{pct}%</span>
+                        <span className="holdings-panel__value">
+                          {balanceVisible
+                            ? `$${h.valueCad.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : MASKED_VALUE}
+                        </span>
+                        <span className={`holdings-panel__day-change ${isPositive ? 'holdings-panel__day-change--positive' : 'holdings-panel__day-change--negative'}`}>
+                          {balanceVisible
+                            ? `${changeSign}$${Math.abs(changeCad).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${changeSign}${changePct.toFixed(2)}%)`
+                            : MASKED_CHANGE}
+                        </span>
                       </span>
                     </li>
                   )

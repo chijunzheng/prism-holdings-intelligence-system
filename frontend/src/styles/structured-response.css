@@ -1,0 +1,459 @@
+/* ── Structured Response Card ─────────────────────────── */
+/* Wealthsimple-inspired: white cards on warm gray, generous radius, */
+/* minimal borders, hierarchy through typography not color accents.   */
+
+.sr {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.sr__section {
+  animation: sr-fade-in 0.3s ease forwards;
+  animation-delay: var(--sr-delay, 0s);
+  opacity: 0;
+}
+
+@keyframes sr-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sr__section {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* ── Summary Section ─────────────────────────────────── */
+/* No left-border accent. Relies on typography weight + stat pills. */
+
+.sr__summary {
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.06));
+}
+
+.sr__summary-headline {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-text, #1a1a1a);
+  margin: 0;
+}
+
+.sr__summary-body {
+  margin-top: 6px;
+  font-size: 0.9375rem;
+  color: var(--color-text-secondary, #4a4a4a);
+  line-height: 1.5;
+}
+
+.sr__summary-body p { margin: 0; }
+
+.sr__stat-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.sr__stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: var(--color-bg-subtle, #f0efed);
+  font-size: 0.8125rem;
+  line-height: 1.3;
+}
+
+.sr__stat-pill-label {
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.sr__stat-pill-value {
+  font-weight: 600;
+  color: var(--color-text, #1a1a1a);
+}
+
+.sr__stat-pill--positive .sr__stat-pill-value { color: #16a34a; }
+.sr__stat-pill--negative .sr__stat-pill-value { color: #dc2626; }
+
+/* ── Signal Item Section ─────────────────────────────── */
+
+.sr__signal-item {
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.06));
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--color-surface, #ffffff);
+}
+
+.sr__signal-item-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sr__signal-item-headline {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--color-text, #1a1a1a);
+}
+
+.sr__signal-item-body {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary, #4a4a4a);
+  line-height: 1.55;
+}
+
+.sr__signal-item-body p { margin: 0; }
+
+.sr__sentiment-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.sr__sentiment-badge--positive {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.sr__sentiment-badge--negative {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.sr__sentiment-badge--mixed {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.sr__sentiment-badge--neutral {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.sr__ticker-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.sr__ticker-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px 3px 5px;
+  border-radius: 16px;
+  background: var(--color-bg-subtle, #f0efed);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text, #1a1a1a);
+}
+
+.sr__exposure-amount {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text, #1a1a1a);
+  margin-left: 2px;
+}
+
+.sr__source-link {
+  font-size: 0.8125rem;
+  color: var(--color-link, #2563eb);
+  text-decoration: none;
+}
+
+.sr__source-link:hover { text-decoration: underline; }
+
+.sr__signal-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.sr__analyze-btn {
+  margin-left: auto;
+  padding: 4px 12px;
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.12));
+  border-radius: 8px;
+  background: var(--color-surface, #ffffff);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text, #1a1a1a);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.sr__analyze-btn:hover {
+  background: var(--color-bg-subtle, #f0efed);
+}
+
+/* ── Holding Item Section ────────────────────────────── */
+
+.sr__holding-item {
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.06));
+  border-radius: 12px;
+  padding: 16px 20px;
+  background: var(--color-surface, #ffffff);
+}
+
+.sr__holding-item-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sr__holding-item-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.sr__holding-item-ticker {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--color-text, #1a1a1a);
+}
+
+.sr__holding-item-name {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.sr__holding-item-value {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--color-text, #1a1a1a);
+  flex-shrink: 0;
+}
+
+.sr__holding-item-detail {
+  margin-top: 10px;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary, #4a4a4a);
+  line-height: 1.55;
+}
+
+.sr__holding-item-detail p { margin: 0; }
+
+.sr__holding-item-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.sr__holding-item-signal-tag {
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: var(--color-bg-subtle, #f0efed);
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+/* ── Text Section ────────────────────────────────────── */
+
+.sr__text {
+  font-size: 0.9375rem;
+  color: var(--color-text, #1a1a1a);
+  line-height: 1.6;
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.06));
+  border-radius: 12px;
+  padding: 14px 18px;
+}
+
+.sr__text p { margin: 0 0 6px; }
+.sr__text p:last-child { margin-bottom: 0; }
+
+/* ── Insight Section ─────────────────────────────────── */
+/* WS-style: clean white card with thin left accent, no tinted bg. */
+
+.sr__insight {
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.06));
+}
+
+.sr__insight-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.sr__insight-icon {
+  font-size: 0.875rem;
+  line-height: 1;
+}
+
+.sr__insight-title {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--color-text, #1a1a1a);
+}
+
+.sr__insight-body {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary, #4a4a4a);
+  line-height: 1.55;
+}
+
+.sr__insight-body p { margin: 0; }
+
+.sr__insight-action {
+  display: block;
+  margin-left: auto;
+  margin-top: 8px;
+  padding: 4px 12px;
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.12));
+  border-radius: 8px;
+  background: var(--color-surface, #ffffff);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text, #1a1a1a);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.sr__insight-action:hover {
+  background: var(--color-bg-subtle, #f0efed);
+}
+
+/* ── Metric Row Section ──────────────────────────────── */
+
+.sr__metric-row {
+  display: flex;
+  gap: 10px;
+}
+
+.sr__metric-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 14px 10px;
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.06));
+  border-radius: 12px;
+  background: var(--color-surface, #ffffff);
+  text-align: center;
+}
+
+.sr__metric-label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.sr__metric-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text, #1a1a1a);
+}
+
+.sr__metric-card--positive .sr__metric-value { color: #16a34a; }
+.sr__metric-card--negative .sr__metric-value { color: #dc2626; }
+
+/* ── Group Section ───────────────────────────────────── */
+/* WS-style: plain heading text + individual cards below, no wrapper box. */
+
+.sr__group {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.sr__group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text, #1a1a1a);
+  text-align: left;
+}
+
+.sr__group-header:hover {
+  color: var(--color-text-secondary, #4a4a4a);
+}
+
+.sr__group-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.sr__group-chevron--open {
+  transform: rotate(90deg);
+}
+
+.sr__group-title {
+  flex: 1;
+}
+
+.sr__group-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 0 0;
+}
+
+/* ── Follow-Up Chips ─────────────────────────────────── */
+
+.sr__follow-ups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.sr__follow-up {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  line-height: 1.3;
+}
+
+.sr__follow-up--primary,
+.sr__follow-up--secondary {
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text, #1a1a1a);
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.12));
+}
+
+.sr__follow-up--primary:hover,
+.sr__follow-up--secondary:hover {
+  background: var(--color-bg-subtle, #f0efed);
+}
+

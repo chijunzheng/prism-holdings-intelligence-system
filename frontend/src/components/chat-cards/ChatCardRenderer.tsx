@@ -7,7 +7,6 @@ import { ThinkingCard } from './ThinkingCard'
 import { PipelineProgressCard } from './PipelineProgressCard'
 import { DebateSummaryCard } from './DebateSummaryCard'
 import { CheckpointCard } from './CheckpointCard'
-import { StressScenarioCard } from './StressScenarioCard'
 import { RecommendationCard } from './RecommendationCard'
 import { TransparencyCard } from './TransparencyCard'
 import { PortfolioReviewCard } from './PortfolioReviewCard'
@@ -21,6 +20,9 @@ import { StructuredResponseCard } from './structured-response/StructuredResponse
 import { TransparencyBar } from './TransparencyBar'
 import { VerdictSummaryCard } from './VerdictSummaryCard'
 import { SoftCheckpointCard } from './SoftCheckpointCard'
+import { AgentProgressGroup } from './AgentProgressGroup'
+import { AnalysisReportCard } from './AnalysisReportCard'
+import { SignalUpdateCard } from './SignalUpdateCard'
 import type { ActionCenterMode, ChatCard } from './types'
 
 interface ChatCardRendererProps {
@@ -53,14 +55,11 @@ export function ChatCardRenderer({
       return (
         <DebateSummaryCard
           data={card.data}
-          onFollowUp={onFollowUp}
           onActionCenterMode={onActionCenterMode}
         />
       )
     case 'checkpoint':
       return <CheckpointCard data={card.data} onSubmit={onCheckpointSubmit} />
-    case 'stress_scenario':
-      return <StressScenarioCard data={card.data} onSelect={onCheckpointSubmit} />
     case 'recommendation':
       return (
         <RecommendationCard
@@ -99,7 +98,7 @@ export function ChatCardRenderer({
     case 'plan_preview':
       return <PlanPreviewCard data={card.data} />
     case 'structured_response':
-      return <StructuredResponseCard data={card.data} onFollowUp={onFollowUp} onSignalAnalyze={onSignalAnalyze} />
+      return <StructuredResponseCard data={card.data} onFollowUp={onFollowUp} />
     case 'transparency_bar':
       return (
         <TransparencyBar
@@ -115,7 +114,20 @@ export function ChatCardRenderer({
     case 'verdict_summary':
       return <VerdictSummaryCard data={card.data} onFollowUp={onFollowUp} />
     case 'soft_checkpoint':
-      return <SoftCheckpointCard data={card.data} onSubmit={onCheckpointSubmit} />
+      return <SoftCheckpointCard data={card.data} onSubmit={onCheckpointSubmit} onActionCenterMode={onActionCenterMode} />
+    case 'agent_progress_group':
+      return <AgentProgressGroup data={card.data} onActionCenterMode={onActionCenterMode} />
+    case 'analysis_report':
+      return (
+        <AnalysisReportCard
+          data={card.data}
+          onFollowUp={onFollowUp}
+          onSavePlan={onSavePlan}
+          onActionCenterMode={onActionCenterMode}
+        />
+      )
+    case 'signal_update':
+      return <SignalUpdateCard data={card.data} onFollowUp={onFollowUp} />
     default:
       return (
         <div className="chat-card chat-card--unknown">

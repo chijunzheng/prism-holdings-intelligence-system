@@ -6,6 +6,7 @@ import { useRef, useEffect, useCallback, useState, type MutableRefObject, type W
 import { ChatInput } from '../chat/ChatInput'
 import { ChatMessage } from '../chat/ChatMessage'
 import { ChatCardRenderer } from '../chat-cards/ChatCardRenderer'
+import { CollapsibleReasoning } from '../chat-cards/CollapsibleReasoning'
 import type { ChatMessage as ChatMessageType } from '../../hooks/useChat'
 import type { Signal } from '@prism/shared'
 import { useUnifiedChat, type ChatChunkData } from '../../hooks/useUnifiedChat'
@@ -14,20 +15,14 @@ import type {
   AnalysisCompleteData,
   ChatCard,
   PipelineStageInfo,
-  ReasoningTraceData,
   ReasoningTraceStep,
   SignalImpactDeltaData,
-  TransparencyBarData,
-  VerdictSummaryData,
 } from '../chat-cards/types'
 import {
   mapImpactDeltaData,
-  mapReasoningTraceData,
 } from '../chat-cards/mappers'
-import { selectPipelineCards } from '../chat-cards/card-selection'
 import {
   buildPortfolioReviewFollowUps,
-  buildSignalAnalysisFollowUps,
 } from './follow-up-builder'
 
 interface ChatAreaProps {
@@ -51,6 +46,7 @@ interface ChatAreaProps {
 
 type EnhancedMessage = ChatMessageType & {
   readonly card?: ChatCard
+  readonly thinkingDurationSec?: number
 }
 
 // Thin-line SVG icons (Wealthsimple style: 1.5px stroke, no fill)
@@ -100,7 +96,6 @@ const PillIcons = {
 
 const CATEGORY_PILLS = [
   { label: 'Impact Analysis', icon: PillIcons.signal, prompt: 'What signals are affecting my portfolio right now?' },
-  { label: 'Portfolio Review', icon: PillIcons.portfolio, prompt: 'Run a full portfolio review with risk analysis' },
   { label: 'Improve My Portfolio', icon: PillIcons.optimize, prompt: 'How can I improve my portfolio given current market conditions?' },
   { label: 'Explore a Stock', icon: PillIcons.search, prompt: "I'd like to explore adding a new stock or ETF to my portfolio. Help me find a good fit." },
   { label: 'Risk Check', icon: PillIcons.shield, prompt: 'What are the biggest risks in my portfolio right now?' },
@@ -211,11 +206,6 @@ const PIPELINE_STAGES: readonly { id: string; label: string }[] = [
   { id: 'brief', label: 'Generating research brief' },
 ]
 
-// Stages that produce substantive output worth showing as ThinkingCards in the chat stream
-const THINKING_CARD_STAGES = new Set([
-  'analyst_complete', 'debate_complete', 'risk_challenge',
-  'magnitude_validation', 'stress_complete', 'verdict', 'judge',
-])
 
 function buildInitialStages(): PipelineStageInfo[] {
   return PIPELINE_STAGES.map((s, i) => ({
@@ -278,9 +268,15 @@ function updateThinkingText(
 
   return stages.map((s, i) => {
     if (i === targetIdx) {
+      // Don't overwrite thinking text on stages that already completed
+      if (s.status === 'complete') return s
       // Auto-promote pending → active when we receive thinking text
       const newStatus = s.status === 'pending' ? 'active' as const : s.status
-      return { ...s, thinkingText: text, status: newStatus }
+      // Append to thinking history (deduplicate consecutive duplicates)
+      const prevHistory = s.thinkingHistory ?? []
+      const lastEntry = prevHistory[prevHistory.length - 1]
+      const history = lastEntry === text ? prevHistory : [...prevHistory, text]
+      return { ...s, thinkingText: text, status: newStatus, thinkingHistory: history }
     }
     // Mark prior pending stages as complete (node is running, so predecessors must be done)
     if (i < targetIdx && s.status === 'pending') {
@@ -290,18 +286,136 @@ function updateThinkingText(
   })
 }
 
+// Shared headline for the current pipeline run (set when signal is available)
+let currentSignalHeadline = ''
+
+// Mutable store for intermediate artifacts — accumulated as checkpoint events arrive.
+// These get forwarded into the AgentProgressGroupData so the inline progress card
+// can open the right-panel drawer with full analyst/debate/challenge details.
+let currentIntermediateArtifacts: {
+  analystAssessments?: readonly import('@prism/shared').AnalystAssessment[]
+  riskChallenge?: import('@prism/shared').RiskChallenge
+  debateResolution?: import('@prism/shared').DebateResolution
+  magnitudeValidation?: import('@prism/shared').MagnitudeValidation
+  stressTest?: import('@prism/shared').StressTestResult
+} = {}
+
 function buildPipelineProgressCard(
   stages: readonly PipelineStageInfo[],
   error?: string,
 ): ChatCard {
+  // When there's an error, mark the active stage as failed
+  const finalStages = error
+    ? stages.map((s) =>
+        s.status === 'active'
+          ? { ...s, status: 'complete' as const, message: error }
+          : s,
+      )
+    : stages
+
   return {
-    type: 'pipeline_progress',
+    type: 'agent_progress_group',
     data: {
-      stages,
-      ...(error ? { error } : {}),
+      signalHeadline: currentSignalHeadline,
+      stages: finalStages.map((s) => ({
+        id: s.id,
+        label: s.label,
+        status: s.status === 'waiting' ? 'pending' as const : s.status as 'pending' | 'active' | 'complete',
+        thinkingText: s.thinkingText,
+        thinkingHistory: s.thinkingHistory,
+        completionMessage: s.message,
+        expandable: true,
+      })),
+      isComplete: finalStages.every((s) => s.status === 'complete'),
+      error,
+      intermediateArtifacts: Object.keys(currentIntermediateArtifacts).length > 0
+        ? { ...currentIntermediateArtifacts }
+        : undefined,
     },
   }
 }
+
+// ── Checkpoint Prompt Builders ──────────────────────────────
+
+interface CheckpointPayload {
+  readonly stage: string
+  readonly type: 'hard' | 'soft'
+  readonly debateResolution?: unknown
+  readonly analystAssessments?: unknown
+  readonly riskProfile?: unknown
+  readonly riskChallenge?: unknown
+  readonly [key: string]: unknown
+}
+
+function accumulateArtifacts(data: Record<string, unknown>): void {
+  const assessments = data.analystAssessments as import('@prism/shared').AnalystAssessment[] | undefined
+  const riskChallenge = data.riskChallenge as import('@prism/shared').RiskChallenge | undefined
+  const debate = data.debateResolution as import('@prism/shared').DebateResolution | undefined
+  const magnitudeValidation = data.magnitudeValidation as import('@prism/shared').MagnitudeValidation | undefined
+  const stressTest = data.stressTest as import('@prism/shared').StressTestResult | undefined
+  if (assessments) currentIntermediateArtifacts = { ...currentIntermediateArtifacts, analystAssessments: assessments }
+  if (riskChallenge) currentIntermediateArtifacts = { ...currentIntermediateArtifacts, riskChallenge }
+  if (debate) currentIntermediateArtifacts = { ...currentIntermediateArtifacts, debateResolution: debate }
+  if (magnitudeValidation) currentIntermediateArtifacts = { ...currentIntermediateArtifacts, magnitudeValidation }
+  if (stressTest) currentIntermediateArtifacts = { ...currentIntermediateArtifacts, stressTest }
+}
+
+function buildSoftCheckpointData(cpData: CheckpointPayload): import('../chat-cards/types').SoftCheckpointData {
+  const assessments = cpData.analystAssessments as import('@prism/shared').AnalystAssessment[] | undefined
+  const riskProfile = cpData.riskProfile as import('@prism/shared').InferredRiskProfile | undefined
+  const riskChallenge = cpData.riskChallenge as import('@prism/shared').RiskChallenge | undefined
+
+  let prompt: string
+  if (cpData.stage === 'analyst_review' && assessments?.length) {
+    const summaries = assessments.map((a) =>
+      `${a.analystType} ${a.overallDirection}`,
+    )
+    prompt = `4 analysts assessed: ${summaries.join(', ')}. Review their perspectives before the debate.`
+  } else if (cpData.stage === 'risk_challenge_review' && riskChallenge) {
+    const count = riskChallenge.challengedAssumptions.length
+    const adj = Math.round(riskChallenge.recommendedConfidenceAdjustment * 100)
+    prompt = `Risk team challenged ${count} assumption${count !== 1 ? 's' : ''}, ${adj}% confidence adjustment. Review before final synthesis.`
+  } else {
+    prompt = `Review ${cpData.stage.replace(/_/g, ' ')} before continuing.`
+  }
+
+  return {
+    stage: cpData.stage,
+    type: 'soft',
+    prompt,
+    analystAssessments: assessments,
+    riskProfile,
+    riskChallenge,
+  }
+}
+
+function buildDebateCheckpointData(cpData: CheckpointPayload): import('../chat-cards/types').CheckpointCardData {
+  const debate = cpData.debateResolution as import('@prism/shared').DebateResolution | undefined
+  const direction = debate?.consensusDirection ?? 'unknown'
+  const confidence = debate ? Math.round(debate.consensusConfidence * 100) : 0
+  const unresolvedCount = debate?.unresolvedDisagreements?.length ?? 0
+
+  const prompt = debate
+    ? `Debate concluded ${direction} (${confidence}% confidence). ${unresolvedCount > 0 ? `${unresolvedCount} unresolved disagreement${unresolvedCount > 1 ? 's' : ''}.` : 'Full consensus reached.'} Does this match your expectation?`
+    : 'Approve the debate outcome or provide a correction.'
+
+  const quickReplies = debate
+    ? [
+        `${direction.charAt(0).toUpperCase() + direction.slice(1)} looks right`,
+        'Overstated — impact will be smaller',
+        'Understated — impact will be larger',
+        'I have additional context',
+      ]
+    : ['Looks good, continue', 'I disagree with the magnitude', 'The timing assumption is wrong']
+
+  return {
+    stage: 'debate_resolution',
+    prompt,
+    quickReplies,
+    summary: debate ? { direction, confidence, unresolvedCount } : undefined,
+  }
+}
+
 
 function upsertCardMessage(
   messages: readonly EnhancedMessage[],
@@ -340,11 +454,16 @@ export function ChatArea({
   const abortRef = useRef<AbortController | null>(null)
   const shouldAutoScrollRef = useRef(true)
   const isSendingRef = useRef(false) // Guards against session-change wipe during active send
+  const sendCreatedSessionRef = useRef<string | null>(null) // Session ID created by the active send flow
   const threadIdRef = useRef<string | null>(null)
   const currentStagesRef = useRef<PipelineStageInfo[]>([])
   const progressIdRef = useRef<string>('')
   const activeSignalRef = useRef<Signal | null>(null)
   const { sendMessage: sendUnifiedMessage, abort: abortUnified } = useUnifiedChat(userId)
+
+  // Client-side message cache keyed by session ID — survives session switches
+  const messageCacheRef = useRef<Map<string, readonly EnhancedMessage[]>>(new Map())
+  const prevSessionIdRef = useRef<string | null>(null)
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -370,17 +489,51 @@ export function ChatArea({
     }
   }, [])
 
-  // Reset messages when session changes; abort in-flight requests
-  // Skip reset if we just created a session as part of an active send
+  // Keep cache in sync: whenever messages change, update the cache for the active session.
+  // Guard: only cache when we're settled in a session (prevSessionIdRef matches).
+  // Without this guard, a session switch (A→B) causes this effect to run BEFORE the
+  // session-switch effect below, caching A's stale messages under B's ID.
   useEffect(() => {
-    if (isSendingRef.current) return
+    if (activeSessionId && messages.length > 0 && activeSessionId === prevSessionIdRef.current) {
+      messageCacheRef.current.set(activeSessionId, messages)
+    }
+  }, [messages, activeSessionId])
+
+  // On session switch: abort streams, restore or clear incoming session's messages.
+  // Skip ONLY when the session change was triggered by the active send flow's own session creation
+  // (e.g., analyzeSignal creates a session mid-send — that transition should not wipe messages).
+  // Manual switches (clicking "New session" or a different session) must always go through.
+  useEffect(() => {
+    // If a send flow just created this exact session, skip the reset — the send flow manages its own messages
+    if (isSendingRef.current && activeSessionId === sendCreatedSessionRef.current) {
+      sendCreatedSessionRef.current = null
+      prevSessionIdRef.current = activeSessionId
+      return
+    }
+
+    prevSessionIdRef.current = activeSessionId
+
+    // Abort any in-flight streams (SSE, unified chat)
     abortRef.current?.abort()
     abortRef.current = null
     abortUnified()
-    setMessages([])
     setIsLoading(false)
+    isSendingRef.current = false
     shouldAutoScrollRef.current = true
+
+    // Restore cached messages for the new session, or start fresh
+    if (activeSessionId) {
+      const cached = messageCacheRef.current.get(activeSessionId)
+      setMessages(cached ?? [])
+    } else {
+      setMessages([])
+    }
   }, [activeSessionId, userId, abortUnified])
+
+  // Clear message cache when user changes (different user = different sessions)
+  useEffect(() => {
+    messageCacheRef.current.clear()
+  }, [userId])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -398,12 +551,28 @@ export function ChatArea({
     async (signal: Signal) => {
       if (isLoading) return
 
+      // Always create a dedicated session for signal analysis
+      if (onCreateSession) {
+        isSendingRef.current = true
+        try {
+          const createdId = await onCreateSession({
+            type: 'signal',
+            title: signal.headline,
+            signalId: signal.id,
+          })
+          sendCreatedSessionRef.current = createdId
+          // Clear old session's messages — isSendingRef blocks the effect from doing this
+          setMessages([])
+        } catch {
+          // Session creation failed — continue with analysis anyway
+        }
+      }
+
       abortRef.current?.abort()
       const controller = new AbortController()
       abortRef.current = controller
 
       let latestImpactDelta: SignalImpactDeltaData | undefined
-      let latestReasoningTrace: ReasoningTraceData | undefined
       let reasoningSteps: ReasoningTraceStep[] = []
 
       const userMsg: EnhancedMessage = {
@@ -420,15 +589,12 @@ export function ChatArea({
       }
 
       const progressId = uid('card-progress')
-      const verdictSummaryId = uid('card-verdict-summary')
       const impactDeltaId = uid('card-impact-delta')
-      const debateSummaryId = uid('card-debate-summary')
       const traceNavigatorId = uid('card-trace-nav')
       const reasoningTraceId = uid('card-reasoning-trace')
-      const recommendationId = uid('card-rec')
-      const researchBriefId = uid('card-brief')
-      const transparencyBarId = uid('card-transparency-bar')
       const initialStages = buildInitialStages()
+      currentSignalHeadline = signal.headline
+      currentIntermediateArtifacts = {}
       const progressMsg: EnhancedMessage = {
         id: progressId,
         role: 'assistant',
@@ -479,15 +645,8 @@ export function ChatArea({
               threadIdRef.current = threadId
 
             } else if (sseEvent.event === 'checkpoint') {
-              const cpData = sseEvent.data as {
-                stage: string
-                type: 'hard' | 'soft'
-                debateResolution?: unknown
-                stressTest?: unknown
-                analystAssessments?: unknown
-                riskProfile?: unknown
-                riskChallenge?: unknown
-              }
+              const cpData = sseEvent.data as CheckpointPayload
+              accumulateArtifacts(cpData)
 
               // Pause pipeline progress at checkpoint
               currentStages = pauseAtCheckpoint(currentStages)
@@ -520,39 +679,11 @@ export function ChatArea({
                       content: '',
                       card: {
                         type: 'checkpoint' as const,
-                        data: {
-                          stage: 'debate_resolution',
-                          prompt: 'Approve the debate outcome or provide a correction.',
-                          quickReplies: [
-                            'Looks good, continue',
-                            'I disagree with the magnitude',
-                            'The timing assumption is wrong',
-                          ],
-                        },
+                        data: buildDebateCheckpointData(cpData),
                       },
                     },
                   ]
-                } else if (cpData.stage === 'stress_test') {
-                  next = [
-                    ...next,
-                    {
-                      id: uid('bridge'),
-                      role: 'assistant' as const,
-                      content: 'Here are the stress test scenarios. Which risk level do you want to plan for?',
-                    },
-                    {
-                      id: uid('card-stress'),
-                      role: 'assistant' as const,
-                      content: '',
-                      card: { type: 'stress_scenario' as const, data: cpData.stressTest },
-                    },
-                  ]
                 } else if (cpData.type === 'soft') {
-                  const softData: import('../chat-cards/types').SoftCheckpointData = {
-                    stage: cpData.stage,
-                    type: 'soft',
-                    prompt: `Review ${cpData.stage.replace(/_/g, ' ')} before continuing.`,
-                  }
                   next = [
                     ...next,
                     {
@@ -561,7 +692,7 @@ export function ChatArea({
                       content: '',
                       card: {
                         type: 'soft_checkpoint' as const,
-                        data: softData,
+                        data: buildSoftCheckpointData(cpData),
                       },
                     },
                   ]
@@ -593,10 +724,9 @@ export function ChatArea({
               const step = sseEvent.data as ReasoningTraceStep
               reasoningSteps = [...reasoningSteps, step]
             } else if (sseEvent.event === 'complete') {
-              // Pipeline finished — use card selection to build dynamic card sequence
+              // Pipeline finished — consolidated analysis report card
               const finalStages = markAllComplete(currentStages)
               const payload = sseEvent.data as AnalysisCompleteData
-              const selection = selectPipelineCards(payload)
 
               setMessages((prev) => {
                 let next = prev.map((m) =>
@@ -616,100 +746,26 @@ export function ChatArea({
                     latestImpactDelta ??
                     payload.impactDelta ??
                     mapImpactDeltaData(signal, verdict)
-                  const reasoningTrace = mapReasoningTraceData({
-                    signal,
-                    verdict,
-                    researchBrief: payload.researchBrief,
-                    intermediateArtifacts: payload.intermediateArtifacts,
-                    steps: reasoningSteps,
-                  })
 
                   latestImpactDelta = impactDelta
-                  latestReasoningTrace = reasoningTrace
 
-                  // Verdict summary (TL;DR) — appears first
-                  if (selection.showVerdictSummary) {
-                    const netImpact = verdict.holdingImpacts
-                      .map((h) => h.impact['1M']?.mid ?? 0)
-                      .reduce((sum, v) => sum + v, 0)
-                    const holdingCount = verdict.holdingImpacts.length
-                    const avgConfidence = holdingCount > 0
-                      ? verdict.holdingImpacts.reduce((sum, h) => sum + h.confidence, 0) / holdingCount
-                      : 0
-                    const direction: VerdictSummaryData['direction'] =
-                      netImpact < -25 ? 'bearish' : netImpact > 25 ? 'bullish' : 'neutral'
-
-                    next = upsertCardMessage(next, verdictSummaryId, {
-                      type: 'verdict_summary',
-                      data: {
-                        netImpact,
-                        holdingCount,
-                        direction,
-                        confidence: Math.round(avgConfidence * 100),
-                        signalHeadline: signal.headline,
-                      },
-                    })
-                  }
-
-                  // Impact delta
-                  if (selection.showImpactDelta) {
-                    next = upsertCardMessage(next, impactDeltaId, {
-                      type: 'signal_impact_delta',
-                      data: impactDelta,
-                    })
-                  }
-
-                  // Debate summary (promoted above recs if unresolved disagreements)
-                  if (selection.showDebate && payload.intermediateArtifacts?.debateResolution) {
-                    next = upsertCardMessage(next, debateSummaryId, {
-                      type: 'debate_summary',
-                      data: payload.intermediateArtifacts.debateResolution,
-                    })
-                  }
-
-                  // Recommendations (no separate playbook card — absorbed into rec card)
-                  if (selection.showRecommendations) {
-                    next = upsertCardMessage(next, recommendationId, {
-                      type: 'recommendation',
-                      data: verdict.recommendations,
-                    })
-                  }
-                }
-
-                // Research brief as compact chip (never inline)
-                if (payload.researchBrief) {
-                  next = upsertCardMessage(next, researchBriefId, {
-                    type: 'research_brief',
-                    data: payload.researchBrief,
-                  })
-                }
-
-                // Transparency bar (replaces reasoning trace in stream)
-                if (selection.showTransparencyBar && latestReasoningTrace) {
                   const debateRounds = payload.intermediateArtifacts?.debateResolution?.rounds ?? 0
-                  const qualityScore = payload.verdict?.qualityScore ?? 0
-                  const agentCount = PIPELINE_STAGES.length
+                  const qualityScore = Math.round((payload.verdict?.qualityScore ?? 0) * 100)
 
-                  const transparencyData: TransparencyBarData = {
-                    agentCount,
-                    debateRounds,
-                    qualityScore,
-                    reasoningTrace: latestReasoningTrace,
-                  }
-
-                  next = upsertCardMessage(next, transparencyBarId, {
-                    type: 'transparency_bar',
-                    data: transparencyData,
+                  // Single consolidated analysis report card
+                  next = upsertCardMessage(next, impactDeltaId, {
+                    type: 'analysis_report',
+                    data: {
+                      signal: { id: signal.id, headline: signal.headline },
+                      verdict,
+                      impactDelta,
+                      intermediateArtifacts: payload.intermediateArtifacts,
+                      researchBrief: payload.researchBrief,
+                      qualityScore,
+                      agentCount: PIPELINE_STAGES.length,
+                      debateRounds,
+                    },
                   })
-                }
-
-                // Attach contextual follow-ups to the last card
-                if (payload.verdict) {
-                  const followUps = buildSignalAnalysisFollowUps(signal, payload.verdict)
-                  const lastIdx = next.length - 1
-                  if (lastIdx >= 0 && next[lastIdx].card) {
-                    next = [...next.slice(0, lastIdx), { ...next[lastIdx], suggestedFollowUps: [...followUps] }]
-                  }
                 }
 
                 return next
@@ -741,35 +797,22 @@ export function ChatArea({
               }
             } else {
               // Progress event — advance the pipeline progress card
-              const eventData = sseEvent.data as { stage?: string; message?: string }
-              const stageId = eventData.stage ?? sseEvent.event
-              const message = eventData.message
+              const eventData = sseEvent.data as Record<string, unknown>
+              const stageId = (eventData.stage as string | undefined) ?? sseEvent.event
+              const message = eventData.message as string | undefined
+              // Accumulate any artifact data attached to progress events
+              accumulateArtifacts(eventData)
               const nextStages = advanceStages(currentStages, stageId, message)
               currentStages = nextStages
 
-              if (THINKING_CARD_STAGES.has(stageId) && message) {
-                // Insert ThinkingCard AND update progress bar
-                setMessages((prev) => [
-                  ...prev.map((m) =>
-                    m.id === progressId ? { ...m, card: buildPipelineProgressCard(nextStages) } : m,
-                  ),
-                  {
-                    id: uid('thinking'),
-                    role: 'assistant' as const,
-                    content: '',
-                    card: { type: 'thinking' as const, data: { stage: stageId, message, isComplete: true } },
-                  },
-                ])
-              } else {
-                // Just update progress bar for non-substantive stages
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === progressId
-                      ? { ...m, card: buildPipelineProgressCard(nextStages) }
-                      : m,
-                  ),
-                )
-              }
+              // Update progress bar only (ThinkingCards removed — replaced by inline agent stream)
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === progressId
+                    ? { ...m, card: buildPipelineProgressCard(nextStages) }
+                    : m,
+                ),
+              )
             }
           }
         } else {
@@ -797,82 +840,27 @@ export function ChatArea({
               ]
             }
 
-            if (json.success && json.data) {
-              const selection = selectPipelineCards(json.data)
+            if (json.success && json.data && json.data.verdict) {
+              const verdict = json.data.verdict
+              const impactDelta = json.data.impactDelta ?? mapImpactDeltaData(signal, verdict)
+              latestImpactDelta = impactDelta
 
-              if (json.data.verdict) {
-                const verdict = json.data.verdict
-                const impactDelta = json.data.impactDelta ?? mapImpactDeltaData(signal, verdict)
-                const reasoningTrace = mapReasoningTraceData({
-                  signal,
+              const debateRounds = json.data.intermediateArtifacts?.debateResolution?.rounds ?? 0
+              const qualityScore = Math.round((verdict.qualityScore ?? 0) * 100)
+
+              next = upsertCardMessage(next, impactDeltaId, {
+                type: 'analysis_report',
+                data: {
+                  signal: { id: signal.id, headline: signal.headline },
                   verdict,
-                  researchBrief: json.data.researchBrief,
+                  impactDelta,
                   intermediateArtifacts: json.data.intermediateArtifacts,
-                  steps: reasoningSteps,
-                })
-
-                latestImpactDelta = impactDelta
-                latestReasoningTrace = reasoningTrace
-
-                // Verdict summary
-                if (selection.showVerdictSummary) {
-                  const netImpact = verdict.holdingImpacts
-                    .map((h) => h.impact['1M']?.mid ?? 0)
-                    .reduce((sum, v) => sum + v, 0)
-                  const holdingCount = verdict.holdingImpacts.length
-                  const avgConfidence = holdingCount > 0
-                    ? verdict.holdingImpacts.reduce((sum, h) => sum + h.confidence, 0) / holdingCount
-                    : 0
-                  const direction: VerdictSummaryData['direction'] =
-                    netImpact < -25 ? 'bearish' : netImpact > 25 ? 'bullish' : 'neutral'
-
-                  next = upsertCardMessage(next, verdictSummaryId, {
-                    type: 'verdict_summary',
-                    data: { netImpact, holdingCount, direction, confidence: Math.round(avgConfidence * 100), signalHeadline: signal.headline },
-                  })
-                }
-
-                if (selection.showImpactDelta) {
-                  next = upsertCardMessage(next, impactDeltaId, {
-                    type: 'signal_impact_delta',
-                    data: impactDelta,
-                  })
-                }
-
-                if (selection.showDebate && json.data.intermediateArtifacts?.debateResolution) {
-                  next = upsertCardMessage(next, debateSummaryId, {
-                    type: 'debate_summary',
-                    data: json.data.intermediateArtifacts.debateResolution,
-                  })
-                }
-
-                if (selection.showRecommendations) {
-                  next = upsertCardMessage(next, recommendationId, {
-                    type: 'recommendation',
-                    data: verdict.recommendations,
-                  })
-                }
-
-                // Transparency bar
-                if (selection.showTransparencyBar) {
-                  next = upsertCardMessage(next, transparencyBarId, {
-                    type: 'transparency_bar',
-                    data: {
-                      agentCount: PIPELINE_STAGES.length,
-                      debateRounds: json.data.intermediateArtifacts?.debateResolution?.rounds ?? 0,
-                      qualityScore: verdict.qualityScore,
-                      reasoningTrace,
-                    },
-                  })
-                }
-              }
-
-              if (json.data.researchBrief) {
-                next = upsertCardMessage(next, researchBriefId, {
-                  type: 'research_brief',
-                  data: json.data.researchBrief,
-                })
-              }
+                  researchBrief: json.data.researchBrief,
+                  qualityScore,
+                  agentCount: PIPELINE_STAGES.length,
+                  debateRounds,
+                },
+              })
             }
 
             return next
@@ -881,7 +869,10 @@ export function ChatArea({
           // Data flows through card interactions to Action Center
         }
       } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') return
+        if (error instanceof Error && error.name === 'AbortError') {
+          isSendingRef.current = false
+          return
+        }
         setMessages((prev) => [
           ...prev.filter((m) => m.id !== progressId),
           {
@@ -893,8 +884,9 @@ export function ChatArea({
       }
 
       setIsLoading(false)
+      isSendingRef.current = false
     },
-    [isLoading, userId],
+    [isLoading, userId, onCreateSession],
   )
 
   // ── Checkpoint Resume Flow ─────────────────────────────────
@@ -908,9 +900,8 @@ export function ChatArea({
       setIsLoading(true)
       shouldAutoScrollRef.current = true
 
-      // Determine input type for the server
-      const inputType: 'debate_correction' | 'scenario_preference' =
-        ['base', 'downside', 'tail'].includes(value) ? 'scenario_preference' : 'debate_correction'
+      // Only debate_correction checkpoint remains (stress_test checkpoint removed)
+      const inputType = 'debate_correction' as const
 
       // Resume pipeline progress animation
       const resumedStages = resumeFromCheckpoint(currentStagesRef.current)
@@ -944,13 +935,8 @@ export function ChatArea({
         for await (const sseEvent of parseSseStream(reader)) {
           if (sseEvent.event === 'checkpoint') {
             // Another checkpoint (e.g., CP2 after CP1)
-            const cpData = sseEvent.data as {
-              stage: string
-              type: 'hard' | 'soft'
-              debateResolution?: unknown
-              stressTest?: unknown
-              [key: string]: unknown
-            }
+            const cpData = sseEvent.data as CheckpointPayload
+            accumulateArtifacts(cpData)
 
             const pausedStages = pauseAtCheckpoint(currentStagesRef.current)
             currentStagesRef.current = pausedStages
@@ -962,44 +948,26 @@ export function ChatArea({
                   : m,
               )
 
-              if (cpData.stage === 'stress_test') {
+              if (cpData.stage === 'debate_resolution') {
                 next = [
                   ...next,
                   {
-                    id: uid('bridge'),
-                    role: 'assistant' as const,
-                    content: 'Here are the stress test scenarios. Which risk level do you want to plan for?',
-                  },
-                  {
-                    id: uid('card-stress'),
+                    id: uid('card-debate'),
                     role: 'assistant' as const,
                     content: '',
-                    card: { type: 'stress_scenario' as const, data: cpData.stressTest },
+                    card: { type: 'debate_summary' as const, data: cpData.debateResolution },
                   },
-                ]
-              } else if (cpData.stage === 'debate_resolution') {
-                next = [
-                  ...next,
                   {
                     id: uid('card-cp'),
                     role: 'assistant' as const,
                     content: '',
                     card: {
                       type: 'checkpoint' as const,
-                      data: {
-                        stage: cpData.stage,
-                        prompt: 'Approve the debate outcome or provide a correction.',
-                        quickReplies: ['Looks good, continue', 'I disagree with the magnitude'],
-                      },
+                      data: buildDebateCheckpointData(cpData),
                     },
                   },
                 ]
               } else if (cpData.type === 'soft') {
-                const softData: import('../chat-cards/types').SoftCheckpointData = {
-                  stage: cpData.stage,
-                  type: 'soft',
-                  prompt: `Review ${cpData.stage.replace(/_/g, ' ')} before continuing.`,
-                }
                 next = [
                   ...next,
                   {
@@ -1008,7 +976,7 @@ export function ChatArea({
                     content: '',
                     card: {
                       type: 'soft_checkpoint' as const,
-                      data: softData,
+                      data: buildSoftCheckpointData(cpData),
                     },
                   },
                 ]
@@ -1033,78 +1001,23 @@ export function ChatArea({
 
               if (payload.verdict && signal) {
                 const verdict = payload.verdict
-                const selection = selectPipelineCards(payload)
-
                 const impactDelta = payload.impactDelta ?? mapImpactDeltaData(signal, verdict)
-                const reasoningTrace = mapReasoningTraceData({
-                  signal,
-                  verdict,
-                  researchBrief: payload.researchBrief,
-                  intermediateArtifacts: payload.intermediateArtifacts,
-                  steps: [],
-                })
+                const debateRounds = payload.intermediateArtifacts?.debateResolution?.rounds ?? 0
+                const qualityScore = Math.round((verdict.qualityScore ?? 0) * 100)
 
-                if (selection.showVerdictSummary) {
-                  const netImpact = verdict.holdingImpacts
-                    .map((h) => h.impact['1M']?.mid ?? 0)
-                    .reduce((sum, v) => sum + v, 0)
-                  const holdingCount = verdict.holdingImpacts.length
-                  const avgConfidence = holdingCount > 0
-                    ? verdict.holdingImpacts.reduce((sum, h) => sum + h.confidence, 0) / holdingCount
-                    : 0
-                  const direction: VerdictSummaryData['direction'] =
-                    netImpact < -25 ? 'bearish' : netImpact > 25 ? 'bullish' : 'neutral'
-
-                  next = upsertCardMessage(next, uid('card-verdict-summary'), {
-                    type: 'verdict_summary',
-                    data: { netImpact, holdingCount, direction, confidence: Math.round(avgConfidence * 100), signalHeadline: signal.headline },
-                  })
-                }
-
-                if (selection.showImpactDelta) {
-                  next = upsertCardMessage(next, uid('card-impact-delta'), {
-                    type: 'signal_impact_delta',
-                    data: impactDelta,
-                  })
-                }
-
-                if (selection.showDebate && payload.intermediateArtifacts?.debateResolution) {
-                  next = upsertCardMessage(next, uid('card-debate-summary'), {
-                    type: 'debate_summary',
-                    data: payload.intermediateArtifacts.debateResolution,
-                  })
-                }
-
-                if (selection.showRecommendations) {
-                  next = upsertCardMessage(next, uid('card-rec'), {
-                    type: 'recommendation',
-                    data: verdict.recommendations,
-                  })
-                }
-
-                if (selection.showTransparencyBar) {
-                  next = upsertCardMessage(next, uid('card-transparency-bar'), {
-                    type: 'transparency_bar',
-                    data: {
-                      agentCount: PIPELINE_STAGES.length,
-                      debateRounds: payload.intermediateArtifacts?.debateResolution?.rounds ?? 0,
-                      qualityScore: verdict.qualityScore,
-                      reasoningTrace,
-                    },
-                  })
-                }
-
-                const followUps = buildSignalAnalysisFollowUps(signal, verdict)
-                const lastIdx = next.length - 1
-                if (lastIdx >= 0 && next[lastIdx].card) {
-                  next = [...next.slice(0, lastIdx), { ...next[lastIdx], suggestedFollowUps: [...followUps] }]
-                }
-              }
-
-              if (payload.researchBrief) {
-                next = upsertCardMessage(next, uid('card-brief'), {
-                  type: 'research_brief',
-                  data: payload.researchBrief,
+                // Single consolidated analysis report card
+                next = upsertCardMessage(next, uid('card-report'), {
+                  type: 'analysis_report',
+                  data: {
+                    signal: { id: signal.id, headline: signal.headline },
+                    verdict,
+                    impactDelta,
+                    intermediateArtifacts: payload.intermediateArtifacts,
+                    researchBrief: payload.researchBrief,
+                    qualityScore,
+                    agentCount: PIPELINE_STAGES.length,
+                    debateRounds,
+                  },
                 })
               }
 
@@ -1126,33 +1039,21 @@ export function ChatArea({
             setIsLoading(false)
           } else {
             // Progress events from resume stream
-            const eventData = sseEvent.data as { stage?: string; message?: string }
-            const stageId = eventData.stage ?? sseEvent.event
-            const message = eventData.message
+            const eventData = sseEvent.data as Record<string, unknown>
+            const stageId = (eventData.stage as string | undefined) ?? sseEvent.event
+            const message = eventData.message as string | undefined
+            // Accumulate any artifact data attached to progress events
+            accumulateArtifacts(eventData)
             const nextStages = advanceStages(currentStagesRef.current, stageId, message)
             currentStagesRef.current = nextStages
 
-            if (THINKING_CARD_STAGES.has(stageId) && message) {
-              setMessages((prev) => [
-                ...prev.map((m) =>
-                  m.id === pId ? { ...m, card: buildPipelineProgressCard(nextStages) } : m,
-                ),
-                {
-                  id: uid('thinking'),
-                  role: 'assistant' as const,
-                  content: '',
-                  card: { type: 'thinking' as const, data: { stage: stageId, message, isComplete: true } },
-                },
-              ])
-            } else {
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === pId
-                    ? { ...m, card: buildPipelineProgressCard(nextStages) }
-                    : m,
-                ),
-              )
-            }
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === pId
+                  ? { ...m, card: buildPipelineProgressCard(nextStages) }
+                  : m,
+              ),
+            )
           }
         }
       } catch (error) {
@@ -1210,6 +1111,7 @@ export function ChatArea({
             type: 'general',
             title: 'New conversation',
           })
+          sendCreatedSessionRef.current = newSessionId
           generateSessionTitle(newSessionId, content)
         } catch {
           // Session creation failed — continue anyway
@@ -1244,19 +1146,13 @@ export function ChatArea({
       let currentStages = buildInitialStages()
       let reasoningSteps: ReasoningTraceStep[] = []
       let latestImpactDelta: SignalImpactDeltaData | undefined
-      let latestReasoningTrace: ReasoningTraceData | undefined
-
-      // Card IDs for pipeline mode
-      const verdictSummaryId = uid('card-verdict-summary')
       const impactDeltaId = uid('card-impact-delta')
-      const debateSummaryId = uid('card-debate-summary')
-      const recommendationId = uid('card-rec')
-      const researchBriefId = uid('card-brief')
-      const transparencyBarId = uid('card-transparency-bar')
 
-      // State for chat mode
-      const assistantId = uid('msg-assistant')
+      // State for chat mode — reuse thinkingId so React doesn't remount (prevents flash)
+      const assistantId = thinkingId
       let chatAccumulated = ''
+      let thinkingAccumulated = ''
+      let thinkingStartedAt: number | null = null
 
       const history = messages
         .filter((m) => m.role !== 'divider' && !m.card)
@@ -1267,6 +1163,12 @@ export function ChatArea({
         onRouteDecision: (decision) => {
           currentRoute = decision.route
           if (decision.route === 'pipeline' || decision.route === 'portfolio_review') {
+            // Set headline for progress display
+            currentSignalHeadline = content.slice(0, 80)
+            currentIntermediateArtifacts = {}
+            // Store refs for checkpoint resume flow
+            currentStagesRef.current = currentStages
+            progressIdRef.current = progressId
             // Replace thinking card with pipeline progress
             setMessages((prev) => prev.map((m) =>
               m.id === thinkingId
@@ -1274,11 +1176,28 @@ export function ChatArea({
                 : m,
             ))
           } else {
-            // Chat route — replace thinking card with streaming text message
-            setMessages((prev) => [
-              ...prev.filter((m) => m.id !== thinkingId),
-              { id: assistantId, role: 'assistant' as const, content: '', isStreaming: true },
-            ])
+            // Chat route — replace thinking card with the assistant message (reuse same ID)
+            setMessages((prev) => prev.map((m) =>
+              m.id === thinkingId
+                ? { ...m, id: assistantId, content: '', isStreaming: true, card: { type: 'thinking' as const, data: { stage: 'thinking', message: 'Prism is thinking...' } } }
+                : m,
+            ))
+          }
+        },
+
+        // Real thinking tokens from Gemini — stream into the thinking card
+        onChatThinking: (data: ChatChunkData) => {
+          if (data.text) {
+            if (thinkingStartedAt === null) thinkingStartedAt = Date.now()
+            thinkingAccumulated += data.text
+            const snapshot = thinkingAccumulated
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId
+                  ? { ...m, card: { type: 'thinking' as const, data: { stage: 'thinking', message: snapshot } } }
+                  : m,
+              ),
+            )
           }
         },
 
@@ -1290,7 +1209,7 @@ export function ChatArea({
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === assistantId
-                  ? { ...m, content: snapshot, ...(data.suggestions ? { suggestedFollowUps: data.suggestions } : {}) }
+                  ? { ...m, content: snapshot, card: undefined, isStreaming: false, ...(data.suggestions ? { suggestedFollowUps: data.suggestions } : {}) }
                   : m,
               ),
             )
@@ -1304,27 +1223,37 @@ export function ChatArea({
             )
           } else if (data.text) {
             chatAccumulated += data.text
-            const snapshot = chatAccumulated
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantId ? { ...m, content: snapshot, isStreaming: true } : m,
-              ),
-            )
+            // If text looks like JSON, keep the thinking card visible — structured card will replace it
+            const trimmed = chatAccumulated.trimStart()
+            const looksLikeJson = trimmed.startsWith('{') || trimmed.startsWith('[') || trimmed.startsWith('```')
+            if (!looksLikeJson) {
+              // Plain text response — transition from thinking card to regular text message
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantId ? { ...m, content: chatAccumulated, card: undefined, isStreaming: true } : m,
+                ),
+              )
+            }
+            // If JSON: silently accumulate, thinking card stays visible
           }
         },
 
-        // Structured response replaces accumulated text after streaming completes
+        // Structured response: transition thinking card → structured card with collapsible thinking
         onChatStructured: (data: ChatChunkData) => {
           if (data.structured) {
+            const thinking = (data.thinkingText ?? thinkingAccumulated).trim()
+            const durationSec = thinkingStartedAt != null
+              ? (Date.now() - thinkingStartedAt) / 1000
+              : undefined
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === assistantId
                   ? {
                       ...m,
-                      content: '',
+                      content: thinking,
                       isStreaming: false,
+                      thinkingDurationSec: durationSec,
                       card: { type: 'structured_response' as const, data: data.structured! },
-                      suggestedFollowUps: data.structured!.followUps?.map((f) => f.text),
                     }
                   : m,
               ),
@@ -1342,42 +1271,94 @@ export function ChatArea({
         },
 
         onPipelineProgress: (stage, data) => {
-          const eventData = data as { stage?: string; message?: string }
-          const stageId = eventData.stage ?? stage
-          const message = eventData.message
+          const eventData = data as Record<string, unknown>
+          const stageId = (eventData.stage as string | undefined) ?? stage
+          const message = eventData.message as string | undefined
+          // Accumulate any artifact data attached to progress events
+          accumulateArtifacts(eventData)
           const nextStages = advanceStages(currentStages, stageId, message)
           currentStages = nextStages
 
-          if (THINKING_CARD_STAGES.has(stageId) && message) {
-            setMessages((prev) => [
-              ...prev.map((m) =>
-                m.id === progressId ? { ...m, card: buildPipelineProgressCard(nextStages) } : m,
-              ),
-              {
-                id: uid('thinking'),
-                role: 'assistant' as const,
-                content: '',
-                card: { type: 'thinking' as const, data: { stage: stageId, message, isComplete: true } },
-              },
-            ])
-          } else {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === progressId ? { ...m, card: buildPipelineProgressCard(nextStages) } : m,
-              ),
-            )
-          }
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === progressId ? { ...m, card: buildPipelineProgressCard(nextStages) } : m,
+            ),
+          )
         },
 
         onAgentThinking: (data) => {
           if (data.text) {
             currentStages = updateThinkingText(currentStages, data.stage, data.text)
+            currentStagesRef.current = currentStages
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === progressId ? { ...m, card: buildPipelineProgressCard(currentStages) } : m,
               ),
             )
           }
+        },
+
+        onThreadId: (threadId) => {
+          threadIdRef.current = threadId
+        },
+
+        onCheckpoint: (cpData) => {
+          // Pause pipeline progress at checkpoint
+          currentStages = pauseAtCheckpoint(currentStages)
+          currentStagesRef.current = currentStages
+          const cpPayload = cpData as CheckpointPayload
+          accumulateArtifacts(cpPayload)
+
+          setMessages((prev) => {
+            let next = prev.map((m) =>
+              m.id === progressId
+                ? { ...m, card: buildPipelineProgressCard(currentStages) }
+                : m,
+            )
+
+            if (cpPayload.stage === 'debate_resolution') {
+              next = [
+                ...next,
+                {
+                  id: uid('bridge'),
+                  role: 'assistant' as const,
+                  content: "My analysts debated this. Here's where they landed \u2014 review and let me know if you'd adjust anything.",
+                },
+                {
+                  id: uid('card-debate'),
+                  role: 'assistant' as const,
+                  content: '',
+                  card: { type: 'debate_summary' as const, data: cpPayload.debateResolution },
+                },
+                {
+                  id: uid('card-cp'),
+                  role: 'assistant' as const,
+                  content: '',
+                  card: {
+                    type: 'checkpoint' as const,
+                    data: buildDebateCheckpointData(cpPayload),
+                  },
+                },
+              ]
+            } else if (cpPayload.type === 'soft') {
+              next = [
+                ...next,
+                {
+                  id: uid('card-soft-cp'),
+                  role: 'assistant' as const,
+                  content: '',
+                  card: {
+                    type: 'soft_checkpoint' as const,
+                    data: buildSoftCheckpointData(cpPayload),
+                  },
+                },
+              ]
+            }
+
+            return next
+          })
+
+          setIsLoading(false)
         },
 
         onImpactDelta: (data) => {
@@ -1412,10 +1393,9 @@ export function ChatArea({
               },
             ])
           } else {
-            // Single-signal pipeline complete
+            // Single-signal pipeline complete — consolidated report card
             const finalStages = markAllComplete(currentStages)
             const payload = data as AnalysisCompleteData
-            const selection = selectPipelineCards(payload)
 
             setMessages((prev) => {
               let next = prev.map((m) =>
@@ -1426,72 +1406,24 @@ export function ChatArea({
                 const verdict = payload.verdict
                 const syntheticSignal = { id: 'unified', headline: content } as Signal
                 const impactDelta = latestImpactDelta ?? mapImpactDeltaData(syntheticSignal, verdict)
-                const reasoningTrace = mapReasoningTraceData({
-                  signal: syntheticSignal,
-                  verdict,
-                  researchBrief: payload.researchBrief,
-                  intermediateArtifacts: payload.intermediateArtifacts,
-                  steps: reasoningSteps,
-                })
                 latestImpactDelta = impactDelta
-                latestReasoningTrace = reasoningTrace
 
-                if (selection.showVerdictSummary) {
-                  const netImpact = verdict.holdingImpacts
-                    .map((h) => h.impact['1M']?.mid ?? 0)
-                    .reduce((sum, v) => sum + v, 0)
-                  const holdingCount = verdict.holdingImpacts.length
-                  const avgConfidence = holdingCount > 0
-                    ? verdict.holdingImpacts.reduce((sum, h) => sum + h.confidence, 0) / holdingCount
-                    : 0
-                  const direction: VerdictSummaryData['direction'] =
-                    netImpact < -25 ? 'bearish' : netImpact > 25 ? 'bullish' : 'neutral'
+                const debateRounds = payload.intermediateArtifacts?.debateResolution?.rounds ?? 0
+                const qualityScore = Math.round((payload.verdict?.qualityScore ?? 0) * 100)
 
-                  next = upsertCardMessage(next, verdictSummaryId, {
-                    type: 'verdict_summary',
-                    data: { netImpact, holdingCount, direction, confidence: Math.round(avgConfidence * 100), signalHeadline: content },
-                  })
-                }
-
-                if (selection.showImpactDelta) {
-                  next = upsertCardMessage(next, impactDeltaId, { type: 'signal_impact_delta', data: impactDelta })
-                }
-
-                if (selection.showDebate && payload.intermediateArtifacts?.debateResolution) {
-                  next = upsertCardMessage(next, debateSummaryId, {
-                    type: 'debate_summary', data: payload.intermediateArtifacts.debateResolution,
-                  })
-                }
-
-                if (selection.showRecommendations) {
-                  next = upsertCardMessage(next, recommendationId, { type: 'recommendation', data: verdict.recommendations })
-                }
-              }
-
-              if (payload.researchBrief) {
-                next = upsertCardMessage(next, researchBriefId, { type: 'research_brief', data: payload.researchBrief })
-              }
-
-              if (selection.showTransparencyBar && latestReasoningTrace) {
-                next = upsertCardMessage(next, transparencyBarId, {
-                  type: 'transparency_bar',
+                next = upsertCardMessage(next, impactDeltaId, {
+                  type: 'analysis_report',
                   data: {
+                    signal: { id: 'unified', headline: content },
+                    verdict,
+                    impactDelta,
+                    intermediateArtifacts: payload.intermediateArtifacts,
+                    researchBrief: payload.researchBrief,
+                    qualityScore,
                     agentCount: PIPELINE_STAGES.length,
-                    debateRounds: payload.intermediateArtifacts?.debateResolution?.rounds ?? 0,
-                    qualityScore: payload.verdict?.qualityScore ?? 0,
-                    reasoningTrace: latestReasoningTrace,
+                    debateRounds,
                   },
                 })
-              }
-
-              // Attach follow-ups to last card
-              if (payload.verdict) {
-                const syntheticSignal = { id: 'unified', headline: content } as Signal
-                const followUps = buildSignalAnalysisFollowUps(syntheticSignal, payload.verdict)
-                const lastIdx = next.length - 1
-                if (lastIdx >= 0 && next[lastIdx].card) {
-                  next = [...next.slice(0, lastIdx), { ...next[lastIdx], suggestedFollowUps: [...followUps] }]
-                }
               }
 
               return next
@@ -1627,8 +1559,10 @@ export function ChatArea({
           {messages.map((msg) => {
             if (msg.card) {
               const followUps = msg.suggestedFollowUps ?? []
+              const hasReasoning = msg.card.type === 'structured_response' && msg.content.trim().length > 0
               return (
                 <div key={msg.id} className="chat-area__card-wrapper">
+                  {hasReasoning && <CollapsibleReasoning text={msg.content} durationSec={msg.thinkingDurationSec} />}
                   <ChatCardRenderer
                     card={msg.card}
                     onCheckpointSubmit={handleCheckpointSubmit}
@@ -1638,16 +1572,19 @@ export function ChatArea({
                     onActionCenterMode={onActionCenterMode}
                   />
                   {followUps.length > 0 && (
-                    <div className="chat-message__suggestion-pills">
-                      {followUps.map((query) => (
-                        <button
-                          key={query}
-                          className="chat-message__suggestion-pill"
-                          onClick={() => handleSend(query)}
-                        >
-                          {query}
-                        </button>
-                      ))}
+                    <div className="chat-message__follow-ups">
+                      <span className="chat-message__follow-ups-label">Follow-ups</span>
+                      <div className="chat-message__suggestion-pills">
+                        {followUps.map((query) => (
+                          <button
+                            key={query}
+                            className="chat-message__suggestion-pill"
+                            onClick={() => handleSend(query)}
+                          >
+                            {query}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>

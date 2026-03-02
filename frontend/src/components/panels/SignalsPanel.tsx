@@ -1,5 +1,5 @@
 // SignalsPanel — Wealthsimple-style card rows showing detected market signals.
-// Each card: headline + urgency/time metadata. Click triggers pipeline analysis.
+// Each card: headline + urgency/time metadata + tooltip + source links.
 
 import type { Signal } from '@prism/shared'
 
@@ -14,6 +14,13 @@ const URGENCY_LABELS: Record<string, string> = {
   high: 'High',
   medium: 'Medium',
   low: 'Low',
+}
+
+const URGENCY_COLORS: Record<string, string> = {
+  critical: 'var(--color-negative, #d92b2b)',
+  high: 'var(--color-ambiguous, #c87d15)',
+  medium: 'var(--color-text-muted, #71717A)',
+  low: 'var(--color-text-muted, #A1A1AA)',
 }
 
 function formatRelativeTime(dateStr: string): string {
@@ -44,11 +51,69 @@ function SkeletonCards() {
   )
 }
 
+function SignalCard({
+  signal,
+  onAnalyze,
+}: {
+  readonly signal: Signal
+  readonly onAnalyze: (signal: Signal) => void
+}) {
+  const urgencyLabel = URGENCY_LABELS[signal.urgency] ?? signal.urgency
+  const urgencyColor = URGENCY_COLORS[signal.urgency] ?? URGENCY_COLORS.medium
+  const timeAgo = formatRelativeTime(signal.detectedAt)
+  const sources = signal.sources.slice(0, 2)
+
+  // Build native tooltip: description + affected exposures
+  const tooltipParts = [
+    signal.portfolioSummary || signal.description,
+    signal.affectedExposures.length > 0
+      ? `Affects: ${signal.affectedExposures.slice(0, 4).join(', ')}`
+      : '',
+  ].filter(Boolean)
+  const tooltip = tooltipParts.join('\n')
+
+  return (
+    <li className="signals-panel__item">
+      <button
+        className="signals-panel__card"
+        onClick={() => onAnalyze(signal)}
+        type="button"
+        title={tooltip}
+      >
+        <span className="signals-panel__headline">{signal.headline}</span>
+        <span className="signals-panel__meta">
+          <span className="signals-panel__urgency" style={{ color: urgencyColor }}>
+            {urgencyLabel}
+          </span>
+          <span className="signals-panel__sep">&middot;</span>
+          <span>{timeAgo}</span>
+        </span>
+        {sources.length > 0 && (
+          <span className="signals-panel__sources">
+            {sources.map((source, i) => (
+              <a
+                key={i}
+                className="signals-panel__source-link"
+                href={source.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                title={source.title}
+              >
+                {source.publisher || new URL(source.url).hostname.replace('www.', '')}
+              </a>
+            ))}
+          </span>
+        )}
+      </button>
+    </li>
+  )
+}
+
 export function SignalsPanel({ signals, loading, onAnalyze }: SignalsPanelProps) {
   if (loading) {
     return (
       <div className="signals-panel">
-        <h3 className="signals-panel__title">Market Signals</h3>
         <SkeletonCards />
       </div>
     )
@@ -57,7 +122,6 @@ export function SignalsPanel({ signals, loading, onAnalyze }: SignalsPanelProps)
   if (signals.length === 0) {
     return (
       <div className="signals-panel">
-        <h3 className="signals-panel__title">Market Signals</h3>
         <div className="signals-panel__empty">No active signals</div>
       </div>
     )
@@ -65,29 +129,10 @@ export function SignalsPanel({ signals, loading, onAnalyze }: SignalsPanelProps)
 
   return (
     <div className="signals-panel">
-      <div className="signals-panel__header">
-        <h3 className="signals-panel__title">Market Signals</h3>
-      </div>
       <ul className="signals-panel__list">
-        {signals.map((signal) => {
-          const urgencyLabel = URGENCY_LABELS[signal.urgency] ?? signal.urgency
-          const timeAgo = formatRelativeTime(signal.detectedAt)
-
-          return (
-            <li key={signal.id} className="signals-panel__item">
-              <button
-                className="signals-panel__card"
-                onClick={() => onAnalyze(signal)}
-                type="button"
-              >
-                <span className="signals-panel__headline">{signal.headline}</span>
-                <span className="signals-panel__meta">
-                  {urgencyLabel} &middot; {timeAgo}
-                </span>
-              </button>
-            </li>
-          )
-        })}
+        {signals.map((signal) => (
+          <SignalCard key={signal.id} signal={signal} onAnalyze={onAnalyze} />
+        ))}
       </ul>
     </div>
   )

@@ -6,20 +6,25 @@ import type { ActionCenterMode } from './types'
 
 interface DebateSummaryCardProps {
   readonly data: unknown
-  readonly onFollowUp?: (query: string) => void
   readonly onActionCenterMode?: (mode: ActionCenterMode) => void
 }
 
-export function DebateSummaryCard({ data, onFollowUp, onActionCenterMode }: DebateSummaryCardProps) {
-  const debate = data as DebateResolution
+export function DebateSummaryCard({ data, onActionCenterMode }: DebateSummaryCardProps) {
+  const raw = data as DebateResolution | undefined
+  if (!raw) return null
 
-  function handleDisagreementClick(disagreement: string) {
-    onFollowUp?.(`Tell me more about: ${disagreement}`)
+  // Filter out fallback concessions (from JSON parsing failures)
+  const debate: DebateResolution = {
+    ...raw,
+    bullConcessions: (raw.bullConcessions ?? []).filter((c) => !c.startsWith('Fallback applied:')),
+    bearConcessions: (raw.bearConcessions ?? []).filter((c) => !c.startsWith('Fallback applied:')),
   }
 
   function handleViewTranscript() {
     onActionCenterMode?.({ mode: 'debate_transcript', debate })
   }
+
+  const unresolvedCount = debate.unresolvedDisagreements.length
 
   return (
     <div className="chat-card chat-card--debate">
@@ -32,45 +37,38 @@ export function DebateSummaryCard({ data, onFollowUp, onActionCenterMode }: Deba
         <span>{(debate.consensusConfidence * 100).toFixed(0)}% confidence</span>
       </div>
 
-      <div className="chat-card__debate-sides">
-        <div className="chat-card__debate-side chat-card__debate-side--bull">
-          <h5>Bull Concessions</h5>
-          <ul>
-            {debate.bullConcessions.length > 0
-              ? debate.bullConcessions.map((c, i) => <li key={i}>{c}</li>)
-              : <li className="chat-card__none">None</li>
-            }
-          </ul>
-        </div>
-        <div className="chat-card__debate-side chat-card__debate-side--bear">
-          <h5>Bear Concessions</h5>
-          <ul>
-            {debate.bearConcessions.length > 0
-              ? debate.bearConcessions.map((c, i) => <li key={i}>{c}</li>)
-              : <li className="chat-card__none">None</li>
-            }
-          </ul>
-        </div>
+      <div className="chat-card__debate-preview">
+        {debate.bullConcessions.length > 0 && (
+          <div className="chat-card__debate-preview-side">
+            <span className="chat-card__debate-preview-label chat-card__debate-preview-label--bull">
+              Bull conceded
+            </span>
+            <ul>
+              {debate.bullConcessions.map((c, i) => <li key={i}>{c}</li>)}
+            </ul>
+          </div>
+        )}
+        {debate.bearConcessions.length > 0 && (
+          <div className="chat-card__debate-preview-side">
+            <span className="chat-card__debate-preview-label chat-card__debate-preview-label--bear">
+              Bear conceded
+            </span>
+            <ul>
+              {debate.bearConcessions.map((c, i) => <li key={i}>{c}</li>)}
+            </ul>
+          </div>
+        )}
+        {debate.bullConcessions.length === 0 && debate.bearConcessions.length === 0 && (
+          <p className="chat-card__debate-summary">No concessions from either side</p>
+        )}
       </div>
 
-      {debate.unresolvedDisagreements.length > 0 && (
-        <div className="chat-card__unresolved">
-          <h5>Unresolved</h5>
-          <ul>
-            {debate.unresolvedDisagreements.map((d, i) => (
-              <li
-                key={i}
-                className="chat-card__unresolved-item"
-                role="button"
-                tabIndex={0}
-                onClick={() => handleDisagreementClick(d)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleDisagreementClick(d) }}
-              >
-                {d}
-              </li>
-            ))}
-          </ul>
-        </div>
+      {unresolvedCount > 0 && (
+        <p className="chat-card__debate-summary">
+          <span className="chat-card__debate-unresolved-count">
+            {unresolvedCount} unresolved disagreement{unresolvedCount !== 1 ? 's' : ''}
+          </span>
+        </p>
       )}
 
       <div className="chat-card__debate-footer">

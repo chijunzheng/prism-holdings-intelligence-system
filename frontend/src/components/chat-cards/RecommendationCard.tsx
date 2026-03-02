@@ -207,31 +207,6 @@ export function RecommendationCard({
           )}
         </div>
 
-        {onFollowUp && (
-          <div className="chat-card__follow-up-pills">
-            <button
-              type="button"
-              className="chat-card__follow-up-pill"
-              onClick={() => onFollowUp('What if I do nothing instead?')}
-            >
-              What if I do nothing?
-            </button>
-            <button
-              type="button"
-              className="chat-card__follow-up-pill"
-              onClick={() => onFollowUp('How much would this cost in fees?')}
-            >
-              How much in fees?
-            </button>
-            <button
-              type="button"
-              className="chat-card__follow-up-pill"
-              onClick={() => onFollowUp('What are the tax implications of this plan?')}
-            >
-              Tax impact?
-            </button>
-          </div>
-        )}
       </div>
     )
   }

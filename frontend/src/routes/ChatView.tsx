@@ -96,6 +96,11 @@ export function ChatView() {
       .slice(0, 2)
   }, [userName])
 
+  const allHoldings = useMemo(() => {
+    if (!portfolio) return []
+    return portfolio.accounts.flatMap((a) => a.holdings)
+  }, [portfolio])
+
   const chatSendRef = useRef<((msg: string) => void) | null>(null)
   const analyzeSignalRef = useRef<((signal: Signal) => void) | null>(null)
 
@@ -156,9 +161,19 @@ export function ChatView() {
     updateSearchParam(searchParams, setSearchParams, 'panel', tab)
   }, [searchParams, setSearchParams])
 
-  const handleSearchSelect = useCallback((sessionId: string) => {
+  const handleSearchSelectSession = useCallback((sessionId: string) => {
     selectSession(sessionId)
   }, [selectSession])
+
+  const handleSearchSelectHolding = useCallback((ticker: string) => {
+    setIsSearchOpen(false)
+    handleHoldingClick(ticker)
+  }, [handleHoldingClick])
+
+  const handleSearchSelectSignal = useCallback((signal: Signal) => {
+    setIsSearchOpen(false)
+    handleSignalAnalyze(signal)
+  }, [handleSignalAnalyze])
 
   // Mode change handler — auto-opens Action Center
   const handleActionCenterMode = useCallback((mode: ActionCenterMode) => {
@@ -167,6 +182,7 @@ export function ChatView() {
   }, [])
 
   const handleActionCenterClose = useCallback(() => {
+    setIsActionCenterOpen(false)
     dispatchActionCenter({ type: 'RESET' })
   }, [])
 
@@ -276,11 +292,11 @@ export function ChatView() {
         <div className="home-view__toolbar">
           <button
             type="button"
-            className="home-view__toolbar-btn"
-            onClick={() => setIsActionCenterOpen((prev) => !prev)}
-            aria-label={isActionCenterOpen ? 'Hide details panel' : 'Show details panel'}
+            className={`home-view__toolbar-btn ${isActionCenterOpen ? 'home-view__toolbar-btn--hidden' : ''}`}
+            onClick={() => setIsActionCenterOpen(true)}
+            aria-label="Show details panel"
           >
-            {isActionCenterOpen ? 'Hide Details' : 'Show Details'}
+            Show Details
           </button>
         </div>
 
@@ -300,21 +316,24 @@ export function ChatView() {
             />
           </section>
 
-          {isActionCenterOpen && (
-            <section className="home-view__action">
-              <ActionCenter
-                mode={actionCenterMode}
-                onClose={handleActionCenterClose}
-              />
-            </section>
-          )}
+          <section className={`home-view__action ${isActionCenterOpen ? 'home-view__action--open' : ''}`}>
+            <ActionCenter
+              mode={actionCenterMode}
+              onClose={handleActionCenterClose}
+              onActionCenterMode={handleActionCenterMode}
+            />
+          </section>
         </div>
       </main>
 
       {isSearchOpen && (
         <SearchModal
           sessions={sessions}
-          onSelect={handleSearchSelect}
+          holdings={allHoldings}
+          signals={signals}
+          onSelectSession={handleSearchSelectSession}
+          onSelectHolding={handleSearchSelectHolding}
+          onSelectSignal={handleSearchSelectSignal}
           onClose={() => setIsSearchOpen(false)}
         />
       )}

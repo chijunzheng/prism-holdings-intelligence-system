@@ -1,4 +1,8 @@
-// ThinkingCard — shows real-time pipeline progress per agent stage.
+// ThinkingCard — shows real-time thinking/reasoning progress.
+// Used for both pipeline agent stages and chat route thinking tokens.
+
+import { useEffect, useRef } from 'react'
+import { renderMarkdown } from '../chat/render-markdown'
 
 interface ThinkingData {
   readonly stage: string
@@ -29,12 +33,20 @@ const STAGE_ICONS: Record<string, string> = {
 
 export function ThinkingCard({ data }: ThinkingCardProps) {
   const thinking = data as ThinkingData
+  const detailRef = useRef<HTMLDivElement>(null)
 
   const label = STAGE_ICONS[thinking.stage] ?? thinking.stage
   const isComplete = thinking.isComplete ?? false
 
+  // Auto-scroll to bottom as thinking tokens stream in
+  useEffect(() => {
+    if (detailRef.current) {
+      detailRef.current.scrollTop = detailRef.current.scrollHeight
+    }
+  }, [thinking.message])
+
   return (
-    <div className={`chat-card chat-card--thinking ${isComplete ? 'chat-card--thinking-complete' : ''}`}>
+    <div className="chat-card chat-card--thinking">
       <div className="chat-card__thinking-indicator">
         {isComplete ? (
           <span className="chat-card__check">&#10003;</span>
@@ -43,8 +55,13 @@ export function ThinkingCard({ data }: ThinkingCardProps) {
         )}
         <span className="chat-card__stage-label">{label}</span>
       </div>
-      {thinking.message && (
-        <p className="chat-card__thinking-detail">{thinking.message}</p>
+      {thinking.message && thinking.message !== 'Prism is thinking...' && (
+        <div
+          ref={detailRef}
+          className="chat-card__thinking-detail chat-card__thinking-detail--streaming"
+        >
+          {renderMarkdown(thinking.message)}
+        </div>
       )}
     </div>
   )

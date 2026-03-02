@@ -1,13 +1,8 @@
 // CheckpointCard — captures user input at pipeline checkpoints.
-// Shows quick reply chips + text input for corrections.
+// Shows contextual summary banner + quick reply chips + text input for corrections.
 
 import { useState } from 'react'
-
-interface CheckpointData {
-  readonly stage: string
-  readonly prompt: string
-  readonly quickReplies?: readonly string[]
-}
+import type { CheckpointCardData } from './types'
 
 interface CheckpointCardProps {
   readonly data: unknown
@@ -15,9 +10,11 @@ interface CheckpointCardProps {
 }
 
 export function CheckpointCard({ data, onSubmit }: CheckpointCardProps) {
-  const checkpoint = data as CheckpointData
+  const checkpoint = data as CheckpointCardData | null
   const [inputValue, setInputValue] = useState('')
   const [submitted, setSubmitted] = useState(false)
+
+  if (!checkpoint) return null
 
   function handleSubmit(value: string) {
     setSubmitted(true)
@@ -36,6 +33,23 @@ export function CheckpointCard({ data, onSubmit }: CheckpointCardProps) {
   return (
     <div className="chat-card chat-card--checkpoint">
       <h4 className="chat-card__title">Your Input Needed</h4>
+
+      {checkpoint.summary && (
+        <div className="checkpoint__summary-banner">
+          <span className={`checkpoint__badge checkpoint__badge--${checkpoint.summary.direction}`}>
+            {checkpoint.summary.direction}
+          </span>
+          <span className="checkpoint__badge">
+            {checkpoint.summary.confidence}% confidence
+          </span>
+          {checkpoint.summary.unresolvedCount > 0 && (
+            <span className="checkpoint__badge checkpoint__badge--warning">
+              {checkpoint.summary.unresolvedCount} unresolved
+            </span>
+          )}
+        </div>
+      )}
+
       <p className="chat-card__prompt">{checkpoint.prompt}</p>
 
       {checkpoint.quickReplies && checkpoint.quickReplies.length > 0 && (

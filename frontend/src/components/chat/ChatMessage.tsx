@@ -120,9 +120,6 @@ export function ChatMessage({ message, onFollowUp }: ChatMessageProps) {
         ) : (
           <p className="chat-message__text">{message.content}</p>
         )}
-        {isStreaming && (
-          <span className="chat-message__cursor" aria-hidden="true" />
-        )}
       </div>
       {showActions && (
         <div className="chat-message__actions">
@@ -130,16 +127,19 @@ export function ChatMessage({ message, onFollowUp }: ChatMessageProps) {
         </div>
       )}
       {showActions && onFollowUp && followUps.length > 0 && (
-        <div className="chat-message__suggestion-pills">
-          {followUps.map((query) => (
-            <button
-              key={query}
-              className="chat-message__suggestion-pill"
-              onClick={() => onFollowUp(query)}
-            >
-              {query}
-            </button>
-          ))}
+        <div className="chat-message__follow-ups">
+          <span className="chat-message__follow-ups-label">Follow-ups</span>
+          <div className="chat-message__suggestion-pills">
+            {followUps.map((query) => (
+              <button
+                key={query}
+                className="chat-message__suggestion-pill"
+                onClick={() => onFollowUp(query)}
+              >
+                {query}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>

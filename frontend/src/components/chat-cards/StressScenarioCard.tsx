@@ -15,8 +15,10 @@ function formatDollar(n: number): string {
 }
 
 export function StressScenarioCard({ data, onSelect }: StressScenarioCardProps) {
-  const stress = data as StressTestResult
+  const stress = data as StressTestResult | undefined
   const [selected, setSelected] = useState<string | null>(null)
+
+  if (!stress?.baseCase) return null
 
   function handleSelect(scenario: string) {
     setSelected(scenario)
@@ -54,7 +56,11 @@ export function StressScenarioCard({ data, onSelect }: StressScenarioCardProps) 
         ))}
       </div>
 
-      {!selected && (
+      {selected ? (
+        <p className="chat-card__hint chat-card__hint--selected">
+          Planning for {selected === 'base' ? 'most likely' : selected} scenario...
+        </p>
+      ) : (
         <p className="chat-card__hint">Select a scenario to plan for</p>
       )}
     </div>

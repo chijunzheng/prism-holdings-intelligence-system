@@ -44,15 +44,15 @@ export type { ThinkingCallback } from './types.js'
 
 export type CheckpointPause =
   | {
-      readonly stage: 'debate_resolution'
-      readonly type: 'hard'
-      readonly debateResolution: DebateResolution
+      readonly stage: 'analyst_review'
+      readonly type: 'soft'
       readonly analystAssessments: readonly AnalystAssessment[]
       readonly riskProfile: InferredRiskProfile
     }
   | {
-      readonly stage: 'analyst_review'
+      readonly stage: 'debate_resolution'
       readonly type: 'soft'
+      readonly debateResolution: DebateResolution
       readonly analystAssessments: readonly AnalystAssessment[]
       readonly riskProfile: InferredRiskProfile
     }
@@ -86,7 +86,7 @@ const NODE_TO_STAGE: Readonly<Record<string, string>> = {
   run_analysts: 'analyst_complete',
   soft_cp_analysts: 'soft_cp_analysts',
   run_debate: 'debate_complete',
-  checkpoint_1: 'checkpoint_1',
+  soft_cp_debate: 'soft_cp_debate',
   assumptions_challenger: 'risk_challenge',
   magnitude_validator: 'magnitude_validation',
   portfolio_stress: 'stress_complete',
@@ -185,11 +185,11 @@ function detectCheckpoint(accumulated: Record<string, unknown>): CheckpointPause
   // Actually, if judge converged and we hit soft_cp_verdict, verdict exists but brief is null
   // For hard checkpoints:
 
-  // Hard checkpoint 1: debate completed but no stress test yet
+  // Soft checkpoint: post-debate (debate completed but no risk challenge yet)
   if (hasDebateResolution && !hasRiskChallenge) {
     return {
       stage: 'debate_resolution',
-      type: 'hard',
+      type: 'soft',
       debateResolution: accumulated.debateResolution as DebateResolution,
       analystAssessments: (accumulated.analystAssessments ?? []) as readonly AnalystAssessment[],
       riskProfile: accumulated.riskProfile as InferredRiskProfile,

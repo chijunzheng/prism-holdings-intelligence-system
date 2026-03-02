@@ -75,6 +75,17 @@ export const MetricRowSectionSchema = z.object({
 })
 export type MetricRowSection = z.infer<typeof MetricRowSectionSchema>
 
+export const ActionItemSectionSchema = z.object({
+  type: z.literal('action_item'),
+  action: z.enum(['buy', 'sell', 'hold', 'rebalance', 'explore']),
+  title: z.string(),
+  description: z.string(),
+  tickers: z.array(z.string()).optional(),
+  amount: z.string().optional(),
+  actionPrompt: z.string().optional(),
+})
+export type ActionItemSection = z.infer<typeof ActionItemSectionSchema>
+
 // Group uses z.lazy() for recursive nesting
 export const GroupSectionSchema: z.ZodType<{
   type: 'group'
@@ -97,6 +108,7 @@ export const StructuredSectionSchema: z.ZodType<StructuredSection> = z.discrimin
   TextSectionSchema,
   InsightSectionSchema,
   MetricRowSectionSchema,
+  ActionItemSectionSchema,
 ]) .or(GroupSectionSchema) as z.ZodType<StructuredSection>
 
 export type StructuredSection =
@@ -106,6 +118,7 @@ export type StructuredSection =
   | TextSection
   | InsightSection
   | MetricRowSection
+  | ActionItemSection
   | GroupSection
 
 // ── Root Data Type ─────────────────────────────────────────

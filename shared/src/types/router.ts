@@ -24,6 +24,7 @@ export const RouterIntentSchema = z.object({
   extractedTicker: z.string().optional(),
   matchedSignalId: z.string().optional(),
   extractedAssertions: z.array(z.string()).optional(),
+  introText: z.string().optional(),
 })
 export type RouterIntent = z.infer<typeof RouterIntentSchema>
 
@@ -40,4 +41,5 @@ export interface RouteDecisionEvent {
   readonly route: RouteType
   readonly pipelineMode?: PipelineMode
   readonly confidence: number
+  readonly introText?: string
 }

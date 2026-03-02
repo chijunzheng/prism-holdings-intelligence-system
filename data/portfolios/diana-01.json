@@ -9,18 +9,36 @@
           "ticker": "ZAG",
           "name": "BMO Aggregate Bond Index ETF",
           "type": "BOND_ETF",
-          "valueCad": 25000,
-          "units": 1650.0,
+          "valueCad": 35000,
+          "units": 2310.9,
           "accountType": "RRSP",
+          "bookValueCad": 33962.43,
+          "dayChangeCad": 34.61,
+          "dayChangePct": 0.10,
           "dataAsOf": "2026-02-28T00:00:00Z"
         },
         {
           "ticker": "ZEB",
           "name": "BMO Equal Weight Banks Index ETF",
           "type": "ETF",
-          "valueCad": 15000,
-          "units": 342.9,
+          "valueCad": 40000,
+          "units": 914.3,
           "accountType": "RRSP",
+          "bookValueCad": 36487.57,
+          "dayChangeCad": -161.28,
+          "dayChangePct": -0.40,
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        },
+        {
+          "ticker": "ZDV",
+          "name": "BMO Canadian Dividend ETF",
+          "type": "ETF",
+          "valueCad": 35000,
+          "units": 2000.0,
+          "accountType": "RRSP",
+          "bookValueCad": 32523.86,
+          "dayChangeCad": -51.87,
+          "dayChangePct": -0.15,
           "dataAsOf": "2026-02-28T00:00:00Z"
         }
       ]
@@ -30,21 +48,39 @@
       "type": "TFSA",
       "holdings": [
         {
-          "ticker": "ZDV",
-          "name": "BMO Canadian Dividend ETF",
-          "type": "ETF",
-          "valueCad": 12000,
-          "units": 685.7,
-          "accountType": "TFSA",
-          "dataAsOf": "2026-02-28T00:00:00Z"
-        },
-        {
           "ticker": "RY",
           "name": "Royal Bank of Canada",
           "type": "STOCK",
-          "valueCad": 5000,
-          "units": 28.0,
+          "valueCad": 30000,
+          "units": 168.0,
           "accountType": "TFSA",
+          "bookValueCad": 26612.04,
+          "dayChangeCad": 90.83,
+          "dayChangePct": 0.30,
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        },
+        {
+          "ticker": "ENB",
+          "name": "Enbridge Inc.",
+          "type": "STOCK",
+          "valueCad": 20000,
+          "units": 328.0,
+          "accountType": "TFSA",
+          "bookValueCad": 17282.61,
+          "dayChangeCad": 59.46,
+          "dayChangePct": 0.30,
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        },
+        {
+          "ticker": "XIC",
+          "name": "iShares Core S&P/TSX Capped Composite Index ETF",
+          "type": "ETF",
+          "valueCad": 15000,
+          "units": 401.1,
+          "accountType": "TFSA",
+          "bookValueCad": 13456.73,
+          "dayChangeCad": -29.81,
+          "dayChangePct": -0.20,
           "dataAsOf": "2026-02-28T00:00:00Z"
         }
       ]
@@ -57,23 +93,29 @@
           "ticker": "XIC",
           "name": "iShares Core S&P/TSX Capped Composite Index ETF",
           "type": "ETF",
-          "valueCad": 10000,
-          "units": 267.4,
+          "valueCad": 25000,
+          "units": 668.4,
           "accountType": "LIRA",
+          "bookValueCad": 22287.05,
+          "dayChangeCad": -49.62,
+          "dayChangePct": -0.20,
           "dataAsOf": "2026-02-28T00:00:00Z"
         },
         {
-          "ticker": "ENB",
-          "name": "Enbridge Inc.",
-          "type": "STOCK",
-          "valueCad": 5000,
-          "units": 82.0,
+          "ticker": "VFV",
+          "name": "Vanguard S&P 500 Index ETF",
+          "type": "ETF",
+          "valueCad": 20000,
+          "units": 166.7,
           "accountType": "LIRA",
+          "bookValueCad": 17056.83,
+          "dayChangeCad": 80.74,
+          "dayChangePct": 0.40,
           "dataAsOf": "2026-02-28T00:00:00Z"
         }
       ]
     }
   ],
-  "totalValueCad": 72000,
+  "totalValueCad": 220000,
   "lastUpdated": "2026-02-28T00:00:00Z"
 }

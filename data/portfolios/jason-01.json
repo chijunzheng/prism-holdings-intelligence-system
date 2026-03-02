@@ -1,67 +1,67 @@
 {
-  "userId": "marcus-01",
+  "userId": "jason-01",
   "accounts": [
     {
-      "id": "marcus-tfsa",
+      "id": "jason-tfsa",
       "type": "TFSA",
       "holdings": [
         {
           "ticker": "NVDA",
           "name": "NVIDIA Corporation",
           "type": "STOCK",
-          "valueCad": 15000,
-          "units": 75.0,
+          "valueCad": 45000,
+          "units": 225.0,
           "accountType": "TFSA",
-          "bookValueCad": 9293.73,
-          "dayChangeCad": 104.37,
-          "dayChangePct": 0.70,
+          "bookValueCad": 30762.59,
+          "dayChangeCad": 318.47,
+          "dayChangePct": 0.71,
           "dataAsOf": "2026-02-28T00:00:00Z"
         },
         {
-          "ticker": "SHOP",
-          "name": "Shopify Inc.",
-          "type": "STOCK",
-          "valueCad": 8000,
-          "units": 52.0,
+          "ticker": "XQQ",
+          "name": "iShares NASDAQ 100 Index ETF (CAD-Hedged)",
+          "type": "ETF",
+          "valueCad": 15000,
+          "units": 375.0,
           "accountType": "TFSA",
-          "bookValueCad": 5867.46,
-          "dayChangeCad": -55.84,
-          "dayChangePct": -0.70,
+          "bookValueCad": 12918.47,
+          "dayChangeCad": -43.12,
+          "dayChangePct": -0.29,
           "dataAsOf": "2026-02-28T00:00:00Z"
         }
       ]
     },
     {
-      "id": "marcus-nonreg",
+      "id": "jason-nonreg",
       "type": "NON_REGISTERED",
       "holdings": [
         {
           "ticker": "TSLA",
           "name": "Tesla Inc.",
           "type": "STOCK",
-          "valueCad": 5000,
-          "units": 12.0,
+          "valueCad": 22000,
+          "units": 53.0,
           "accountType": "NON_REGISTERED",
-          "bookValueCad": 3951.81,
-          "dayChangeCad": -39.63,
-          "dayChangePct": -0.80,
+          "bookValueCad": 24847.16,
+          "dayChangeCad": -173.58,
+          "dayChangePct": -0.79,
           "dataAsOf": "2026-02-28T00:00:00Z"
         },
         {
           "ticker": "BTCX.B",
           "name": "CI Galaxy Bitcoin ETF",
           "type": "ETF",
-          "valueCad": 2000,
-          "units": 85.0,
+          "valueCad": 13000,
+          "units": 553.0,
           "accountType": "NON_REGISTERED",
-          "bookValueCad": 1315.47,
-          "dayChangeCad": 19.74,
-          "dayChangePct": 1.00,
+          "bookValueCad": 8076.23,
+          "dayChangeCad": 134.22,
+          "dayChangePct": 1.03,
           "dataAsOf": "2026-02-28T00:00:00Z"
         }
       ]
     }
   ],
-  "totalValueCad": 30000,
+  "totalValueCad": 95000,
   "lastUpdated": "2026-02-28T00:00:00Z"
 }

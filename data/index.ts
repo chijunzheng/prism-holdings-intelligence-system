@@ -21,7 +21,7 @@ function loadJson<T>(path: string, parser: { parse: (data: unknown) => T }): T {
 
 const PORTFOLIO_FILES = [
   'portfolios/sarah-01.json',
-  'portfolios/marcus-01.json',
+  'portfolios/jason-01.json',
   'portfolios/diana-01.json',
 ] as const
 
@@ -65,7 +65,7 @@ export function getAllFundCompositions(): ReadonlyMap<string, FundComposition> {
 
 const PROFILE_FILES = [
   'user-profiles/sarah-01.json',
-  'user-profiles/marcus-01.json',
+  'user-profiles/jason-01.json',
   'user-profiles/diana-01.json',
 ] as const
 

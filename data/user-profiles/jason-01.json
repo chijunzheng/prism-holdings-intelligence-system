@@ -1,0 +1,15 @@
+{
+  "id": "jason-01",
+  "name": "Jason",
+  "age": 24,
+  "riskTolerance": "high",
+  "financialLiteracy": "moderate",
+  "goals": ["Maximum growth", "Early retirement by 35"],
+  "investmentHorizonYears": 30,
+  "context": "Full YOLO conviction portfolio. Active on r/wallstreetbets and FinTwit. Nearly half the portfolio is a single NVIDIA position — 'AI is a once-in-a-generation bet.' Thinks his Nasdaq ETF (XQQ) counts as diversification, unaware it adds even more NVDA and TSLA overlap. Tesla is a loyalty play. Bitcoin ETF because 'crypto winter is over.' Zero bonds, zero Canadian equity, zero hedges. Every macro signal hits the entire portfolio.",
+  "shortContext": "YOLO Redditor — 47% NVDA, 0 bonds",
+  "preferences": {
+    "maxDailyAlerts": 3,
+    "detailLevel": "detailed"
+  }
+}

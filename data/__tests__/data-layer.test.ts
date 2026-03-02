@@ -10,22 +10,22 @@ import {
 
 describe('Data Layer', () => {
   describe('Portfolios', () => {
-    it('loads all 6 portfolios with valid schemas', () => {
+    it('loads all 3 portfolios with valid schemas', () => {
       const portfolios = getPortfolios()
-      expect(portfolios).toHaveLength(6)
+      expect(portfolios).toHaveLength(3)
     })
 
     it('primary portfolio has correct total value', () => {
       const sarah = getPortfolioByUserId('sarah-01')
       expect(sarah).toBeDefined()
-      expect(sarah!.totalValueCad).toBe(40000)
+      expect(sarah!.totalValueCad).toBe(130000)
     })
 
-    it('primary portfolio has 6 holdings across 4 accounts', () => {
+    it('primary portfolio has 8 holdings across 4 accounts', () => {
       const sarah = getPortfolioByUserId('sarah-01')!
       expect(sarah.accounts).toHaveLength(4)
       const totalHoldings = sarah.accounts.reduce((sum, a) => sum + a.holdings.length, 0)
-      expect(totalHoldings).toBe(6)
+      expect(totalHoldings).toBe(8)
     })
 
     it('primary portfolio holding values sum to total', () => {
@@ -97,11 +97,11 @@ describe('Data Layer', () => {
       expect(sarah!.riskTolerance).toBe('moderate')
     })
 
-    it('Marcus is young and high risk tolerance', () => {
-      const marcus = getUserProfileById('marcus-01')
-      expect(marcus).toBeDefined()
-      expect(marcus!.age).toBe(25)
-      expect(marcus!.riskTolerance).toBe('high')
+    it('Jason is young and high risk tolerance', () => {
+      const jason = getUserProfileById('jason-01')
+      expect(jason).toBeDefined()
+      expect(jason!.age).toBe(24)
+      expect(jason!.riskTolerance).toBe('high')
     })
 
     it('Diana is pre-retiree with low risk tolerance', () => {

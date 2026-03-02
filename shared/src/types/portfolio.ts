@@ -12,6 +12,12 @@ export const HoldingSchema = z.object({
   valueCad: z.number().positive(),
   units: z.number().positive(),
   accountType: AccountType,
+  /** Day change in CAD (positive = gain, negative = loss) */
+  dayChangeCad: z.number().optional(),
+  /** Day change as percentage (e.g. 0.09 = +0.09%) */
+  dayChangePct: z.number().optional(),
+  /** Book value / cost basis in CAD (what the user paid) */
+  bookValueCad: z.number().positive().optional(),
   /** ISO date string of when this data was last refreshed */
   dataAsOf: z.string().datetime(),
 })

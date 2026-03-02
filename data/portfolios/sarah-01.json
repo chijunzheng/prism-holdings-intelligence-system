@@ -9,18 +9,24 @@
           "ticker": "VFV",
           "name": "Vanguard S&P 500 Index ETF",
           "type": "ETF",
-          "valueCad": 14000,
-          "units": 116.7,
+          "valueCad": 30000,
+          "units": 250.0,
           "accountType": "TFSA",
+          "bookValueCad": 25388.62,
+          "dayChangeCad": 121.47,
+          "dayChangePct": 0.40,
           "dataAsOf": "2026-02-28T00:00:00Z"
         },
         {
           "ticker": "XIC",
           "name": "iShares Core S&P/TSX Capped Composite Index ETF",
           "type": "ETF",
-          "valueCad": 10000,
-          "units": 267.4,
+          "valueCad": 25000,
+          "units": 668.4,
           "accountType": "TFSA",
+          "bookValueCad": 22381.59,
+          "dayChangeCad": -51.23,
+          "dayChangePct": -0.20,
           "dataAsOf": "2026-02-28T00:00:00Z"
         }
       ]
@@ -33,18 +39,24 @@
           "ticker": "ZAG",
           "name": "BMO Aggregate Bond Index ETF",
           "type": "BOND_ETF",
-          "valueCad": 8000,
-          "units": 528.0,
+          "valueCad": 15000,
+          "units": 990.1,
           "accountType": "RRSP",
+          "bookValueCad": 14582.17,
+          "dayChangeCad": 14.37,
+          "dayChangePct": 0.10,
           "dataAsOf": "2026-02-28T00:00:00Z"
         },
         {
           "ticker": "ZEB",
           "name": "BMO Equal Weight Banks Index ETF",
           "type": "ETF",
-          "valueCad": 5000,
-          "units": 114.3,
+          "valueCad": 20000,
+          "units": 457.1,
           "accountType": "RRSP",
+          "bookValueCad": 18123.47,
+          "dayChangeCad": -79.14,
+          "dayChangePct": -0.40,
           "dataAsOf": "2026-02-28T00:00:00Z"
         }
       ]
@@ -57,18 +69,24 @@
           "ticker": "XIC",
           "name": "iShares Core S&P/TSX Capped Composite Index ETF",
           "type": "ETF",
-          "valueCad": 6000,
-          "units": 160.4,
+          "valueCad": 10000,
+          "units": 267.4,
           "accountType": "FHSA",
+          "bookValueCad": 8956.16,
+          "dayChangeCad": -19.83,
+          "dayChangePct": -0.20,
           "dataAsOf": "2026-02-28T00:00:00Z"
         },
         {
           "ticker": "VFV",
           "name": "Vanguard S&P 500 Index ETF",
           "type": "ETF",
-          "valueCad": 4000,
-          "units": 33.3,
+          "valueCad": 6000,
+          "units": 50.0,
           "accountType": "FHSA",
+          "bookValueCad": 5041.76,
+          "dayChangeCad": 24.31,
+          "dayChangePct": 0.40,
           "dataAsOf": "2026-02-28T00:00:00Z"
         }
       ]
@@ -81,23 +99,29 @@
           "ticker": "XEG",
           "name": "iShares S&P/TSX Capped Energy Index ETF",
           "type": "ETF",
-          "valueCad": 3500,
-          "units": 189.0,
+          "valueCad": 14000,
+          "units": 756.8,
           "accountType": "NON_REGISTERED",
+          "bookValueCad": 12936.78,
+          "dayChangeCad": 153.72,
+          "dayChangePct": 1.10,
           "dataAsOf": "2026-02-28T00:00:00Z"
         },
         {
           "ticker": "XGD",
           "name": "iShares S&P/TSX Global Gold Index ETF",
           "type": "ETF",
-          "valueCad": 2500,
-          "units": 135.0,
+          "valueCad": 10000,
+          "units": 540.5,
           "accountType": "NON_REGISTERED",
+          "bookValueCad": 8250.69,
+          "dayChangeCad": 69.47,
+          "dayChangePct": 0.70,
           "dataAsOf": "2026-02-28T00:00:00Z"
         }
       ]
     }
   ],
-  "totalValueCad": 53000,
+  "totalValueCad": 130000,
   "lastUpdated": "2026-02-28T00:00:00Z"
 }

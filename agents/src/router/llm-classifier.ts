@@ -5,14 +5,7 @@ import { HumanMessage } from '@langchain/core/messages'
 import type { RouterIntent, Signal } from '@prism/shared'
 import { createGeminiChatModel } from '../utils/gemini-chat-model'
 import { getGeminiRouterModelName } from '../utils/env'
-
-function extractJson(text: string): string {
-  const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/)
-  if (codeBlockMatch) return codeBlockMatch[1].trim()
-  const jsonMatch = text.match(/\{[\s\S]*\}/)
-  if (jsonMatch) return jsonMatch[0]
-  return text
-}
+import { parseJsonSafe } from '../utils/json-parse.js'
 
 /**
  * @deprecated Use `understandQuery()` from `./query-understanding.ts` instead.
@@ -78,7 +71,7 @@ Respond with JSON only: {"route":"...","confidence":0.0-1.0,"reasoning":"...","p
         ? response.content.map((c) => ('text' in c ? c.text : '')).join('')
         : ''
 
-    const parsed = JSON.parse(extractJson(responseText))
+    const parsed = parseJsonSafe(responseText)
 
     return {
       route: parsed.route ?? 'chat',

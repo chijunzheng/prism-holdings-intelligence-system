@@ -7,6 +7,7 @@ import { HumanMessage } from '@langchain/core/messages'
 import type { RouterIntent, Signal } from '@prism/shared'
 import { createGeminiChatModel } from '../utils/gemini-chat-model'
 import { getGeminiRouterModelName } from '../utils/env'
+import { repairJson } from '../utils/json-parse.js'
 
 // ── Ambiguous Ticker Safety Net ──────────────────────────────
 // Common English words that are also valid ticker symbols.
@@ -30,14 +31,36 @@ export const AMBIGUOUS_TICKER_WORDS = new Set([
   'THIS', 'TRUE', 'TURN', 'WHAT', 'WHEN', 'WILL', 'WITH', 'WORK',
 ])
 
-// ── JSON Extraction ──────────────────────────────────────────
+// ── JSON Extraction & Repair ─────────────────────────────────
 
 function extractJson(text: string): string {
+  // Try standard markdown code fence first
   const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/)
   if (codeBlockMatch) return codeBlockMatch[1].trim()
+  // Strip leading/trailing code fences if closing ``` was cut off or regex missed
+  const stripped = text.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?\s*```\s*$/, '').trim()
+  if (stripped !== text.trim() && stripped.startsWith('{')) return stripped
+  // Fall back to extracting the first JSON object
   const jsonMatch = text.match(/\{[\s\S]*\}/)
   if (jsonMatch) return jsonMatch[0]
   return text
+}
+
+/** Attempt to repair truncated JSON from token-limited LLM responses. */
+function repairTruncatedJson(text: string): string {
+  let repaired = text.trim()
+  // Close unterminated strings: find last unmatched quote
+  const quoteCount = (repaired.match(/(?<!\\)"/g) ?? []).length
+  if (quoteCount % 2 !== 0) {
+    repaired += '"'
+  }
+  // Balance braces
+  const openBraces = (repaired.match(/\{/g) ?? []).length
+  const closeBraces = (repaired.match(/\}/g) ?? []).length
+  for (let i = 0; i < openBraces - closeBraces; i++) {
+    repaired += '}'
+  }
+  return repaired
 }
 
 // ── Intent Mapping ───────────────────────────────────────────
@@ -49,6 +72,7 @@ interface RawLlmIntent {
   readonly pipelineMode?: string
   readonly matchedSignalId?: string
   readonly extractedTicker?: string
+  readonly introText?: string
 }
 
 /**
@@ -97,6 +121,7 @@ export function mapToRouterIntent(
     pipelineMode,
     matchedSignalId: raw.matchedSignalId,
     extractedTicker: pipelineMode === 'explore_ticker' ? extractedTicker : undefined,
+    introText: route !== 'chat' ? raw.introText : undefined,
   }
 }
 
@@ -119,7 +144,7 @@ export async function understandQuery(params: {
   const model = createGeminiChatModel({
     model: getGeminiRouterModelName(),
     temperature: 0,
-    maxOutputTokens: 256,
+    maxOutputTokens: 512,
   })
 
   const topSignals = (activeSignals ?? []).slice(0, 3)
@@ -137,18 +162,23 @@ Classify the user's message into one of three routes with specific intent.
 ## Routes
 
 ### "chat" — Conversational responses only
-Use for: greetings, casual messages, follow-up questions about existing results, qualitative explanations, general finance education.
+Use for: greetings, casual messages, follow-up questions about existing results, qualitative explanations, general finance education, and LISTING/OVERVIEW queries.
 
 CRITICAL RULES:
 1. Casual/vague messages ALWAYS route to chat. Examples: "what's up", "hey", "how's it going", "what's new", "yo", "sup", "hello". These are GREETINGS, not portfolio queries — even if the user has portfolio data.
-2. If a recent analysis was just completed (hasRecentAnalysis=${hasRecentAnalysis}), follow-up questions about the results route to "chat" — NOT "pipeline". Only route to "pipeline" for EXPLICITLY NEW analysis requests.
+2. If a recent analysis was just completed (hasRecentAnalysis=${hasRecentAnalysis}), follow-up questions about the results route to "chat" — NOT "pipeline". Follow-ups are questions that reference or ask about EXISTING results (e.g., "explain the $653 impact", "what timeline?", "tell me more").
 3. Short ambiguous messages (under 5 words with no financial terms) default to "chat".
-Examples of chat: "what's up", "how's it going", "can you explain the $653 impact?", "what timeline?", "tell me more about the bond impact"
+4. Questions that ask to LIST or SUMMARIZE detected signals, risks, or portfolio status route to "chat" — they do NOT require new computation. The chat agent already has access to active signals and portfolio data. Examples: "what signals are affecting my portfolio", "what risks do I have right now", "show me my active signals", "what's going on with my portfolio", "any signals I should know about", "what's happening in the market for me".
+Examples of chat: "what's up", "how's it going", "can you explain the $653 impact?", "what timeline?", "tell me more about the bond impact", "what signals are affecting me", "show me my risks", "what's happening with my portfolio"
 
 ### "pipeline" — Triggers quantitative analysis (NEW computation required)
+ALWAYS route to pipeline when the user requests any of the following, regardless of hasRecentAnalysis:
+- Risk assessment, portfolio evaluation, portfolio improvement, optimization, rebalancing, scenario analysis, signal analysis, or ticker exploration.
+These are NOT follow-ups — they require new multi-agent computation.
+
 Pipeline modes:
-- "risk_check": User wants a comprehensive risk assessment of their CURRENT portfolio. Key phrases: "evaluate my portfolio", "what are my risks", "check my risk", "how risky is my portfolio", "assess my holdings", "review my current positions", "am I exposed to...".
-- "improve_portfolio": User asks for optimization or improvement. Key phrases: "improve my portfolio", "optimize", "rebalance", "reduce risk", "better allocation", "how can I improve".
+- "risk_check": User wants a comprehensive QUANTITATIVE risk assessment — deep analysis with dollar-impact estimates. Key phrases: "evaluate my portfolio risk", "run a risk assessment", "check my risk exposure", "how risky is my portfolio", "assess my holdings in detail", "stress test my portfolio", "how much could I lose". NOTE: Simple listing questions ("what signals do I have", "what's affecting my portfolio") go to "chat", not here — risk_check is for deep computational analysis only.
+- "improve_portfolio": User asks for optimization or improvement. Key phrases: "improve my portfolio", "optimize", "rebalance", "reduce risk", "better allocation", "how can I improve", "ways to improve", "strengthen my portfolio".
 - "explore_ticker": User explicitly names a specific stock/ETF ticker to research. MUST extract a real ticker symbol. Key phrases: "explore AAPL", "look into TSLA", "what about adding NVDA", "research BRK.B".
 - "existing_signal": User references a specific active signal for new analysis.
 - "new_event": User describes a hypothetical scenario or new event for impact analysis.
@@ -176,7 +206,19 @@ ${historySnippet ? `## Recent Conversation\n${historySnippet}\n` : ''}${personal
 ## Message
 "${message}"
 
-Respond with JSON only: {"route":"...","confidence":0.0-1.0,"reasoning":"...","pipelineMode":"...","matchedSignalId":"...","extractedTicker":"..."}`
+## Intro Text (REQUIRED when route is "pipeline" or "portfolio_review")
+When routing to pipeline or portfolio_review, generate a brief conversational "introText" (1-2 sentences) that:
+- Acknowledges the user's specific question/concern (reference their actual topic, not generic text)
+- Briefly says what Prism will do (e.g., "run the numbers", "pull in real market data", "check across all your signals")
+- Sounds like a knowledgeable friend, not a robot
+- Is UNIQUE to this query — never repeat the same intro twice
+Examples:
+- "Good call — let me dig into how that rate hike could hit your bank holdings. I'll pull real volatility data and run it through multiple analysts."
+- "On it — let me stress-test your portfolio against that oil price drop and see where you're actually exposed."
+- "Sure thing — I'll look across all your active signals and calculate the net effect on your holdings."
+Do NOT include introText for "chat" route.
+
+Respond with JSON only (keep reasoning under 30 words): {"route":"...","confidence":0.0-1.0,"reasoning":"...","pipelineMode":"...","matchedSignalId":"...","extractedTicker":"...","introText":"..."}`
 
   try {
     const response = await model.invoke([new HumanMessage(prompt)])
@@ -186,7 +228,19 @@ Respond with JSON only: {"route":"...","confidence":0.0-1.0,"reasoning":"...","p
         ? response.content.map((c) => ('text' in c ? c.text : '')).join('')
         : ''
 
-    const parsed = JSON.parse(extractJson(responseText)) as RawLlmIntent
+    const jsonText = extractJson(responseText)
+    let parsed: RawLlmIntent
+    try {
+      parsed = JSON.parse(jsonText) as RawLlmIntent
+    } catch {
+      // Try LLM JSON repair (single quotes, trailing commas, unquoted keys)
+      try {
+        parsed = JSON.parse(repairJson(jsonText)) as RawLlmIntent
+      } catch {
+        // Last resort: fix truncated JSON (unterminated strings, unbalanced braces)
+        parsed = JSON.parse(repairTruncatedJson(repairJson(jsonText))) as RawLlmIntent
+      }
+    }
     return mapToRouterIntent(parsed, message)
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'unknown'

@@ -338,6 +338,7 @@ export function buildAskPrismPrompt(context: AskPrismContext, personalContextPro
   sections.push('- holding_item: { type: "holding_item", ticker, name, value, detail?: string, relatedSignals?: string[] }')
   sections.push('- text: { type: "text", body: string } (markdown paragraph)')
   sections.push('- insight: { type: "insight", icon: "tip"|"warning"|"info"|"positive", title?: string, body, actionLabel?: string, actionPrompt?: string }')
+  sections.push('- action_item: { type: "action_item", action: "buy"|"sell"|"hold"|"rebalance"|"explore", title: string, description: string, tickers?: string[], amount?: string, actionPrompt?: string }')
   sections.push('- metric_row: { type: "metric_row", metrics: [{ label, value, sentiment? }] }')
   sections.push('- group: { type: "group", title, defaultOpen: boolean, sections: [...nested sections] }')
   sections.push('')
@@ -347,8 +348,9 @@ export function buildAskPrismPrompt(context: AskPrismContext, personalContextPro
   sections.push('- Always start with a "summary" section answering "am I okay?" in one line')
   sections.push('- Use signal_item ONLY when listing multiple signals in an overview. When the user asks about ONE specific signal (e.g. "Tell me more about: X"), do NOT re-render it as a signal_item — the user already sees that card. Instead, provide deeper analysis using summary, text, holding_item, insight, and metric_row sections.')
   sections.push('- Use holding_item when discussing specific holdings — use dollar amounts')
-  sections.push('- Use insight for key personalized takeaways or warnings')
-  sections.push('- Use group to organize signals by theme (e.g. "Tailwinds" / "Headwinds" / "Watch closely")')
+  sections.push('- Use action_item for EVERY concrete recommendation. When presenting options (e.g., "Option 1: Rebalance"), each option group MUST include at least one action_item showing the specific action (buy/sell/rebalance), target instrument, and suggested amount. Signal items show the "why" — action items show the "what to do".')
+  sections.push('- Use insight for key personalized takeaways, tradeoffs, or warnings')
+  sections.push('- Use group to organize signals by theme (e.g. "Tailwinds" / "Headwinds" / "Watch closely") or recommendations by option. ALWAYS set defaultOpen: true — users should see content immediately without clicking.')
   sections.push('- Use text sparingly for connecting narrative between structured sections')
   sections.push('- 2-3 followUps, mark the most actionable as "primary"')
   sections.push('- Keep all text concise, plain English, dollar amounts over percentages')
@@ -370,6 +372,27 @@ export function buildAskPrismPrompt(context: AskPrismContext, personalContextPro
     followUps: [
       { text: 'Run a full portfolio review', priority: 'primary' },
       { text: 'How does the rate decision affect my banks?', priority: 'secondary' },
+    ],
+  }, null, 2))
+  sections.push('```')
+  sections.push('')
+  sections.push('EXAMPLE (recommendation options):')
+  sections.push('```json')
+  sections.push(JSON.stringify({
+    sections: [
+      { type: 'summary', sentiment: 'mixed', headline: 'Your portfolio is concentrated but aligned with your growth goals', stats: [{ label: 'Total Value', value: '$91,428' }, { label: 'Stock Concentration', value: '70.5%' }] },
+      { type: 'group', title: 'Option 1: Rebalance to Broad Tech', defaultOpen: true, sections: [
+        { type: 'action_item', action: 'rebalance', title: 'Move NVDA into QQQ', description: 'Reduce single-stock risk while keeping tech exposure.', tickers: ['NVDA', 'QQQ'], amount: '$10,000–$15,000' },
+        { type: 'insight', icon: 'info', body: '**Tradeoff:** You lower crash risk but may miss out on NVDA-specific upside.' },
+      ] },
+      { type: 'group', title: 'Option 2: Add a Defensive Hedge', defaultOpen: true, sections: [
+        { type: 'action_item', action: 'buy', title: 'Add Gold or Energy ETF', description: 'Hedge against geopolitical risk affecting your tech holdings.', tickers: ['GLD', 'XLE'], amount: '$2,000–$5,000' },
+        { type: 'insight', icon: 'info', body: '**Tradeoff:** Adds diversification but may slow your growth trajectory.' },
+      ] },
+    ],
+    followUps: [
+      { text: 'Run a full analysis on the tariff signal', priority: 'primary' },
+      { text: 'Show me the other side: why keep my current allocation?', priority: 'secondary' },
     ],
   }, null, 2))
   sections.push('```')

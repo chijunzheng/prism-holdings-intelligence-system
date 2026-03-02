@@ -2,7 +2,7 @@ import type { ExposureMap, Signal } from '@prism/shared'
 import { MAX_SIGNAL_MONITOR_RESULTS } from '@prism/shared'
 import type { AgentConfig, AgentResult } from '../types'
 import { buildSignalSearchPrompt } from './prompts'
-import { parseSignalResponseWithDiagnostics, deduplicateSignals } from './parse'
+import { parseSignalResponseWithDiagnostics, deduplicateSignals, type GroundingSource } from './parse'
 import { getGeminiApiKey, getSignalMonitorModelName } from '../utils/env'
 import { getGeminiClient } from '../utils/gemini-client'
 
@@ -109,7 +109,20 @@ export async function monitor(
     })
 
     const responseText = response.text ?? ''
-    const parsedResult = parseSignalResponseWithDiagnostics(responseText)
+
+    // Extract real URLs from Gemini grounding metadata (not hallucinated)
+    const groundingSources: GroundingSource[] = []
+    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks
+    if (Array.isArray(groundingChunks)) {
+      for (const chunk of groundingChunks) {
+        const web = chunk.web
+        if (web?.uri && web?.title) {
+          groundingSources.push({ title: web.title, url: web.uri, domain: web.domain })
+        }
+      }
+    }
+
+    const parsedResult = parseSignalResponseWithDiagnostics(responseText, groundingSources)
     const parsed = parsedResult.signals
     const deduped = deduplicateSignals(parsed)
 

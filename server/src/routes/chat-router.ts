@@ -8,6 +8,7 @@ import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { z } from 'zod'
 import { getPortfolioByUserId, getUserProfileById, getFundComposition } from '@prism/data'
+import { enrichPortfolioWithLiveQuotes } from '../live-quotes'
 import {
   runExposureAnalysis,
   runSignalMonitor,
@@ -34,10 +35,14 @@ import {
   extractAssertions,
   addAssertion,
   formatContextForPrompt,
+  hasRecentAnalysis,
+  getLatestAnalysisMemory,
 } from '@prism/agents/src/router/index'
-import { classifyWithLlm } from '@prism/agents/src/router/llm-classifier'
+import { understandQuery } from '@prism/agents/src/router/query-understanding'
 import { buildAskPrismPrompt } from '@prism/agents/src/chat-agent/ask-prism-prompt'
 import { parseStructuredResponse } from '../structured-response-parser'
+import { threadContextMap } from './thread-context'
+import type { AnalysisOutcome } from '@prism/agents/src/multi-agent/index'
 import type { Signal, ExposureMap, RouterIntent, AskPrismContext } from '@prism/shared'
 
 // ── Request Schema ───────────────────────────────────────────
@@ -67,15 +72,16 @@ function sendSseEvent(res: Response, event: string, data: unknown): void {
 
 // ── Data Loading ─────────────────────────────────────────────
 
-function buildPipelineContext(userId: string): PipelineContext | null {
+async function buildPipelineContext(userId: string): Promise<PipelineContext | null> {
   const portfolio = getPortfolioByUserId(userId)
   const profile = getUserProfileById(userId)
   if (!portfolio || !profile) return null
-  return { portfolio, profile, getFundComposition }
+  const livePortfolio = await enrichPortfolioWithLiveQuotes(portfolio)
+  return { portfolio: livePortfolio, profile, getFundComposition }
 }
 
 async function getExposureMap(userId: string): Promise<ExposureMap | null> {
-  const ctx = buildPipelineContext(userId)
+  const ctx = await buildPipelineContext(userId)
   if (!ctx) return null
   const result = await runExposureAnalysis(ctx)
   if (!result.success || !result.data) return null
@@ -218,18 +224,23 @@ async function handleChatRoute(
     content: m.content,
   }))
 
-  // Stream Ask Prism response with true Gemini streaming — forward chunks as they arrive
+  // Stream Ask Prism response — thinking tokens and text chunks are tagged separately
   let fullText = ''
+  let thinkingText = ''
   for await (const chunk of streamAskPrismResponse(context, normalizedHistory, message, 'portfolio', personalContextPrompt)) {
-    fullText += chunk
-    sendSseEvent(res, 'chat_chunk', { text: chunk })
+    if (chunk.kind === 'thinking') {
+      thinkingText += chunk.text
+      sendSseEvent(res, 'chat_thinking', { text: chunk.text })
+    } else {
+      fullText += chunk.text
+      sendSseEvent(res, 'chat_chunk', { text: chunk.text })
+    }
   }
 
   // After streaming completes, check if the full response was structured JSON
   const parsed = parseStructuredResponse(fullText)
   if (parsed.kind === 'structured') {
-    // Send structured data to replace accumulated text on the frontend
-    sendSseEvent(res, 'chat_structured', { structured: parsed.data })
+    sendSseEvent(res, 'chat_structured', { structured: parsed.data, thinkingText: thinkingText || undefined })
   } else {
     // Send cleaned text (without >> suggestion lines) to replace the streamed text,
     // plus extracted suggestions as chips
@@ -262,11 +273,13 @@ async function handlePipelineRoute(
   switch (intent.pipelineMode) {
     case 'existing_signal': {
       const matched = activeSignals.find((s) => s.id === intent.matchedSignalId)
-      if (!matched) {
-        sendSseEvent(res, 'error', { message: 'Matched signal not found in active signals' })
-        return
+      if (matched) {
+        signal = matched as Signal
+      } else {
+        // LLM hallucinated a signal ID — fall back to natural language signal
+        console.warn(`[Pipeline] matchedSignalId "${intent.matchedSignalId}" not found in ${activeSignals.length} active signals — falling back to natural language signal`)
+        signal = createNaturalLanguageSignal(message, portfolio, exposureMap)
       }
-      signal = matched as Signal
       break
     }
     case 'risk_check':
@@ -298,35 +311,55 @@ async function handlePipelineRoute(
   }
 
   try {
-    const result = await runMultiAgentAnalysis({
+    const outcome = await runMultiAgentAnalysis({
       signal,
       portfolio,
       exposureMap,
       userProfile,
       userExpectations,
-      skipCheckpoints: true,
+      skipCheckpoints: false,
+      pipelineMode: 'guided',
       onProgress: (stage, data) => {
         sendSseEvent(res, stage, data)
       },
       onThinking: (stage, text) => {
         sendSseEvent(res, 'agent_thinking', { stage, text })
       },
-    })
+    }) as AnalysisOutcome
 
-    const impactDelta = buildImpactDelta(signal, result.verdict)
-    const playbook = buildPlaybook(signal, result.verdict)
+    if (outcome.type === 'checkpoint') {
+      // Pipeline paused at a checkpoint — store context for resume
+      threadContextMap.set(outcome.threadId, { signal, userId })
+      sendSseEvent(res, 'thread_id', { threadId: outcome.threadId })
+      sendSseEvent(res, 'checkpoint', outcome.checkpoint)
+    } else {
+      // Pipeline complete — extract result
+      const result = outcome.type === 'complete' ? outcome.result : outcome as unknown as Awaited<ReturnType<typeof runMultiAgentAnalysis>>
+      const finalResult = 'verdict' in result ? result : (result as { result: { verdict: unknown } }).result
+      const verdict = finalResult.verdict as Awaited<ReturnType<typeof runMultiAgentAnalysis>>['verdict']
+      const researchBrief = finalResult.researchBrief as Awaited<ReturnType<typeof runMultiAgentAnalysis>>['researchBrief']
+      const intermediateArtifacts = finalResult.intermediateArtifacts as Awaited<ReturnType<typeof runMultiAgentAnalysis>>['intermediateArtifacts']
 
-    sendSseEvent(res, 'impact_delta', impactDelta)
-    if (playbook) sendSseEvent(res, 'playbook', playbook)
+      // Clean up thread context
+      if (outcome.type === 'complete' && outcome.threadId) {
+        threadContextMap.delete(outcome.threadId)
+      }
 
-    sendSseEvent(res, 'complete', {
-      verdict: result.verdict,
-      researchBrief: result.researchBrief,
-      intermediateArtifacts: result.intermediateArtifacts,
-    })
+      const impactDelta = buildImpactDelta(signal, verdict)
+      const playbook = buildPlaybook(signal, verdict)
 
-    // Auto-populate analysis memory (non-blocking)
-    addAnalysisMemory(userId, signal, result.verdict, 'pending')
+      sendSseEvent(res, 'impact_delta', impactDelta)
+      if (playbook) sendSseEvent(res, 'playbook', playbook)
+
+      sendSseEvent(res, 'complete', {
+        verdict,
+        researchBrief,
+        intermediateArtifacts,
+      })
+
+      // Auto-populate analysis memory (non-blocking)
+      addAnalysisMemory(userId, signal, verdict, 'pending')
+    }
   } catch (error) {
     sendSseEvent(res, 'error', {
       message: error instanceof Error ? error.message : 'Pipeline failed',
@@ -395,13 +428,14 @@ chatRouter.post('/', async (req: Request, res: Response) => {
   sendSseEvent(res, 'agent_thinking', { stage: 'routing', text: 'Understanding your message...' })
 
   // 2. Load portfolio + exposure (always needed, fast)
-  const portfolio = getPortfolioByUserId(userId)
+  const rawPortfolio = getPortfolioByUserId(userId)
   const userProfile = getUserProfileById(userId)
-  if (!portfolio || !userProfile) {
+  if (!rawPortfolio || !userProfile) {
     sendSseEvent(res, 'error', { message: 'User or portfolio not found' })
     res.end()
     return
   }
+  const portfolio = await enrichPortfolioWithLiveQuotes(rawPortfolio)
 
   const exposureMap = await getExposureMap(userId)
   if (!exposureMap) {
@@ -413,10 +447,9 @@ chatRouter.post('/', async (req: Request, res: Response) => {
   // Start background signal prewarmer on first request per user
   startSignalPrewarmer(userId)
 
-  // 3. Fast routing: try pattern matching WITHOUT signals first (~0ms)
+  // 3. Fast routing: greetings + ticker extraction only (~0ms)
   const fastResult = routeUserMessageFast({ userId, message })
 
-  // For chat route with high confidence, skip signal fetch entirely
   if (fastResult && fastResult.intent.route === 'chat') {
     sendSseEvent(res, 'route_decision', {
       route: fastResult.intent.route,
@@ -431,23 +464,33 @@ chatRouter.post('/', async (req: Request, res: Response) => {
     return
   }
 
-  // 4. Parallel signal fetch + LLM classification for ambiguous messages
-  const signalPromise = getActiveSignals(exposureMap)
+  // 4. Parallel: signal fetch + LLM classification (follow-up aware)
+  const personalContextPrompt = formatContextForPrompt(userId)
+  const recentAnalysis = hasRecentAnalysis(userId)
 
-  // Try quick LLM classification without signals — if it's "chat", short-circuit
-  const quickClassification = await classifyWithLlm({
-    message,
-    activeSignals: [],
-    recentMessages: history,
-    personalContextSummary: formatContextForPrompt(userId).slice(0, 200),
-  })
+  const [activeSignals, llmResult] = await Promise.all([
+    getActiveSignals(exposureMap),
+    understandQuery({
+      message,
+      recentMessages: history,
+      personalContextSummary: personalContextPrompt.slice(0, 200),
+      hasRecentAnalysis: recentAnalysis,
+      activeSignals: [],
+    }),
+  ])
 
-  if (quickClassification.route === 'chat' && quickClassification.confidence >= 0.7) {
-    const personalContextPrompt = formatContextForPrompt(userId)
-    sendSseEvent(res, 'route_decision', { route: 'chat', confidence: quickClassification.confidence })
-    // Let signal fetch warm the cache in the background
-    signalPromise.catch(() => {})
-    await handleChatRoute(res, userId, message, history, personalContextPrompt, portfolio, userProfile, exposureMap, [])
+  // Log routing decision for observability
+  console.log(`[Router] LLM classification: route=${llmResult.route}, confidence=${llmResult.confidence}, mode=${llmResult.pipelineMode ?? 'n/a'}, reasoning=${llmResult.reasoning?.slice(0, 80)}`)
+
+  // If LLM says chat with decent confidence, short-circuit (skip full routing)
+  if (llmResult.route === 'chat' && llmResult.confidence >= 0.6) {
+    sendSseEvent(res, 'route_decision', { route: 'chat', confidence: llmResult.confidence })
+    // Append latest verdict context so chat agent can reference analysis results
+    const latestMemory = getLatestAnalysisMemory(userId)
+    const enrichedContext = latestMemory
+      ? `${personalContextPrompt}\n\n### Latest Analysis Result\nSignal: "${latestMemory.headline}" → ${latestMemory.verdictDirection}, 1M impact: $${latestMemory.oneMonthImpactMid.toLocaleString()}`
+      : personalContextPrompt
+    await handleChatRoute(res, userId, message, history, enrichedContext, portfolio, userProfile, exposureMap, activeSignals)
     extractAssertions(message).then((assertions) => {
       for (const assertion of assertions) addAssertion(userId, assertion)
     }).catch(() => {})
@@ -455,14 +498,12 @@ chatRouter.post('/', async (req: Request, res: Response) => {
     return
   }
 
-  // 5. Wait for signals and do full routing
-  const activeSignals = await signalPromise
-  const routerResult = fastResult ?? await routeUserMessage({
-    userId,
-    message,
-    activeSignals,
-    recentMessages: history,
-  })
+  // 5. Full routing — use query understanding result (now with signals for signal matching)
+  // Only trust matchedSignalId if it actually exists in active signals (LLMs can hallucinate IDs)
+  const signalIdValid = llmResult.matchedSignalId && activeSignals.some((s) => s.id === llmResult.matchedSignalId)
+  const routerResult = signalIdValid
+    ? { intent: llmResult, personalContextPrompt }
+    : await routeUserMessage({ userId, message, activeSignals, recentMessages: history })
 
   // 6. Send route decision and dispatch
   sendSseEvent(res, 'route_decision', {

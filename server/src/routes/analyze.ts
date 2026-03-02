@@ -28,14 +28,11 @@ import {
 } from '@prism/agents/src/multi-agent/cache'
 import type { Signal, ExposureMap } from '@prism/shared'
 import { createSyntheticSignal } from '@prism/agents/src/multi-agent/synthetic-signals'
+import { threadContextMap } from './thread-context'
 
 // ── Shared State ────────────────────────────────────────────
 
 const cache = new InMemoryCacheStore()
-
-// Thread context map: stores signal + userId for paused pipelines
-// so the resume endpoint can access them without resending.
-const threadContextMap = new Map<string, { signal: Signal; userId: string }>()
 
 // ── Request Schemas ─────────────────────────────────────────
 

@@ -6,6 +6,8 @@ import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import type { CausalChain } from '@prism/shared'
 import { getPortfolioByUserId, getFundComposition, getUserProfileById, getUserProfiles } from '@prism/data'
+import { enrichPortfolioWithLiveQuotes } from './live-quotes'
+import { staggerSignalTimestamps } from './stagger-signals'
 // plan-session-service removed — legacy routes deleted
 import { analyze } from '@prism/agents/src/exposure-analyzer/index'
 import {
@@ -263,13 +265,19 @@ app.get('/api/profiles', (_req, res) => {
 })
 
 // Exposure analysis endpoint
-app.get('/api/portfolio/:userId', (req, res) => {
+app.get('/api/portfolio/:userId', async (req, res) => {
   const portfolio = getPortfolioByUserId(req.params.userId)
   if (!portfolio) {
     res.status(404).json({ success: false, error: 'Portfolio not found' })
     return
   }
-  res.json({ success: true, data: portfolio })
+  try {
+    const enriched = await enrichPortfolioWithLiveQuotes(portfolio)
+    res.json({ success: true, data: enriched })
+  } catch (error) {
+    console.error('Failed to enrich portfolio with live quotes:', error)
+    res.json({ success: true, data: portfolio })
+  }
 })
 
 app.get('/api/exposure/:userId', async (req, res) => {
@@ -326,8 +334,9 @@ app.get('/api/signals/:userId', async (req, res) => {
   if (USE_ADK_ORCHESTRATION) {
     const adkResult = await runAdkSignalsPipeline(req.params.userId)
     if (adkResult.success && adkResult.data) {
-      const signalSummary = summarizeSignalUrgency(adkResult.data)
-      if (adkResult.data.length === 0 && !ADK_EMPTY_SIGNAL_IS_VALID) {
+      const staggeredAdkSignals = staggerSignalTimestamps(adkResult.data)
+      const signalSummary = summarizeSignalUrgency(staggeredAdkSignals)
+      if (staggeredAdkSignals.length === 0 && !ADK_EMPTY_SIGNAL_IS_VALID) {
         traceImpact('signals:adk-empty-fallback', {
           requestId,
           userId: req.params.userId,
@@ -339,12 +348,12 @@ app.get('/api/signals/:userId', async (req, res) => {
           requestId,
           userId: req.params.userId,
           mode: 'adk',
-          signalCount: adkResult.data.length,
+          signalCount: staggeredAdkSignals.length,
           durationMs: Math.round(performance.now() - requestStartedAt),
         })
         res.json({
           success: true,
-          data: adkResult.data,
+          data: staggeredAdkSignals,
           durationMs: adkResult.durationMs,
           mode: 'adk',
           requestId,
@@ -419,7 +428,7 @@ app.get('/api/signals/:userId', async (req, res) => {
     monitorDurationMs: Math.round(signalResult.durationMs),
     durationMs: Math.round(performance.now() - requestStartedAt),
   })
-  const normalizedSignals = signalResult.data ?? []
+  const normalizedSignals = staggerSignalTimestamps(signalResult.data ?? [])
   const signalSummary = summarizeSignalUrgency(normalizedSignals)
   if (normalizedSignals.length === 0) {
     warnImpact('signals:empty', {
@@ -1252,13 +1261,16 @@ app.post('/api/chat/:userId/ask-prism', async (req, res) => {
   }
 
   try {
+    // Enrich portfolio with live quotes so LLM sees current market prices
+    const livePortfolio = await enrichPortfolioWithLiveQuotes(portfolio)
+
     const effectiveSignalId = body.entryContext?.signalId ?? body.signalId
     const sessionScope = resolveAskPrismSessionScope(body, effectiveSignalId)
     let signalsOverviewChain: CausalChain | undefined
 
     // Build pipeline context for orchestrator
     const pipelineContext: PipelineContext = {
-      portfolio,
+      portfolio: livePortfolio,
       profile,
       getFundComposition,
     }
@@ -1276,9 +1288,9 @@ app.post('/api/chat/:userId/ask-prism', async (req, res) => {
       return
     }
 
-    // Extract all holdings from portfolio
+    // Extract all holdings from live-enriched portfolio
     const holdings: import('@prism/shared').Holding[] = []
-    for (const account of portfolio.accounts) {
+    for (const account of livePortfolio.accounts) {
       for (const holding of account.holdings) {
         holdings.push(holding)
       }

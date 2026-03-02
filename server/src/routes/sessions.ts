@@ -12,6 +12,13 @@ import type {
 } from '@prism/shared'
 import { createGeminiChatModel } from '@prism/agents/src/utils/gemini-chat-model'
 import { getGeminiFastModelName } from '@prism/agents/src/utils/env'
+import {
+  getSessionsByUser,
+  getSession,
+  setSession,
+  deleteSession,
+  countUserSessions,
+} from '../firestore-store'
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -21,6 +28,7 @@ export type AnalysisSession = {
   readonly type: 'signal' | 'portfolio_review' | 'holding' | 'general'
   readonly title: string
   readonly signalId?: string
+  readonly starred?: boolean
   readonly status: 'pending' | 'analyzing' | 'checkpoint' | 'complete' | 'error'
   readonly messages: readonly ChatMessage[]
   readonly cachedVerdict?: FundManagerVerdict
@@ -40,9 +48,7 @@ type ChatMessage = {
   readonly timestamp: string
 }
 
-// ── In-Memory Store ─────────────────────────────────────────
-
-const sessions = new Map<string, AnalysisSession>()
+// ── Constants ───────────────────────────────────────────────
 
 const MAX_SESSIONS_PER_USER = 50
 
@@ -64,184 +70,212 @@ const AddMessageSchema = z.object({
 const UpdateSessionSchema = z.object({
   status: z.enum(['pending', 'analyzing', 'checkpoint', 'complete', 'error']).optional(),
   title: z.string().max(200).optional(),
+  starred: z.boolean().optional(),
   checkpointStage: z.string().optional(),
 })
-
-// ── Helpers ─────────────────────────────────────────────────
-
-function getUserSessions(userId: string): readonly AnalysisSession[] {
-  return [...sessions.values()]
-    .filter((s) => s.userId === userId)
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-}
 
 // ── Routes ──────────────────────────────────────────────────
 
 export const sessionsRouter = Router()
 
 // GET /api/v2/sessions/:userId — list user sessions
-sessionsRouter.get('/:userId', (_req: Request, res: Response) => {
-  const { userId } = _req.params
-  const userSessions = getUserSessions(userId)
+sessionsRouter.get('/:userId', async (req: Request, res: Response) => {
+  try {
+    const userId = String(req.params.userId)
+    const userSessions = await getSessionsByUser(userId)
 
-  res.json({
-    success: true,
-    data: userSessions.map((s) => ({
-      id: s.id,
-      type: s.type,
-      title: s.title,
-      signalId: s.signalId,
-      status: s.status,
-      messageCount: s.messages.length,
-      createdAt: s.createdAt,
-      updatedAt: s.updatedAt,
-    })),
-  })
+    res.json({
+      success: true,
+      data: userSessions.map((s) => ({
+        id: s.id,
+        type: s.type,
+        title: s.title,
+        signalId: s.signalId,
+        starred: s.starred ?? false,
+        status: s.status,
+        messageCount: s.messages.length,
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt,
+      })),
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to list sessions'
+    res.status(500).json({ success: false, error: message })
+  }
 })
 
 // GET /api/v2/sessions/:userId/:sessionId — get session with messages
-sessionsRouter.get('/:userId/:sessionId', (req: Request, res: Response) => {
-  const { sessionId } = req.params
-  const session = sessions.get(sessionId)
+sessionsRouter.get('/:userId/:sessionId', async (req: Request, res: Response) => {
+  try {
+    const sessionId = String(req.params.sessionId)
+    const session = await getSession(sessionId)
 
-  if (!session) {
-    res.status(404).json({ success: false, error: 'Session not found' })
-    return
+    if (!session) {
+      res.status(404).json({ success: false, error: 'Session not found' })
+      return
+    }
+
+    res.json({ success: true, data: session })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to get session'
+    res.status(500).json({ success: false, error: message })
   }
-
-  res.json({ success: true, data: session })
 })
 
 // POST /api/v2/sessions/:userId — create new session
-sessionsRouter.post('/:userId', (req: Request, res: Response) => {
-  const { userId } = req.params
-  const parsed = CreateSessionSchema.safeParse(req.body)
-  if (!parsed.success) {
-    res.status(400).json({ success: false, error: parsed.error.message })
-    return
-  }
+sessionsRouter.post('/:userId', async (req: Request, res: Response) => {
+  try {
+    const userId = String(req.params.userId)
+    const parsed = CreateSessionSchema.safeParse(req.body)
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.message })
+      return
+    }
 
-  // Enforce max sessions per user
-  const existing = getUserSessions(userId)
-  if (existing.length >= MAX_SESSIONS_PER_USER) {
-    res.status(400).json({
-      success: false,
-      error: `Maximum ${MAX_SESSIONS_PER_USER} sessions per user`,
-    })
-    return
-  }
+    // Enforce max sessions per user
+    const count = await countUserSessions(userId)
+    if (count >= MAX_SESSIONS_PER_USER) {
+      res.status(400).json({
+        success: false,
+        error: `Maximum ${MAX_SESSIONS_PER_USER} sessions per user`,
+      })
+      return
+    }
 
-  const now = new Date().toISOString()
-  const session: AnalysisSession = {
-    id: randomUUID(),
-    userId,
-    type: parsed.data.type,
-    title: parsed.data.title,
-    signalId: parsed.data.signalId,
-    status: 'pending',
-    messages: [],
-    createdAt: now,
-    updatedAt: now,
-  }
+    const now = new Date().toISOString()
+    const session: AnalysisSession = {
+      id: randomUUID(),
+      userId,
+      type: parsed.data.type,
+      title: parsed.data.title,
+      signalId: parsed.data.signalId,
+      status: 'pending',
+      messages: [],
+      createdAt: now,
+      updatedAt: now,
+    }
 
-  sessions.set(session.id, session)
-  res.status(201).json({ success: true, data: session })
+    await setSession(session)
+    res.status(201).json({ success: true, data: session })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to create session'
+    res.status(500).json({ success: false, error: message })
+  }
 })
 
 // PATCH /api/v2/sessions/:userId/:sessionId — update session
-sessionsRouter.patch('/:userId/:sessionId', (req: Request, res: Response) => {
-  const { sessionId } = req.params
-  const session = sessions.get(sessionId)
+sessionsRouter.patch('/:userId/:sessionId', async (req: Request, res: Response) => {
+  try {
+    const sessionId = String(req.params.sessionId)
+    const session = await getSession(sessionId)
 
-  if (!session) {
-    res.status(404).json({ success: false, error: 'Session not found' })
-    return
+    if (!session) {
+      res.status(404).json({ success: false, error: 'Session not found' })
+      return
+    }
+
+    const parsed = UpdateSessionSchema.safeParse(req.body)
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.message })
+      return
+    }
+
+    const updated: AnalysisSession = {
+      ...session,
+      ...(parsed.data.status !== undefined ? { status: parsed.data.status } : {}),
+      ...(parsed.data.title !== undefined ? { title: parsed.data.title } : {}),
+      ...(parsed.data.starred !== undefined ? { starred: parsed.data.starred } : {}),
+      ...(parsed.data.checkpointStage !== undefined ? { checkpointStage: parsed.data.checkpointStage } : {}),
+      updatedAt: new Date().toISOString(),
+    }
+
+    await setSession(updated)
+    res.json({ success: true, data: updated })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to update session'
+    res.status(500).json({ success: false, error: message })
   }
-
-  const parsed = UpdateSessionSchema.safeParse(req.body)
-  if (!parsed.success) {
-    res.status(400).json({ success: false, error: parsed.error.message })
-    return
-  }
-
-  const updated: AnalysisSession = {
-    ...session,
-    ...(parsed.data.status ? { status: parsed.data.status } : {}),
-    ...(parsed.data.title ? { title: parsed.data.title } : {}),
-    ...(parsed.data.checkpointStage ? { checkpointStage: parsed.data.checkpointStage } : {}),
-    updatedAt: new Date().toISOString(),
-  }
-
-  sessions.set(sessionId, updated)
-  res.json({ success: true, data: updated })
 })
 
 // POST /api/v2/sessions/:userId/:sessionId/messages — add message to session
-sessionsRouter.post('/:userId/:sessionId/messages', (req: Request, res: Response) => {
-  const { sessionId } = req.params
-  const session = sessions.get(sessionId)
+sessionsRouter.post('/:userId/:sessionId/messages', async (req: Request, res: Response) => {
+  try {
+    const sessionId = String(req.params.sessionId)
+    const session = await getSession(sessionId)
 
-  if (!session) {
-    res.status(404).json({ success: false, error: 'Session not found' })
-    return
+    if (!session) {
+      res.status(404).json({ success: false, error: 'Session not found' })
+      return
+    }
+
+    const parsed = AddMessageSchema.safeParse(req.body)
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.message })
+      return
+    }
+
+    const chatMessage: ChatMessage = {
+      id: randomUUID(),
+      role: parsed.data.role,
+      content: parsed.data.content,
+      cardType: parsed.data.cardType,
+      cardData: parsed.data.cardData,
+      timestamp: new Date().toISOString(),
+    }
+
+    const updated: AnalysisSession = {
+      ...session,
+      messages: [...session.messages, chatMessage],
+      updatedAt: new Date().toISOString(),
+    }
+
+    await setSession(updated)
+    res.status(201).json({ success: true, data: chatMessage })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to add message'
+    res.status(500).json({ success: false, error: message })
   }
-
-  const parsed = AddMessageSchema.safeParse(req.body)
-  if (!parsed.success) {
-    res.status(400).json({ success: false, error: parsed.error.message })
-    return
-  }
-
-  const message: ChatMessage = {
-    id: randomUUID(),
-    role: parsed.data.role,
-    content: parsed.data.content,
-    cardType: parsed.data.cardType,
-    cardData: parsed.data.cardData,
-    timestamp: new Date().toISOString(),
-  }
-
-  const updated: AnalysisSession = {
-    ...session,
-    messages: [...session.messages, message],
-    updatedAt: new Date().toISOString(),
-  }
-
-  sessions.set(sessionId, updated)
-  res.status(201).json({ success: true, data: message })
 })
 
 // POST /api/v2/sessions/:userId/:sessionId/generate-title — LLM-generated session title
 const GenerateTitleSchema = z.object({
   message: z.string().min(1).max(2000),
+  sessionType: z.enum(['signal', 'portfolio_review', 'holding', 'general']).optional(),
 })
 
 sessionsRouter.post('/:userId/:sessionId/generate-title', async (req: Request, res: Response) => {
-  const { sessionId } = req.params
-  const session = sessions.get(sessionId)
-
-  if (!session) {
-    res.status(404).json({ success: false, error: 'Session not found' })
-    return
-  }
-
-  const parsed = GenerateTitleSchema.safeParse(req.body)
-  if (!parsed.success) {
-    res.status(400).json({ success: false, error: parsed.error.message })
-    return
-  }
+  const sessionId = String(req.params.sessionId)
 
   try {
+    const session = await getSession(sessionId)
+
+    if (!session) {
+      res.status(404).json({ success: false, error: 'Session not found' })
+      return
+    }
+
+    const parsed = GenerateTitleSchema.safeParse(req.body)
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.message })
+      return
+    }
+
     const model = createGeminiChatModel({
       model: getGeminiFastModelName(),
       temperature: 0.3,
       maxOutputTokens: 30,
     })
 
+    const sessionType = parsed.data.sessionType ?? session.type
+    const typeHint = sessionType === 'signal' ? 'a market signal analysis'
+      : sessionType === 'portfolio_review' ? 'a portfolio review'
+      : sessionType === 'holding' ? 'a deep dive on a specific holding'
+      : 'a financial conversation'
+
     const response = await model.invoke([
       {
         role: 'user',
-        content: `Generate a short 3-6 word title for a financial analysis conversation that starts with this message: "${parsed.data.message}". Return only the title, no quotes or punctuation at the end.`,
+        content: `Generate a concise 3-6 word title for ${typeHint} that starts with: "${parsed.data.message}"\n\nRules:\n- Capture the specific topic (e.g. "Fed Rate Hike Impact", "NVIDIA Earnings Analysis", "Portfolio Risk Review")\n- Use title case, no quotes or trailing punctuation\n- Prefer action/topic words over generic phrases like "Discussion" or "Chat"\n- Return ONLY the title`,
       },
     ])
 
@@ -253,7 +287,7 @@ sessionsRouter.post('/:userId/:sessionId/generate-title', async (req: Request, r
       title,
       updatedAt: new Date().toISOString(),
     }
-    sessions.set(sessionId, updated)
+    await setSession(updated)
 
     res.json({ success: true, data: { title } })
   } catch (error) {
@@ -263,17 +297,19 @@ sessionsRouter.post('/:userId/:sessionId/generate-title', async (req: Request, r
 })
 
 // DELETE /api/v2/sessions/:userId/:sessionId — delete session
-sessionsRouter.delete('/:userId/:sessionId', (req: Request, res: Response) => {
-  const { sessionId } = req.params
-  const existed = sessions.delete(sessionId)
+sessionsRouter.delete('/:userId/:sessionId', async (req: Request, res: Response) => {
+  try {
+    const sessionId = String(req.params.sessionId)
+    const existed = await deleteSession(sessionId)
 
-  if (!existed) {
-    res.status(404).json({ success: false, error: 'Session not found' })
-    return
+    if (!existed) {
+      res.status(404).json({ success: false, error: 'Session not found' })
+      return
+    }
+
+    res.json({ success: true })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to delete session'
+    res.status(500).json({ success: false, error: message })
   }
-
-  res.json({ success: true })
 })
-
-// Export for testing
-export { sessions as _sessionsStore }

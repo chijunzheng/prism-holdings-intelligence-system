@@ -41,9 +41,9 @@ import {
 import { understandQuery } from '@prism/agents/src/router/query-understanding'
 import { buildAskPrismPrompt } from '@prism/agents/src/chat-agent/ask-prism-prompt'
 import { parseStructuredResponse } from '../structured-response-parser'
-import { threadContextMap } from './thread-context'
+import { setThreadCtx, deleteThreadCtx } from './thread-context'
 import type { AnalysisOutcome } from '@prism/agents/src/multi-agent/index'
-import type { Signal, ExposureMap, RouterIntent, AskPrismContext } from '@prism/shared'
+import type { Signal, ExposureMap, RouterIntent, AskPrismContext, UserExpectations } from '@prism/shared'
 
 // ── Request Schema ───────────────────────────────────────────
 
@@ -143,6 +143,13 @@ function startSignalPrewarmer(userId: string): void {
 // ── Impact Delta Builder (shared with analyze routes) ────────
 
 function buildImpactDelta(signal: Signal, verdict: Awaited<ReturnType<typeof runMultiAgentAnalysis>>['verdict']) {
+  const candidate = verdict as {
+    holdingImpacts?: unknown
+  } | null | undefined
+  if (!candidate || !Array.isArray(candidate.holdingImpacts)) {
+    throw new Error('Cannot build impact delta: verdict is missing holdingImpacts.')
+  }
+
   const affectedHoldings = verdict.holdingImpacts
     .map((holding) => ({
       ticker: holding.ticker,
@@ -164,6 +171,13 @@ function buildImpactDelta(signal: Signal, verdict: Awaited<ReturnType<typeof run
 }
 
 function buildPlaybook(signal: Signal, verdict: Awaited<ReturnType<typeof runMultiAgentAnalysis>>['verdict']) {
+  const candidate = verdict as {
+    recommendations?: unknown
+  } | null | undefined
+  if (!candidate || !Array.isArray(candidate.recommendations)) {
+    throw new Error('Cannot build playbook: verdict is missing recommendations.')
+  }
+
   const actionable = verdict.recommendations.filter((rec) => !rec.isDoNothing)
   const ranked = (actionable.length > 0 ? actionable : verdict.recommendations)
     .sort((a, b) => a.estimatedCost.localeCompare(b.estimatedCost))
@@ -255,6 +269,15 @@ async function handleChatRoute(
   sendSseEvent(res, 'chat_complete', {})
 }
 
+/** Derive UserExpectations from the user profile when none are explicitly submitted. */
+function deriveExpectations(profile: NonNullable<ReturnType<typeof getUserProfileById>>): UserExpectations {
+  return {
+    horizon: profile.investmentHorizonYears,
+    riskToleranceOverride: profile.riskTolerance as 'low' | 'moderate' | 'high',
+    goals: [...profile.goals],
+  }
+}
+
 async function handlePipelineRoute(
   res: Response,
   userId: string,
@@ -301,11 +324,12 @@ async function handlePipelineRoute(
       break
   }
 
-  // Inject personal context via userExpectations.personalSituation
+  // Derive expectations from profile and inject personal context
+  const baseExpectations = deriveExpectations(userProfile)
   const userExpectations = {
-    ...userProfile.expectations,
+    ...baseExpectations,
     personalSituation: [
-      userProfile.expectations?.personalSituation ?? '',
+      baseExpectations.personalSituation ?? '',
       personalContextPrompt,
     ].filter(Boolean).join('\n\n'),
   }
@@ -329,7 +353,7 @@ async function handlePipelineRoute(
 
     if (outcome.type === 'checkpoint') {
       // Pipeline paused at a checkpoint — store context for resume
-      threadContextMap.set(outcome.threadId, { signal, userId })
+      await setThreadCtx(outcome.threadId, { signal, userId })
       sendSseEvent(res, 'thread_id', { threadId: outcome.threadId })
       sendSseEvent(res, 'checkpoint', outcome.checkpoint)
     } else {
@@ -342,7 +366,7 @@ async function handlePipelineRoute(
 
       // Clean up thread context
       if (outcome.type === 'complete' && outcome.threadId) {
-        threadContextMap.delete(outcome.threadId)
+        await deleteThreadCtx(outcome.threadId)
       }
 
       const impactDelta = buildImpactDelta(signal, verdict)
@@ -361,6 +385,7 @@ async function handlePipelineRoute(
       addAnalysisMemory(userId, signal, verdict, 'pending')
     }
   } catch (error) {
+    console.error('[ChatRouter] Pipeline failed:', error instanceof Error ? error.stack : error)
     sendSseEvent(res, 'error', {
       message: error instanceof Error ? error.message : 'Pipeline failed',
     })
@@ -382,10 +407,11 @@ async function handlePortfolioReviewRoute(
     return
   }
 
+  const reviewBaseExpectations = deriveExpectations(userProfile)
   const userExpectations = {
-    ...userProfile.expectations,
+    ...reviewBaseExpectations,
     personalSituation: [
-      userProfile.expectations?.personalSituation ?? '',
+      reviewBaseExpectations.personalSituation ?? '',
       personalContextPrompt,
     ].filter(Boolean).join('\n\n'),
   }
@@ -404,6 +430,7 @@ async function handlePortfolioReviewRoute(
 
     sendSseEvent(res, 'complete', result)
   } catch (error) {
+    console.error('[ChatRouter] Portfolio review failed:', error instanceof Error ? error.stack : error)
     sendSseEvent(res, 'error', {
       message: error instanceof Error ? error.message : 'Portfolio review failed',
     })
@@ -445,9 +472,12 @@ chatRouter.post('/', async (req: Request, res: Response) => {
   }
 
   // Start background signal prewarmer on first request per user
-  startSignalPrewarmer(userId)
+  // Disabled on Cloud Run (incompatible with scale-to-zero)
+  if (!process.env.DISABLE_BACKGROUND_JOBS) {
+    startSignalPrewarmer(userId)
+  }
 
-  // 3. Fast routing: greetings + ticker extraction only (~0ms)
+  // 3. Fast routing: greetings only (~0ms)
   const fastResult = routeUserMessageFast({ userId, message })
 
   if (fastResult && fastResult.intent.route === 'chat') {
@@ -468,15 +498,26 @@ chatRouter.post('/', async (req: Request, res: Response) => {
   const personalContextPrompt = formatContextForPrompt(userId)
   const recentAnalysis = hasRecentAnalysis(userId)
 
+  // Timeout wrapper to prevent hanging if Gemini/Search grounding stalls
+  const withTimeout = <T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> =>
+    Promise.race([
+      promise,
+      new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+    ])
+
   const [activeSignals, llmResult] = await Promise.all([
-    getActiveSignals(exposureMap),
-    understandQuery({
-      message,
-      recentMessages: history,
-      personalContextSummary: personalContextPrompt.slice(0, 200),
-      hasRecentAnalysis: recentAnalysis,
-      activeSignals: [],
-    }),
+    withTimeout(getActiveSignals(exposureMap), 30_000, []),
+    withTimeout(
+      understandQuery({
+        message,
+        recentMessages: history,
+        personalContextSummary: personalContextPrompt.slice(0, 200),
+        hasRecentAnalysis: recentAnalysis,
+        activeSignals: [],
+      }),
+      15_000,
+      { route: 'chat' as const, confidence: 0.3, reasoning: 'Query understanding timed out' },
+    ),
   ])
 
   // Log routing decision for observability
@@ -510,6 +551,7 @@ chatRouter.post('/', async (req: Request, res: Response) => {
     route: routerResult.intent.route,
     pipelineMode: routerResult.intent.pipelineMode,
     confidence: routerResult.intent.confidence,
+    introText: routerResult.intent.introText,
   })
 
   switch (routerResult.intent.route) {

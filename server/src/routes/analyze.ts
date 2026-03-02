@@ -26,9 +26,9 @@ import {
   DEFAULT_VERDICT_TTL,
   DEFAULT_BRIEF_TTL,
 } from '@prism/agents/src/multi-agent/cache'
-import type { Signal, ExposureMap } from '@prism/shared'
+import type { Signal, ExposureMap, UserExpectations } from '@prism/shared'
 import { createSyntheticSignal } from '@prism/agents/src/multi-agent/synthetic-signals'
-import { threadContextMap } from './thread-context'
+import { getThreadCtx, setThreadCtx, deleteThreadCtx } from './thread-context'
 
 // ── Shared State ────────────────────────────────────────────
 
@@ -64,7 +64,7 @@ const PortfolioReviewRequestSchema = z.object({
 
 const ResumeRequestSchema = z.object({
   humanInput: z.string(),
-  inputType: z.enum(['debate_correction', 'scenario_preference']),
+  inputType: z.enum(['correction', 'debate_correction', 'scenario_preference']).default('correction'),
 })
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -87,7 +87,24 @@ function parseRiskReductionMagnitude(riskReduction: string): number {
   return Number.isFinite(value) ? Math.abs(value) : 0
 }
 
+function assertVerdictHasCoreFields(
+  verdict: Awaited<ReturnType<typeof runMultiAgentAnalysis>>['verdict'],
+): asserts verdict is Awaited<ReturnType<typeof runMultiAgentAnalysis>>['verdict'] {
+  const candidate = verdict as {
+    holdingImpacts?: unknown
+    recommendations?: unknown
+  } | null | undefined
+
+  if (!candidate || !Array.isArray(candidate.holdingImpacts)) {
+    throw new Error('Cannot build analysis response: verdict is missing holdingImpacts.')
+  }
+  if (!Array.isArray(candidate.recommendations)) {
+    throw new Error('Cannot build analysis response: verdict is missing recommendations.')
+  }
+}
+
 function buildImpactDelta(signal: Signal, verdict: Awaited<ReturnType<typeof runMultiAgentAnalysis>>['verdict']) {
+  assertVerdictHasCoreFields(verdict)
   const affectedHoldings = verdict.holdingImpacts
     .map((holding) => {
       const oneMonthImpact = holding.impact['1M'] ?? holding.impact['1W'] ?? holding.impact['6M']
@@ -112,6 +129,7 @@ function buildImpactDelta(signal: Signal, verdict: Awaited<ReturnType<typeof run
 }
 
 function buildPlaybook(signal: Signal, verdict: Awaited<ReturnType<typeof runMultiAgentAnalysis>>['verdict']) {
+  assertVerdictHasCoreFields(verdict)
   const actionable = verdict.recommendations.filter((rec) => !rec.isDoNothing)
   const ranked = (actionable.length > 0 ? actionable : verdict.recommendations).sort((a, b) => {
     const magnitudeDiff =
@@ -194,6 +212,16 @@ function buildTraceSteps(result: Awaited<ReturnType<typeof runMultiAgentAnalysis
   return steps
 }
 
+/** Derive UserExpectations from the user profile when none are explicitly submitted. */
+function deriveExpectations(profile: ReturnType<typeof getUserProfileById>): UserExpectations | undefined {
+  if (!profile) return undefined
+  return {
+    horizon: profile.investmentHorizonYears,
+    riskToleranceOverride: profile.riskTolerance as 'low' | 'moderate' | 'high',
+    goals: [...profile.goals],
+  }
+}
+
 function buildPipelineContext(userId: string): PipelineContext | null {
   const portfolio = getPortfolioByUserId(userId)
   const profile = getUserProfileById(userId)
@@ -269,7 +297,7 @@ analyzeRouter.post('/', async (req: Request, res: Response) => {
       portfolio,
       exposureMap,
       userProfile,
-      userExpectations: userProfile.expectations,
+      userExpectations: deriveExpectations(userProfile),
       skipCheckpoints: !isGuided,
       pipelineMode: effectiveMode,
       onProgress: (stage, data) => {
@@ -282,7 +310,7 @@ analyzeRouter.post('/', async (req: Request, res: Response) => {
 
     if (isGuided && outcome.type === 'checkpoint') {
       // Store thread context for resume endpoint
-      threadContextMap.set(outcome.threadId, { signal: signal as Signal, userId })
+      await setThreadCtx(outcome.threadId, { signal: signal as Signal, userId })
       sendSseEvent(res, 'thread_id', { threadId: outcome.threadId })
       sendSseEvent(res, 'checkpoint', outcome.checkpoint)
     } else {
@@ -301,7 +329,7 @@ analyzeRouter.post('/', async (req: Request, res: Response) => {
 
       // Clean up thread context if it was guided mode that completed
       if (outcome.type === 'complete' && outcome.threadId) {
-        threadContextMap.delete(outcome.threadId)
+        await deleteThreadCtx(outcome.threadId)
       }
 
       const impactDelta = buildImpactDelta(signal as Signal, verdict)
@@ -320,9 +348,11 @@ analyzeRouter.post('/', async (req: Request, res: Response) => {
         verdict,
         researchBrief,
         intermediateArtifacts,
+        impactDelta,
       })
     }
   } catch (error) {
+    console.error('[Analyze] Pipeline failed:', error instanceof Error ? error.stack : error)
     sendSseEvent(res, 'error', {
       message: error instanceof Error ? error.message : 'Pipeline failed',
     })
@@ -369,7 +399,7 @@ analyzeRouter.post('/portfolio', async (req: Request, res: Response) => {
       portfolio,
       exposureMap,
       userProfile,
-      userExpectations: userProfile.expectations,
+      userExpectations: deriveExpectations(userProfile),
       onProgress: (stage, data) => {
         sendSseEvent(res, stage, data)
       },
@@ -379,6 +409,7 @@ analyzeRouter.post('/portfolio', async (req: Request, res: Response) => {
 
     sendSseEvent(res, 'complete', result)
   } catch (error) {
+    console.error('[Analyze] Portfolio review failed:', error instanceof Error ? error.stack : error)
     sendSseEvent(res, 'error', {
       message: error instanceof Error ? error.message : 'Portfolio review failed',
     })
@@ -425,7 +456,7 @@ analyzeRouter.post('/risk-check', async (req: Request, res: Response) => {
       portfolio,
       exposureMap,
       userProfile,
-      userExpectations: userProfile.expectations,
+      userExpectations: deriveExpectations(userProfile),
       skipCheckpoints: true,
       onProgress: (stage, data) => {
         sendSseEvent(res, stage, data)
@@ -451,6 +482,7 @@ analyzeRouter.post('/risk-check', async (req: Request, res: Response) => {
       intermediateArtifacts: result.intermediateArtifacts,
     })
   } catch (error) {
+    console.error('[Analyze] Risk check pipeline failed:', error instanceof Error ? error.stack : error)
     sendSseEvent(res, 'error', {
       message: error instanceof Error ? error.message : 'Risk check pipeline failed',
     })
@@ -491,7 +523,7 @@ analyzeRouter.post('/improve', async (req: Request, res: Response) => {
       portfolio,
       exposureMap,
       userProfile,
-      userExpectations: userProfile.expectations,
+      userExpectations: deriveExpectations(userProfile),
       skipCheckpoints: true,
       onProgress: (stage, data) => {
         sendSseEvent(res, stage, data)
@@ -517,6 +549,7 @@ analyzeRouter.post('/improve', async (req: Request, res: Response) => {
       intermediateArtifacts: result.intermediateArtifacts,
     })
   } catch (error) {
+    console.error('[Analyze] Portfolio improvement pipeline failed:', error instanceof Error ? error.stack : error)
     sendSseEvent(res, 'error', {
       message: error instanceof Error ? error.message : 'Portfolio improvement pipeline failed',
     })
@@ -528,8 +561,14 @@ analyzeRouter.post('/improve', async (req: Request, res: Response) => {
 // POST /api/v2/analyze/:threadId/resume — resume after checkpoint
 analyzeRouter.post('/:threadId/resume', async (req: Request, res: Response) => {
   const { threadId } = req.params
+  if (!req.body || typeof req.body !== 'object') {
+    console.error(`[Resume] Missing or invalid body for thread ${threadId}. Content-Type: ${req.headers['content-type']}, body:`, req.body)
+    res.status(400).json({ success: false, error: 'Missing request body' })
+    return
+  }
   const parsed = ResumeRequestSchema.safeParse(req.body)
   if (!parsed.success) {
+    console.error(`[Resume] Validation failed for thread ${threadId}:`, parsed.error.issues, 'body:', JSON.stringify(req.body))
     res.status(400).json({ success: false, error: parsed.error.message })
     return
   }
@@ -537,7 +576,7 @@ analyzeRouter.post('/:threadId/resume', async (req: Request, res: Response) => {
   const { humanInput } = parsed.data
 
   // Retrieve stored thread context (signal + userId)
-  const threadCtx = threadContextMap.get(threadId)
+  const threadCtx = await getThreadCtx(threadId)
   if (!threadCtx) {
     res.status(404).json({ success: false, error: 'Thread not found or expired' })
     return
@@ -561,6 +600,13 @@ analyzeRouter.post('/:threadId/resume', async (req: Request, res: Response) => {
       const { result } = outcome
       const { signal, userId } = threadCtx
 
+      if (!result.verdict) {
+        throw new Error('Resume completed without a verdict. Please retry.')
+      }
+      if (!result.researchBrief) {
+        throw new Error('Resume completed without a research brief. Please retry.')
+      }
+
       // Cache results
       await cache.set(verdictCacheKey(signal.id, userId), result.verdict, DEFAULT_VERDICT_TTL)
       await cache.set(briefCacheKey(signal.id, userId), result.researchBrief, DEFAULT_BRIEF_TTL)
@@ -581,12 +627,14 @@ analyzeRouter.post('/:threadId/resume', async (req: Request, res: Response) => {
         verdict: result.verdict,
         researchBrief: result.researchBrief,
         intermediateArtifacts: result.intermediateArtifacts,
+        impactDelta,
       })
 
       // Clean up thread context
-      threadContextMap.delete(threadId)
+      await deleteThreadCtx(threadId)
     }
   } catch (error) {
+    console.error('[Analyze] Resume failed:', error instanceof Error ? error.stack : error)
     sendSseEvent(res, 'error', {
       message: error instanceof Error ? error.message : 'Resume failed',
     })

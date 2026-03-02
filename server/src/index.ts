@@ -199,6 +199,10 @@ const port = process.env.PORT ?? 3001
 app.use(cors())
 app.use(express.json())
 
+// Serve frontend static files in production (Cloud Run single-container)
+const frontendDist = resolve(__dirname, '../../frontend/dist')
+app.use(express.static(frontendDist))
+
 // Track active users from any request with :userId param
 app.use('/api/:resource/:userId', (req, _res, next) => {
   if (req.params.userId && req.params.userId.length > 1) {
@@ -1588,9 +1592,26 @@ async function fetchSignalsForUser(userId: string): Promise<ReadonlyArray<import
   return signalResult.data
 }
 
-startBackgroundChecker(fetchSignalsForUser)
+// Background jobs are disabled on Cloud Run (incompatible with scale-to-zero)
+if (!process.env.DISABLE_BACKGROUND_JOBS) {
+  startBackgroundChecker(fetchSignalsForUser)
+}
 
-app.listen(port, () => {
+// SPA catch-all: serve index.html for any non-API route (must be after all API routes)
+app.get('*', (_req, res) => {
+  res.sendFile(resolve(frontendDist, 'index.html'))
+})
+
+const server = app.listen(port, () => {
   // eslint-disable-next-line no-console
   console.log(`Prism server running on http://localhost:${port}`)
+})
+
+// Graceful shutdown for Cloud Run SIGTERM
+process.on('SIGTERM', () => {
+  // eslint-disable-next-line no-console
+  console.log('SIGTERM received — shutting down gracefully')
+  server.close(() => {
+    process.exit(0)
+  })
 })

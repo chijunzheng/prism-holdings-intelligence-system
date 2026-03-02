@@ -1,4 +1,4 @@
-const SUGGESTED_PROMPTS = [
+const DEFAULT_PROMPTS = [
   'Why does this affect my portfolio?',
   'What should I do?',
   'What if this is temporary?',
@@ -9,12 +9,13 @@ const SUGGESTED_PROMPTS = [
 interface SuggestedPromptsProps {
   readonly onSelect: (prompt: string) => void
   readonly disabled?: boolean
+  readonly prompts?: readonly string[]
 }
 
-export function SuggestedPrompts({ onSelect, disabled = false }: SuggestedPromptsProps) {
+export function SuggestedPrompts({ onSelect, disabled = false, prompts = DEFAULT_PROMPTS }: SuggestedPromptsProps) {
   return (
     <div className="chat-suggested">
-      {SUGGESTED_PROMPTS.map((prompt) => (
+      {prompts.map((prompt) => (
         <button
           key={prompt}
           type="button"

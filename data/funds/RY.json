@@ -1,0 +1,14 @@
+{
+  "ticker": "RY",
+  "name": "Royal Bank of Canada",
+  "provider": "Direct Stock",
+  "assetClass": "equity",
+  "market": "CA",
+  "holdings": [
+    { "name": "Royal Bank of Canada", "ticker": "RY", "weight": 100.0, "sector": "Financials", "country": "CA" }
+  ],
+  "coveragePercent": 100.0,
+  "dataSource": "Single stock — 100% self-exposure",
+  "dataAsOf": "2026-02-28",
+  "refreshFrequency": "daily"
+}

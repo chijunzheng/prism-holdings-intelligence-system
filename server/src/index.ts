@@ -4,26 +4,11 @@ import { randomUUID } from 'crypto'
 import { existsSync, readFileSync } from 'fs'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
-import type { CausalChain, StrategyScenarioItem } from '@prism/shared'
-import {
-  CompareWorkspaceBranchesRequestSchema,
-  CreateWorkspaceBranchRequestSchema,
-  CreateWorkspaceCheckpointRequestSchema,
-  CreateWorkspaceSessionRequestSchema,
-  UpdateWorkspaceBranchRequestSchema,
-  UpdateWorkspaceSessionRequestSchema,
-  WorkspaceOperationAppendRequestSchema,
-} from '@prism/shared'
+import type { CausalChain } from '@prism/shared'
 import { getPortfolioByUserId, getFundComposition, getUserProfileById, getUserProfiles } from '@prism/data'
-import {
-  listPlanSessions,
-  getPlanSession,
-  createPlanSession,
-  updatePlanSession,
-  deletePlanSession,
-  CreatePlanSessionRequestSchema as CreatePlanReqSchema,
-  UpdatePlanSessionRequestSchema as UpdatePlanReqSchema,
-} from './plan-session-service'
+import { enrichPortfolioWithLiveQuotes } from './live-quotes'
+import { staggerSignalTimestamps } from './stagger-signals'
+// plan-session-service removed — legacy routes deleted
 import { analyze } from '@prism/agents/src/exposure-analyzer/index'
 import {
   runExposureAnalysis,
@@ -56,34 +41,10 @@ import {
   startBackgroundChecker,
   clearCheckerState,
 } from './background-signal-checker'
-import {
-  createStrategyDraft,
-  evaluateStrategy,
-  parseStrategyDraftRequest,
-  parseStrategyEvaluateRequest,
-} from './strategy-service'
-import {
-  buildPlanCopilotProposalResponse,
-  parsePlanCopilotRequest,
-} from './plan-copilot-service'
-import {
-  appendWorkspaceOperation,
-  compareWorkspaceBranches,
-  createWorkspaceBranch,
-  createWorkspaceCheckpoint,
-  createWorkspaceSession,
-  getWorkspaceSessionBundle,
-  listWorkspaceSessions,
-  restoreWorkspaceCheckpoint,
-  updateWorkspaceBranch,
-  updateWorkspaceSession,
-} from './workspace-session-service'
+// strategy-service, plan-copilot-service, workspace-session-service removed — legacy routes deleted
 import type { ChatMessage as AgentChatMessage } from '@prism/agents/src/chat-agent/types'
-import {
-  runAdkGraphPipeline,
-  runAdkSignalsPipeline,
-  runPrismAdkPrompt,
-} from '@prism/agents/src/adk/index'
+import { parseStructuredResponse } from './structured-response-parser'
+// ADK imports removed — adk directory no longer exists
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -142,9 +103,8 @@ const TRACE_IMPACT =
   isTruthyEnv(process.env.DEBUG_IMPACT_TRACE) || isTruthyEnv(process.env.PRISM_TRACE)
 const ADK_EMPTY_SIGNAL_IS_VALID = isTruthyEnv(process.env.PRISM_ADK_EMPTY_SIGNAL_IS_VALID)
 
-const USE_ADK_ORCHESTRATION = !['0', 'false', 'no', 'off'].includes(
-  (process.env.PRISM_USE_ADK_ORCHESTRATION ?? 'true').trim().toLowerCase(),
-)
+// ADK was removed — always use manual orchestration
+const USE_ADK_ORCHESTRATION = false
 
 function traceImpact(scope: string, payload: Record<string, unknown>): void {
   if (!TRACE_IMPACT) return
@@ -239,6 +199,10 @@ const port = process.env.PORT ?? 3001
 app.use(cors())
 app.use(express.json())
 
+// Serve frontend static files in production (Cloud Run single-container)
+const frontendDist = resolve(__dirname, '../../frontend/dist')
+app.use(express.static(frontendDist))
+
 // Track active users from any request with :userId param
 app.use('/api/:resource/:userId', (req, _res, next) => {
   if (req.params.userId && req.params.userId.length > 1) {
@@ -246,6 +210,16 @@ app.use('/api/:resource/:userId', (req, _res, next) => {
   }
   next()
 })
+
+// ── v2 Routes (multi-agent pipeline) ──────────────────────
+import { analyzeRouter } from './routes/analyze'
+import { sessionsRouter } from './routes/sessions'
+import { candidatesRouter } from './routes/candidates'
+import { chatRouter } from './routes/chat-router'
+app.use('/api/v2/analyze', analyzeRouter)
+app.use('/api/v2/sessions', sessionsRouter)
+app.use('/api/v2/candidates', candidatesRouter)
+app.use('/api/v2/chat', chatRouter)
 
 // Health check
 app.get('/api/health', (_req, res) => {
@@ -295,13 +269,19 @@ app.get('/api/profiles', (_req, res) => {
 })
 
 // Exposure analysis endpoint
-app.get('/api/portfolio/:userId', (req, res) => {
+app.get('/api/portfolio/:userId', async (req, res) => {
   const portfolio = getPortfolioByUserId(req.params.userId)
   if (!portfolio) {
     res.status(404).json({ success: false, error: 'Portfolio not found' })
     return
   }
-  res.json({ success: true, data: portfolio })
+  try {
+    const enriched = await enrichPortfolioWithLiveQuotes(portfolio)
+    res.json({ success: true, data: enriched })
+  } catch (error) {
+    console.error('Failed to enrich portfolio with live quotes:', error)
+    res.json({ success: true, data: portfolio })
+  }
 })
 
 app.get('/api/exposure/:userId', async (req, res) => {
@@ -358,8 +338,9 @@ app.get('/api/signals/:userId', async (req, res) => {
   if (USE_ADK_ORCHESTRATION) {
     const adkResult = await runAdkSignalsPipeline(req.params.userId)
     if (adkResult.success && adkResult.data) {
-      const signalSummary = summarizeSignalUrgency(adkResult.data)
-      if (adkResult.data.length === 0 && !ADK_EMPTY_SIGNAL_IS_VALID) {
+      const staggeredAdkSignals = staggerSignalTimestamps(adkResult.data)
+      const signalSummary = summarizeSignalUrgency(staggeredAdkSignals)
+      if (staggeredAdkSignals.length === 0 && !ADK_EMPTY_SIGNAL_IS_VALID) {
         traceImpact('signals:adk-empty-fallback', {
           requestId,
           userId: req.params.userId,
@@ -371,12 +352,12 @@ app.get('/api/signals/:userId', async (req, res) => {
           requestId,
           userId: req.params.userId,
           mode: 'adk',
-          signalCount: adkResult.data.length,
+          signalCount: staggeredAdkSignals.length,
           durationMs: Math.round(performance.now() - requestStartedAt),
         })
         res.json({
           success: true,
-          data: adkResult.data,
+          data: staggeredAdkSignals,
           durationMs: adkResult.durationMs,
           mode: 'adk',
           requestId,
@@ -451,7 +432,7 @@ app.get('/api/signals/:userId', async (req, res) => {
     monitorDurationMs: Math.round(signalResult.durationMs),
     durationMs: Math.round(performance.now() - requestStartedAt),
   })
-  const normalizedSignals = signalResult.data ?? []
+  const normalizedSignals = staggerSignalTimestamps(signalResult.data ?? [])
   const signalSummary = summarizeSignalUrgency(normalizedSignals)
   if (normalizedSignals.length === 0) {
     warnImpact('signals:empty', {
@@ -1284,13 +1265,16 @@ app.post('/api/chat/:userId/ask-prism', async (req, res) => {
   }
 
   try {
+    // Enrich portfolio with live quotes so LLM sees current market prices
+    const livePortfolio = await enrichPortfolioWithLiveQuotes(portfolio)
+
     const effectiveSignalId = body.entryContext?.signalId ?? body.signalId
     const sessionScope = resolveAskPrismSessionScope(body, effectiveSignalId)
     let signalsOverviewChain: CausalChain | undefined
 
     // Build pipeline context for orchestrator
     const pipelineContext: PipelineContext = {
-      portfolio,
+      portfolio: livePortfolio,
       profile,
       getFundComposition,
     }
@@ -1308,9 +1292,9 @@ app.post('/api/chat/:userId/ask-prism', async (req, res) => {
       return
     }
 
-    // Extract all holdings from portfolio
+    // Extract all holdings from live-enriched portfolio
     const holdings: import('@prism/shared').Holding[] = []
-    for (const account of portfolio.accounts) {
+    for (const account of livePortfolio.accounts) {
       for (const holding of account.holdings) {
         holdings.push(holding)
       }
@@ -1433,8 +1417,28 @@ app.post('/api/chat/:userId/ask-prism', async (req, res) => {
 
     const history = normalizeAskPrismHistory(body.history)
 
+    // Collect full response to parse suggestions before streaming
+    let fullText = ''
     for await (const chunk of streamAskPrismResponse(context, history, body.message, sessionScope)) {
-      res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`)
+      fullText += chunk
+    }
+
+    // Try structured JSON parse; fall back to text + suggestion extraction
+    const parsed = parseStructuredResponse(fullText)
+
+    if (parsed.kind === 'structured') {
+      res.write(`data: ${JSON.stringify({ structured: parsed.data })}\n\n`)
+    } else {
+      // Stream the clean text in chunks
+      const CHUNK_SIZE = 96
+      for (let i = 0; i < parsed.text.length; i += CHUNK_SIZE) {
+        res.write(`data: ${JSON.stringify({ text: parsed.text.slice(i, i + CHUNK_SIZE) })}\n\n`)
+      }
+
+      // Send suggestions as a separate SSE event
+      if (parsed.suggestions.length > 0) {
+        res.write(`data: ${JSON.stringify({ suggestions: [...parsed.suggestions] })}\n\n`)
+      }
     }
 
     res.write('data: [DONE]\n\n')
@@ -1588,9 +1592,26 @@ async function fetchSignalsForUser(userId: string): Promise<ReadonlyArray<import
   return signalResult.data
 }
 
-startBackgroundChecker(fetchSignalsForUser)
+// Background jobs are disabled on Cloud Run (incompatible with scale-to-zero)
+if (!process.env.DISABLE_BACKGROUND_JOBS) {
+  startBackgroundChecker(fetchSignalsForUser)
+}
 
-app.listen(port, () => {
+// SPA catch-all: serve index.html for any non-API route (must be after all API routes)
+app.get('*', (_req, res) => {
+  res.sendFile(resolve(frontendDist, 'index.html'))
+})
+
+const server = app.listen(port, () => {
   // eslint-disable-next-line no-console
   console.log(`Prism server running on http://localhost:${port}`)
+})
+
+// Graceful shutdown for Cloud Run SIGTERM
+process.on('SIGTERM', () => {
+  // eslint-disable-next-line no-console
+  console.log('SIGTERM received — shutting down gracefully')
+  server.close(() => {
+    process.exit(0)
+  })
 })

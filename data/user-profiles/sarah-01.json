@@ -1,0 +1,15 @@
+{
+  "id": "sarah-01",
+  "name": "Sarah",
+  "age": 42,
+  "riskTolerance": "moderate",
+  "financialLiteracy": "moderate",
+  "goals": ["Balanced growth", "House down payment in 2 years", "Retirement in 20 years"],
+  "investmentHorizonYears": 20,
+  "context": "Followed MoneySense couch potato advice perfectly — VFV, XIC, ZAG, ZEB. Looks great on paper. But her FHSA is a ticking time bomb: $16K earmarked for a house down payment in 2 years, yet 100% invested in equities. She duplicated XIC across TFSA + FHSA ($35K total) and VFV across TFSA + FHSA ($36K total) without realizing the concentration. Added energy and gold as 'alternative diversification' — but a single BOC rate decision hits her bonds, banks, and energy simultaneously. A 15% market drawdown wipes $2,400 from her house fund.",
+  "shortContext": "Couch potato — FHSA time bomb, hidden ETF overlap",
+  "preferences": {
+    "maxDailyAlerts": 2,
+    "detailLevel": "moderate"
+  }
+}

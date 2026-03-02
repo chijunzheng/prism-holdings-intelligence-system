@@ -1,5 +1,20 @@
 import { SignalSchema, type Signal } from '@prism/shared'
 
+export interface GroundingSource {
+  readonly title: string
+  readonly url: string
+  readonly domain?: string
+}
+
+export interface GroundingContext {
+  readonly sources: ReadonlyArray<GroundingSource>
+  readonly searchQueries: ReadonlyArray<string>
+  readonly supportSegments: ReadonlyArray<{
+    readonly text: string
+    readonly sourceIndices: ReadonlyArray<number>
+  }>
+}
+
 interface RawSignalResponse {
   readonly headline?: unknown
   readonly description?: unknown
@@ -195,6 +210,33 @@ function asNumber(value: unknown, fallback = 0.5): number {
   return Number.isFinite(numeric) ? numeric : fallback
 }
 
+/** Validate and return an ISO date string, or null if invalid/in the future. */
+function parseIsoDate(value: string): string | null {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  // Reject dates more than 30 days in the past or in the future
+  const now = Date.now()
+  if (date.getTime() > now) return null
+  if (now - date.getTime() > 30 * 24 * 60 * 60 * 1000) return null
+  return date.toISOString()
+}
+
+/** Pick the earliest valid publishedAt from a signal's sources. */
+function earliestSourceDate(
+  sources: ReadonlyArray<{ readonly publishedAt?: string }>,
+): string | null {
+  let earliest: number | null = null
+  for (const s of sources) {
+    if (!s.publishedAt) continue
+    const ts = new Date(s.publishedAt).getTime()
+    if (!Number.isNaN(ts) && (earliest === null || ts < earliest)) {
+      earliest = ts
+    }
+  }
+  return earliest !== null ? new Date(earliest).toISOString() : null
+}
+
 function parseSources(value: unknown): ReadonlyArray<{
   readonly title: string
   readonly url: string
@@ -227,11 +269,83 @@ function parseSources(value: unknown): ReadonlyArray<{
       title,
       url: sanitizeSourceUrl(url),
       publisher: asString(raw.publisher) || undefined,
-      publishedAt: undefined, // Drop publishedAt — Gemini often returns invalid ISO values.
+      publishedAt: parseIsoDate(asString(raw.publishedAt)) ?? undefined,
     })
   }
 
   return sources
+}
+
+/**
+ * Match a parsed source title against grounding metadata to find a real URL.
+ * Uses fuzzy matching: lowercase, strip punctuation, check if one contains the other.
+ */
+function findGroundingUrl(
+  title: string,
+  groundingSources: ReadonlyArray<GroundingSource>,
+): string | null {
+  if (groundingSources.length === 0) return null
+  const normalizedTitle = title.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim()
+  if (!normalizedTitle) return null
+
+  for (const gs of groundingSources) {
+    const normalizedGs = gs.title.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim()
+    // Check if either title contains the other (fuzzy match)
+    if (normalizedTitle.includes(normalizedGs) || normalizedGs.includes(normalizedTitle)) {
+      return gs.url
+    }
+    // Check for significant word overlap (at least 3 matching words)
+    const titleWords = new Set(normalizedTitle.split(/\s+/))
+    const gsWords = normalizedGs.split(/\s+/)
+    const overlap = gsWords.filter((w) => titleWords.has(w) && w.length > 2).length
+    if (overlap >= 3) {
+      return gs.url
+    }
+  }
+  return null
+}
+
+/**
+ * Replace LLM-hallucinated URLs with real grounding metadata URLs where possible.
+ * For sources without a grounding match, strips the URL to prevent 404s.
+ */
+function applyGroundingToSources(
+  sources: ReadonlyArray<{ readonly title: string; readonly url: string; readonly publisher?: string; readonly publishedAt?: string }>,
+  groundingSources: ReadonlyArray<GroundingSource>,
+): ReadonlyArray<{ readonly title: string; readonly url: string; readonly publisher?: string; readonly publishedAt?: string }> {
+  if (groundingSources.length === 0) return sources
+
+  // Track which grounding sources have been used
+  const usedGroundingUrls = new Set<string>()
+
+  const updated = sources.map((source) => {
+    const groundingUrl = findGroundingUrl(source.title, groundingSources)
+    if (groundingUrl) {
+      usedGroundingUrls.add(groundingUrl)
+      return { ...source, url: groundingUrl }
+    }
+    // No grounding match — LLM URLs are nearly always hallucinated.
+    // Replace with a Google Search link so the user gets relevant results instead of a 404.
+    const searchQuery = encodeURIComponent(source.title)
+    return { ...source, url: `https://www.google.com/search?q=${searchQuery}` }
+  })
+
+  // Append any unused grounding sources as additional evidence
+  for (const gs of groundingSources) {
+    if (!usedGroundingUrls.has(gs.url)) {
+      // Check if this grounding source isn't already represented
+      const alreadyPresent = updated.some((s) => s.url === gs.url)
+      if (!alreadyPresent) {
+        updated.push({
+          title: gs.title,
+          url: gs.url,
+          publisher: gs.domain,
+        })
+      }
+    }
+  }
+
+  return updated
 }
 
 /**
@@ -244,8 +358,12 @@ export function parseSignalResponse(responseText: string): ReadonlyArray<Signal>
 
 /**
  * Parses raw Gemini response text into typed Signal objects and emits parse diagnostics.
+ * When groundingSources are provided, replaces hallucinated URLs with real grounding metadata URLs.
  */
-export function parseSignalResponseWithDiagnostics(responseText: string): SignalParseResult {
+export function parseSignalResponseWithDiagnostics(
+  responseText: string,
+  groundingSources: ReadonlyArray<GroundingSource> = [],
+): SignalParseResult {
   const diagnosticsBase: Omit<
     SignalParseDiagnostics,
     'payloadDetected' | 'payloadContainer' | 'rawSignalCount' | 'acceptedCount'
@@ -296,7 +414,8 @@ export function parseSignalResponseWithDiagnostics(responseText: string): Signal
         continue
       }
 
-      const sources = parseSources(raw.sources)
+      const rawSources = parseSources(raw.sources)
+      const sources = applyGroundingToSources(rawSources, groundingSources)
 
       const signal = SignalSchema.parse({
         id: generateSignalId(headline),
@@ -313,7 +432,7 @@ export function parseSignalResponseWithDiagnostics(responseText: string): Signal
           'ambiguous',
         ),
         sources,
-        detectedAt: new Date().toISOString(),
+        detectedAt: earliestSourceDate(sources) ?? new Date().toISOString(),
         acknowledged: false,
       })
       signals.push(signal)

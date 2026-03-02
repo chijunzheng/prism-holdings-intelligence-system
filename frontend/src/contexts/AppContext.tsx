@@ -46,7 +46,7 @@ interface AppProviderProps {
 }
 
 export function AppProvider({ children }: AppProviderProps) {
-  const [userId, setUserIdRaw] = useState('sarah-01')
+  const [userId, setUserIdRaw] = useState('jason-01')
 
   const setUserId = useCallback((id: string) => {
     setUserIdRaw(id)

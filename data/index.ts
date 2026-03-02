@@ -20,9 +20,9 @@ function loadJson<T>(path: string, parser: { parse: (data: unknown) => T }): T {
 // ── Portfolios ─────────────────────────────────────────────
 
 const PORTFOLIO_FILES = [
-  'portfolios/demo-primary.json',
-  'portfolios/demo-young-investor.json',
-  'portfolios/demo-pre-retiree.json',
+  'portfolios/sarah-01.json',
+  'portfolios/jason-01.json',
+  'portfolios/diana-01.json',
 ] as const
 
 let portfolioCache: ReadonlyArray<Portfolio> | null = null
@@ -39,7 +39,7 @@ export function getPortfolioByUserId(userId: string): Portfolio | undefined {
 
 // ── Fund Compositions ──────────────────────────────────────
 
-const FUND_TICKERS = ['VFV', 'XIC', 'ZAG', 'ZEB', 'XEG', 'XGD', 'XQQ', 'ZDV'] as const
+const FUND_TICKERS = ['VFV', 'XIC', 'ZAG', 'ZEB', 'XEG', 'XGD', 'XQQ', 'ZDV', 'NVDA', 'TSLA', 'BTCX.B', 'RY', 'ENB'] as const
 
 let fundCache: ReadonlyMap<string, FundComposition> | null = null
 
@@ -64,9 +64,9 @@ export function getAllFundCompositions(): ReadonlyMap<string, FundComposition> {
 // ── User Profiles ──────────────────────────────────────────
 
 const PROFILE_FILES = [
-  'user-profiles/profile-mid-career.json',
-  'user-profiles/profile-young.json',
-  'user-profiles/profile-pre-retiree.json',
+  'user-profiles/sarah-01.json',
+  'user-profiles/jason-01.json',
+  'user-profiles/diana-01.json',
 ] as const
 
 let profileCache: ReadonlyArray<UserProfile> | null = null

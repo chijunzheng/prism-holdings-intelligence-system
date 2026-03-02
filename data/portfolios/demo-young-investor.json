@@ -12,6 +12,9 @@
           "valueCad": 18000,
           "units": 150.0,
           "accountType": "TFSA",
+          "bookValueCad": 15186.09,
+          "dayChangeCad": 71.46,
+          "dayChangePct": 0.40,
           "dataAsOf": "2026-02-24T00:00:00Z"
         },
         {
@@ -21,6 +24,9 @@
           "valueCad": 8000,
           "units": 52.0,
           "accountType": "TFSA",
+          "bookValueCad": 6703.16,
+          "dayChangeCad": -23.72,
+          "dayChangePct": -0.30,
           "dataAsOf": "2026-02-24T00:00:00Z"
         },
         {
@@ -30,6 +36,9 @@
           "valueCad": 4000,
           "units": 28.0,
           "accountType": "TFSA",
+          "bookValueCad": 2920.91,
+          "dayChangeCad": -28.31,
+          "dayChangePct": -0.70,
           "dataAsOf": "2026-02-24T00:00:00Z"
         }
       ]

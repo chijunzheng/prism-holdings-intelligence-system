@@ -10,6 +10,7 @@ const sampleSignal: Signal = {
   affectedExposures: ['Canadian Financials'],
   relevanceScore: 0.9,
   urgency: 'high',
+  sentiment: 'mixed',
   temporalClassification: 'structural',
   sources: [{ title: 'BoC', url: 'https://www.bankofcanada.ca/rate' }],
   detectedAt: '2026-02-24T14:00:00Z',

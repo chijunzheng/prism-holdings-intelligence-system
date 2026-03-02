@@ -12,6 +12,9 @@
           "valueCad": 14200,
           "units": 118.3,
           "accountType": "TFSA",
+          "bookValueCad": 12011.37,
+          "dayChangeCad": 57.34,
+          "dayChangePct": 0.40,
           "dataAsOf": "2026-02-24T00:00:00Z"
         },
         {
@@ -21,6 +24,9 @@
           "valueCad": 9800,
           "units": 262.0,
           "accountType": "TFSA",
+          "bookValueCad": 8779.63,
+          "dayChangeCad": -19.43,
+          "dayChangePct": -0.20,
           "dataAsOf": "2026-02-24T00:00:00Z"
         }
       ]
@@ -36,6 +42,9 @@
           "valueCad": 5500,
           "units": 363.0,
           "accountType": "RRSP",
+          "bookValueCad": 5328.17,
+          "dayChangeCad": 5.71,
+          "dayChangePct": 0.10,
           "dataAsOf": "2026-02-24T00:00:00Z"
         },
         {
@@ -45,6 +54,9 @@
           "valueCad": 4200,
           "units": 96.0,
           "accountType": "RRSP",
+          "bookValueCad": 3841.39,
+          "dayChangeCad": -16.97,
+          "dayChangePct": -0.40,
           "dataAsOf": "2026-02-24T00:00:00Z"
         }
       ]
@@ -60,6 +72,9 @@
           "valueCad": 3800,
           "units": 205.0,
           "accountType": "FHSA",
+          "bookValueCad": 3538.07,
+          "dayChangeCad": 42.17,
+          "dayChangePct": 1.10,
           "dataAsOf": "2026-02-24T00:00:00Z"
         }
       ]
@@ -75,6 +90,9 @@
           "valueCad": 2500,
           "units": 135.0,
           "accountType": "NON_REGISTERED",
+          "bookValueCad": 2083.62,
+          "dayChangeCad": 17.08,
+          "dayChangePct": 0.70,
           "dataAsOf": "2026-02-24T00:00:00Z"
         }
       ]

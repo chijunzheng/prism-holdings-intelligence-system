@@ -27,3 +27,28 @@ export const UserProfileSchema = z.object({
   }),
 })
 export type UserProfile = z.infer<typeof UserProfileSchema>
+
+// ── Holdings Consent ─────────────────────────────────────────
+export const HoldingsConsentSchema = z.object({
+  granted: z.boolean(),
+  grantedAt: z.string().datetime().optional(),
+  scope: z.enum(['current_positions']).default('current_positions'),
+})
+export type HoldingsConsent = z.infer<typeof HoldingsConsentSchema>
+
+// ── User Expectations (for pipeline calibration) ─────────────
+export const UserExpectationsSchema = z.object({
+  /** Override inferred risk tolerance */
+  riskToleranceOverride: z.enum(['low', 'moderate', 'high']).optional(),
+  /** Years — may differ per account (e.g. FHSA vs RRSP) */
+  horizon: z.number().int().positive().optional(),
+  /** Free-text personal context */
+  personalSituation: z.string().optional(),
+  /** Primary investment goals */
+  goals: z.array(z.string()).optional(),
+  /** Specific concerns */
+  concerns: z.array(z.string()).optional(),
+  /** Per-account horizons for mismatch detection */
+  accountHorizons: z.record(z.string(), z.number()).optional(),
+})
+export type UserExpectations = z.infer<typeof UserExpectationsSchema>

@@ -1,0 +1,13 @@
+node_modules
+.git
+.env*
+!.env.example
+dist
+eval
+eval_results
+docs
+plans
+.claude
+DEMO-SCRIPT.md
+*.test.ts
+__tests__

@@ -12,6 +12,9 @@
           "valueCad": 25000,
           "units": 1650.0,
           "accountType": "RRSP",
+          "bookValueCad": 24304.76,
+          "dayChangeCad": 24.63,
+          "dayChangePct": 0.10,
           "dataAsOf": "2026-02-24T00:00:00Z"
         },
         {
@@ -21,6 +24,9 @@
           "valueCad": 15000,
           "units": 401.0,
           "accountType": "RRSP",
+          "bookValueCad": 13456.73,
+          "dayChangeCad": -29.47,
+          "dayChangePct": -0.20,
           "dataAsOf": "2026-02-24T00:00:00Z"
         }
       ]
@@ -36,6 +42,9 @@
           "valueCad": 10000,
           "units": 229.0,
           "accountType": "TFSA",
+          "bookValueCad": 9126.56,
+          "dayChangeCad": -39.58,
+          "dayChangePct": -0.40,
           "dataAsOf": "2026-02-24T00:00:00Z"
         },
         {
@@ -45,6 +54,9 @@
           "valueCad": 8000,
           "units": 418.0,
           "accountType": "TFSA",
+          "bookValueCad": 7442.72,
+          "dayChangeCad": -11.74,
+          "dayChangePct": -0.15,
           "dataAsOf": "2026-02-24T00:00:00Z"
         }
       ]
@@ -60,6 +72,9 @@
           "valueCad": 7000,
           "units": 58.3,
           "accountType": "LIRA",
+          "bookValueCad": 5981.59,
+          "dayChangeCad": 27.53,
+          "dayChangePct": 0.40,
           "dataAsOf": "2026-02-24T00:00:00Z"
         }
       ]

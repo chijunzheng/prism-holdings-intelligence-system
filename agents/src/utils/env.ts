@@ -71,3 +71,15 @@ export function getCausalPropagationModelName(): string {
   if (explicit) return explicit
   return getGeminiFastModelName()
 }
+
+const DEFAULT_ROUTER_MODEL = 'gemini-2.5-flash'
+
+/**
+ * Returns a lightweight Gemini model for router classification.
+ * Priority: GEMINI_ROUTER_MODEL -> default (flash-lite for minimal latency).
+ */
+export function getGeminiRouterModelName(): string {
+  const explicit = process.env.GEMINI_ROUTER_MODEL?.trim()
+  if (explicit) return explicit
+  return DEFAULT_ROUTER_MODEL
+}

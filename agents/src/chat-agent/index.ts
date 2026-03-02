@@ -1,17 +1,45 @@
 import type { AgentConfig } from '../types'
-import { runPrismAdkPrompt } from '../adk'
 import { getGeminiApiKey, getGeminiModelName } from '../utils/env'
+import { getGeminiClient } from '../utils/gemini-client'
+
+// Direct Gemini call — replaces the old ADK runtime.
+async function runGeminiPrompt(params: {
+  message: string
+}): Promise<{ success: boolean; data?: { response: string }; error?: string }> {
+  const apiKey = getGeminiApiKey()
+  if (!apiKey) {
+    return { success: false, error: 'Gemini API key not configured' }
+  }
+
+  try {
+    const genai = getGeminiClient()
+    const response = await genai.models.generateContent({
+      model: getGeminiModelName(),
+      contents: params.message,
+      config: { temperature: 0.7 },
+    })
+
+    const text = response.text ?? ''
+    if (!text) {
+      return { success: false, error: 'Empty response from Gemini' }
+    }
+
+    return { success: true, data: { response: text } }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Gemini call failed',
+    }
+  }
+}
 import { buildSystemPrompt, buildNodeContextPrompt, buildWhatIfDetectionPrompt } from './prompts'
 import type { ChatContext, ChatMessage, WhatIfDetection } from './types'
-import { GoogleGenAI } from '@google/genai'
 
 export const config: AgentConfig = {
   name: 'chat-agent',
   description: 'Contextual chat agent scoped to a selected causal graph node via ADK runtime',
   usesLlm: true,
 }
-
-const CHAT_SESSION_PREFIX = 'chat'
 
 function buildInitialPrompt(context: ChatContext): string {
   const systemPrompt = buildSystemPrompt(context.profile)
@@ -84,10 +112,8 @@ export async function generateInitialMessage(
     return { content: '', error: 'Gemini API key not configured.' }
   }
 
-  const result = await runPrismAdkPrompt({
-    userId: context.profile.id,
+  const result = await runGeminiPrompt({
     message: buildInitialPrompt(context),
-    sessionId: `${CHAT_SESSION_PREFIX}:${context.profile.id}:${context.signal.id}:${context.node.id}:init`,
   })
 
   if (!result.success || !result.data) {
@@ -114,10 +140,8 @@ export async function* streamChatResponse(
     return
   }
 
-  const result = await runPrismAdkPrompt({
-    userId: context.profile.id,
+  const result = await runGeminiPrompt({
     message: buildChatPrompt(context, history, userMessage),
-    sessionId: `${CHAT_SESSION_PREFIX}:${context.profile.id}:${context.signal.id}:${context.node.id}`,
   })
 
   if (!result.success || !result.data) {
@@ -141,7 +165,7 @@ export async function detectWhatIf(userMessage: string): Promise<WhatIfDetection
   }
 
   try {
-    const genai = new GoogleGenAI({ apiKey })
+    const genai = getGeminiClient()
     const modelName = getGeminiModelName()
     const response = await genai.models.generateContent({
       model: modelName,
@@ -197,10 +221,8 @@ export async function generateGeneralInitialMessage(
     warnings ? `\nConcentration warnings:\n${warnings}` : '',
   ].join('\n')
 
-  const result = await runPrismAdkPrompt({
-    userId: profile.id,
+  const result = await runGeminiPrompt({
     message: prompt,
-    sessionId: `${CHAT_SESSION_PREFIX}:${profile.id}:general:init`,
   })
 
   if (!result.success || !result.data) {
@@ -250,10 +272,8 @@ export async function* streamGeneralChatResponse(
     'Respond with practical analysis only. Avoid markdown headings.',
   ].join('\n')
 
-  const result = await runPrismAdkPrompt({
-    userId: profile.id,
+  const result = await runGeminiPrompt({
     message: prompt,
-    sessionId: `${CHAT_SESSION_PREFIX}:${profile.id}:general`,
   })
 
   if (!result.success || !result.data) {
@@ -266,23 +286,31 @@ export async function* streamGeneralChatResponse(
   }
 }
 
+/** Tagged chunk: discriminates between thinking tokens and response text. */
+export type AskPrismChunk =
+  | { readonly kind: 'thinking'; readonly text: string }
+  | { readonly kind: 'text'; readonly text: string }
+
 /**
  * Streams an Ask Prism chat response using the unified context with all available layers.
- * Supports Portfolio, Signal Detail, and Plan pages with progressive disclosure.
+ * Uses Gemini's native streaming API with thinking enabled for true reasoning tokens.
+ * Yields tagged chunks so callers can distinguish thinking from response text.
  */
 export async function* streamAskPrismResponse(
   context: import('@prism/shared').AskPrismContext,
   history: ReadonlyArray<ChatMessage>,
   userMessage: string,
-  sessionScope: import('@prism/shared').AskPrismSessionScope = 'global',
-): AsyncGenerator<string, void, undefined> {
-  if (!getGeminiApiKey()) {
-    yield 'Error: Gemini API key not configured.'
+  _sessionScope: import('@prism/shared').AskPrismSessionScope = 'global',
+  personalContextPrompt?: string,
+): AsyncGenerator<AskPrismChunk, void, undefined> {
+  const apiKey = getGeminiApiKey()
+  if (!apiKey) {
+    yield { kind: 'text', text: 'Error: Gemini API key not configured.' }
     return
   }
 
   const { buildAskPrismPrompt } = await import('./ask-prism-prompt')
-  const contextPrompt = buildAskPrismPrompt(context)
+  const contextPrompt = buildAskPrismPrompt(context, personalContextPrompt)
 
   const transcript = history
     .map((message) => `${message.role === 'assistant' ? 'Assistant' : 'User'}: ${message.content}`)
@@ -297,19 +325,32 @@ export async function* streamAskPrismResponse(
     `LATEST USER MESSAGE: ${userMessage}`,
   ].join('\n')
 
-  const result = await runPrismAdkPrompt({
-    userId: context.profile.id,
-    message: prompt,
-    sessionId: `ask-prism:${context.profile.id}:${sessionScope.replace(/[^a-zA-Z0-9:_-]/g, '-')}`,
-  })
+  try {
+    const genai = getGeminiClient()
+    const stream = await genai.models.generateContentStream({
+      model: getGeminiModelName(),
+      contents: prompt,
+      config: {
+        temperature: 0.7,
+        thinkingConfig: {
+          includeThoughts: true,
+        },
+      },
+    })
 
-  if (!result.success || !result.data) {
-    yield `Error: ${result.error ?? 'Failed to generate response'}`
-    return
-  }
-
-  for (const chunk of chunkText(result.data.response)) {
-    yield chunk
+    for await (const chunk of stream) {
+      // Extract parts directly to separate thinking from response text
+      const parts = chunk.candidates?.[0]?.content?.parts
+      if (parts) {
+        for (const part of parts) {
+          if (part.text) {
+            yield { kind: part.thought ? 'thinking' : 'text', text: part.text }
+          }
+        }
+      }
+    }
+  } catch (error) {
+    yield { kind: 'text', text: `Error: ${error instanceof Error ? error.message : 'Gemini streaming call failed'}` }
   }
 }
 

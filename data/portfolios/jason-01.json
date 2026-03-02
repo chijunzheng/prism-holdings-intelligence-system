@@ -1,0 +1,67 @@
+{
+  "userId": "jason-01",
+  "accounts": [
+    {
+      "id": "jason-tfsa",
+      "type": "TFSA",
+      "holdings": [
+        {
+          "ticker": "NVDA",
+          "name": "NVIDIA Corporation",
+          "type": "STOCK",
+          "valueCad": 45000,
+          "units": 225.0,
+          "accountType": "TFSA",
+          "bookValueCad": 30762.59,
+          "dayChangeCad": 318.47,
+          "dayChangePct": 0.71,
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        },
+        {
+          "ticker": "XQQ",
+          "name": "iShares NASDAQ 100 Index ETF (CAD-Hedged)",
+          "type": "ETF",
+          "valueCad": 15000,
+          "units": 375.0,
+          "accountType": "TFSA",
+          "bookValueCad": 12918.47,
+          "dayChangeCad": -43.12,
+          "dayChangePct": -0.29,
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "jason-nonreg",
+      "type": "NON_REGISTERED",
+      "holdings": [
+        {
+          "ticker": "TSLA",
+          "name": "Tesla Inc.",
+          "type": "STOCK",
+          "valueCad": 22000,
+          "units": 53.0,
+          "accountType": "NON_REGISTERED",
+          "bookValueCad": 24847.16,
+          "dayChangeCad": -173.58,
+          "dayChangePct": -0.79,
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        },
+        {
+          "ticker": "BTCX.B",
+          "name": "CI Galaxy Bitcoin ETF",
+          "type": "ETF",
+          "valueCad": 13000,
+          "units": 553.0,
+          "accountType": "NON_REGISTERED",
+          "bookValueCad": 8076.23,
+          "dayChangeCad": 134.22,
+          "dayChangePct": 1.03,
+          "dataAsOf": "2026-02-28T00:00:00Z"
+        }
+      ]
+    }
+  ],
+  "totalValueCad": 95000,
+  "lastUpdated": "2026-02-28T00:00:00Z"
+}

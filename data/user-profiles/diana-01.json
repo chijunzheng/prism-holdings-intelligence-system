@@ -1,0 +1,15 @@
+{
+  "id": "diana-01",
+  "name": "Diana",
+  "age": 58,
+  "riskTolerance": "low",
+  "financialLiteracy": "low",
+  "goals": ["Capital preservation", "Retirement income in 7 years"],
+  "investmentHorizonYears": 7,
+  "context": "Advisor said 'safe dividends' and built what looks like a conservative portfolio. The reality: 19% of her retirement is in Royal Bank alone — RY appears as a direct $30K holding plus hidden inside ZEB (16.7%), ZDV (6.5%), and XIC (6.8%). Total true RY exposure: ~$42K. A single BOC rate decision hits ZAG (bonds), ZEB (banks), ZDV (dividend stocks), and ENB (pipeline rate play) — 64% of her $220K retirement exposed to one signal. She's 7 years from retirement and doesn't know any of this. Her advisor never decomposed the overlap.",
+  "shortContext": "Advisor's nightmare — 19% in RY, 64% rate-exposed",
+  "preferences": {
+    "maxDailyAlerts": 1,
+    "detailLevel": "simple"
+  }
+}

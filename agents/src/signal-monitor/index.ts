@@ -1,10 +1,23 @@
-import { GoogleGenAI } from '@google/genai'
 import type { ExposureMap, Signal } from '@prism/shared'
 import { MAX_SIGNAL_MONITOR_RESULTS } from '@prism/shared'
 import type { AgentConfig, AgentResult } from '../types'
 import { buildSignalSearchPrompt } from './prompts'
-import { parseSignalResponseWithDiagnostics, deduplicateSignals } from './parse'
+import { parseSignalResponseWithDiagnostics, deduplicateSignals, type GroundingSource, type GroundingContext } from './parse'
+import { synthesizeResearchBrief } from './synthesize-brief'
 import { getGeminiApiKey, getSignalMonitorModelName } from '../utils/env'
+import { getGeminiClient } from '../utils/gemini-client'
+
+const SIGNAL_MONITOR_TIMEOUT_MS = 30_000 // 30s max for Gemini + Search grounding
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+    promise.then(
+      (val) => { clearTimeout(timer); resolve(val) },
+      (err) => { clearTimeout(timer); reject(err) },
+    )
+  })
+}
 
 export const config: AgentConfig = {
   name: 'signal-monitor',
@@ -84,7 +97,7 @@ export async function monitor(
   }
 
   try {
-    const genai = new GoogleGenAI({ apiKey })
+    const genai = getGeminiClient()
 
     const prompt = buildSignalSearchPrompt(exposureMap.exposures)
     const modelName = getSignalMonitorModelName()
@@ -99,22 +112,82 @@ export async function monitor(
       promptPreview: compactTextSnippet(prompt, 420),
     })
 
-    const response = await genai.models.generateContent({
-      model: modelName,
-      contents: prompt,
-      config: {
-        tools: [{ googleSearch: {} }],
-        temperature: 0.3,
-      },
-    })
+    const response = await withTimeout(
+      genai.models.generateContent({
+        model: modelName,
+        contents: prompt,
+        config: {
+          tools: [{ googleSearch: {} }],
+          temperature: 0.3,
+        },
+      }),
+      SIGNAL_MONITOR_TIMEOUT_MS,
+      'Signal monitor Gemini call',
+    )
 
     const responseText = response.text ?? ''
-    const parsedResult = parseSignalResponseWithDiagnostics(responseText)
+
+    // Extract real URLs from Gemini grounding metadata (not hallucinated)
+    const groundingSources: GroundingSource[] = []
+    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks
+    if (Array.isArray(groundingChunks)) {
+      for (const chunk of groundingChunks) {
+        const web = chunk.web
+        if (web?.uri && web?.title) {
+          groundingSources.push({ title: web.title, url: web.uri, domain: web.domain })
+        }
+      }
+    }
+
+    // Capture search queries and support segments from grounding metadata
+    const groundingMetadata = response.candidates?.[0]?.groundingMetadata
+    const searchQueries: string[] = []
+    const rawQueries = groundingMetadata?.webSearchQueries
+    if (Array.isArray(rawQueries)) {
+      for (const q of rawQueries) {
+        if (typeof q === 'string' && q.trim()) searchQueries.push(q.trim())
+      }
+    }
+
+    const supportSegments: { text: string; sourceIndices: number[] }[] = []
+    const rawSupports = groundingMetadata?.groundingSupports
+    if (Array.isArray(rawSupports)) {
+      for (const support of rawSupports) {
+        const text = support?.segment?.text
+        const indices = support?.groundingChunkIndices
+        if (typeof text === 'string' && text.trim()) {
+          supportSegments.push({
+            text: text.trim(),
+            sourceIndices: Array.isArray(indices) ? indices.filter((i: unknown) => typeof i === 'number') : [],
+          })
+        }
+      }
+    }
+
+    const groundingContext: GroundingContext = {
+      sources: groundingSources,
+      searchQueries,
+      supportSegments,
+    }
+
+    const parsedResult = parseSignalResponseWithDiagnostics(responseText, groundingSources)
     const parsed = parsedResult.signals
     const deduped = deduplicateSignals(parsed)
 
     // Return up to configured max candidate signals.
-    const signals = deduped.slice(0, MAX_SIGNAL_MONITOR_RESULTS)
+    const trimmed = deduped.slice(0, MAX_SIGNAL_MONITOR_RESULTS)
+
+    // Generate research briefs in parallel per signal (graceful degradation on failure)
+    const signals = await Promise.all(
+      trimmed.map(async (signal) => {
+        try {
+          const brief = await synthesizeResearchBrief({ signal, groundingContext })
+          return { ...signal, researchBrief: brief }
+        } catch {
+          return signal
+        }
+      }),
+    )
     traceSignalMonitor('generate-finish', {
       responseChars: parsedResult.diagnostics.responseChars,
       parsedCount: parsedResult.diagnostics.acceptedCount,
